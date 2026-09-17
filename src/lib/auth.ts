@@ -22,9 +22,12 @@ export const auth = betterAuth({
     genericOAuth({
       config: [
         {
-          // providerId doubles as the backend's registered redirect suffix:
-          // redirectURI resolves to http://localhost:3000/login/oauth2/code/marketplace-web
-          // which is exactly the RegisteredClient redirect measured in the runbook.
+          // providerId names the backend's RegisteredClient
+          // ("marketplace-web"). The registered redirect is the framework
+          // callback BELOW — not the legacy /login/oauth2/code/... path:
+          // it must equal the registered string exactly (RFC 9700 §4.1.3),
+          // measured verbatim on the wire 2026-09-15 and re-verified live
+          // 2026-09-17 (authorize URL carried it character-for-character).
           providerId: "marketplace-web",
           clientId: requiredEnv("OAUTH_CLIENT_ID"),
           clientSecret: requiredEnv("OAUTH_CLIENT_SECRET"),
