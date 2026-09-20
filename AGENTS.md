@@ -19,14 +19,18 @@ session cookie.
 
 - Next.js 16.3.5 + React 19.3.0 + Node v26.8.2
 - Better Auth 1.7.5 + Generic OAuth (stateless — no database)
-- TypeScript + ESLint, no CSS framework (P2 proves auth, not styling)
+- TypeScript + ESLint; zero CSS framework — RTL-logical design tokens
+  (`globals.css`) + Cairo variable font; data layer: DAL + direct server
+  fetch + typed BFF-proxy client (see README "Frontend foundation")
 
 ## Routes
 
-- `/` — sign in/out, session state
-- `/profile` — reads backend `GET /api/v1/users/me` through the BFF proxy
+- `/` — sign in/out, session state (Arabic RTL UI)
+- `/profile` — DAL session + direct backend `/me` fetch (server data layer,
+  NOT a self-fetch through the BFF route — packaged BFF guide forbids it)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
-- `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth)
+- `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth;
+  client-side use ONLY — server components use `src/lib/api/server.ts`)
 
 ## Rules
 
