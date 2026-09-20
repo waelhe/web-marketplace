@@ -33,3 +33,5 @@ session cookie.
 - Never commit secrets: `.env*` is gitignored; `.env.example` holds placeholders only; real dev values live in local `.env.local`.
 - Backend must run locally first (DB + Redis + jar with the two OAuth2 clients) for any live verification.
 - Add no dependency unless measured-needed against the pinned stack; Next.js builds must stay green (`npm run build`).
+- Run everything with the pinned toolchain `../.tools/node-v26.8.2-win-x64` (Node v26.8.2, enforced by `engines` + `.npmrc engine-strict`) — ambient `node` on this machine is older and must not be used.
+- After every edit, verify the page still works at runtime using the next-dev-loop Skill (guide Step 4).
