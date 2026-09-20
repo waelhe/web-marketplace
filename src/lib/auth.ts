@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { genericOAuth } from "better-auth/plugins";
+import { nextCookies } from "better-auth/next-js";
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -70,5 +71,15 @@ export const auth = betterAuth({
         },
       ],
     }),
+    // Official Next.js integration (better-auth.com/docs/integrations/next,
+    // 1.7.x): "make sure this is the last plugin in the array". Applies every
+    // Set-Cookie Better Auth collects from auth.api calls via Next's
+    // cookies() in Route Handlers / Server Actions — this is what lets the
+    // relay's token refresh land the ROTATED refresh token (SAS has
+    // reuseRefreshTokens=false, measured in OAuth2ClientSecretInitializer)
+    // in the browser's account cookie, keeping stateless sessions alive.
+    // In RSC renders it detects RSC:1 and skips session-refresh writes —
+    // reads stay side-effect-free there.
+    nextCookies(),
   ],
 });

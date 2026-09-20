@@ -20,7 +20,6 @@ import { auth } from "@/lib/auth";
 import { decodeProblem, type ProblemDetail } from "@/lib/problem";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
-const PROVIDER_ID = "marketplace-web";
 
 export type BackendResult<T> =
   | { ok: true; data: T; status: number }
@@ -28,22 +27,41 @@ export type BackendResult<T> =
 
 /**
  * Resolve the server-side Bearer access token for the current session.
- * Better Auth's getAccessToken auto-refreshes the provider token when
- * expired (stateless account cookie carries the refresh material).
+ *
+ * Official DB-less selection, measured in the installed better-auth 1.7.5:
+ * `getAccessToken`'s accountSelectionSchema documents `useAccountCookie:
+ * true` as "Select the current OAuth account from its signed cookie" —
+ * the stateless path (api/routes/account.mjs, resolveUserAccount). The
+ * `accountId` selection instead resolves through the internal adapter,
+ * which in a DB-less deployment is the in-process memory adapter
+ * (@better-auth/memory-adapter, "built for development and tests") —
+ * bundle-instance-local, so it only worked where the OAuth callback's
+ * bundle happened to be reused (route handlers) and never in RSC renders
+ * (measured 2026-09-21: same session token, accounts [] in RSC vs the
+ * account in the route-handler context, across two distinct auth module
+ * instances). The account cookie is the authoritative store Better Auth
+ * itself defaults to for DB-less deployments (context/create-context.mjs:
+ * storeAccountCookie: true; the callback writes it with the provider
+ * tokens), and getAccessToken auto-refreshes + re-signs it when the
+ * access token is within 5s of expiry.
  */
 async function resolveBearer(): Promise<string | null> {
   const h = await headers();
-  const session = await auth.api.getSession({ headers: h });
-  if (!session) return null;
-
-  const accounts = await auth.api.listUserAccounts({ headers: h });
-  const account = accounts.find((a) => a.providerId === PROVIDER_ID);
-  if (!account) return null;
-
-  const token = await auth.api.getAccessToken({
-    body: { accountId: account.id },
-    headers: h,
-  });
+  // Expected failure mode (official error-handling guide: expected errors
+  // are handled in code): the account cookie's access token is inside its
+  // expiry window and the provider refresh fails — including the measured
+  // DB-less edge where an RSC render cannot land the rotated refresh token
+  // (SAS reuseRefreshTokens=false), so the rotation is consumed and lost.
+  // That state is a re-auth signal (401), never a crash of the render.
+  let token: Awaited<ReturnType<typeof auth.api.getAccessToken>> | null = null;
+  try {
+    token = await auth.api.getAccessToken({
+      body: { useAccountCookie: true },
+      headers: h,
+    });
+  } catch {
+    return null;
+  }
   if (typeof token === "object" && token !== null && "accessToken" in token) {
     const accessToken = (token as { accessToken: unknown }).accessToken;
     if (typeof accessToken === "string" && accessToken.length > 0) return accessToken;

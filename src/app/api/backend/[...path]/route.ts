@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
-const PROVIDER_ID = "marketplace-web";
 
 // BFF bearer relay: session cookie in, backend Bearer out. Tokens stay
 // server-side; the browser only ever holds the encrypted session cookie.
@@ -20,22 +19,31 @@ export async function GET(
   if (!session) {
     return NextResponse.json({ error: "unauthenticated", reauth: true }, { status: 401 });
   }
-  const accounts = await auth.api.listUserAccounts({ headers: h });
-  const account = accounts.find((a) => a.providerId === PROVIDER_ID);
-  if (!account) {
-    return NextResponse.json({ error: "no_account", reauth: true }, { status: 401 });
-  }
-  // Auto-refreshes the provider access token when expired (stateless account
-  // cookie carries the refresh material).
-  const token = await auth.api.getAccessToken({
-    body: { accountId: account.id },
-    headers: h,
-  });
+  // Official DB-less token selection (measured in better-auth 1.7.5,
+  // api/routes/account.mjs): `useAccountCookie: true` resolves the OAuth
+  // account from the signed account cookie the callback wrote — the store
+  // DB-less deployments are designed around (context/create-context.mjs
+  // defaults storeAccountCookie: true). The previous `accountId` selection
+  // resolved through the in-process memory adapter, which is
+  // bundle-instance-local: it only worked in this route by accidentally
+  // sharing the callback's bundle, and never in server components.
+  // getAccessToken auto-refreshes the provider token when within 5s of
+  // expiry and re-signs the account cookie (Set-Cookie lands here — route
+  // handler — keeping browser-driven calls converging; RSC contexts drop
+  // the write, see src/lib/api/server.ts).
+  const token = await auth.api
+    .getAccessToken({
+      body: { useAccountCookie: true },
+      headers: h,
+    })
+    .catch(() => null);
   const accessToken =
     typeof token === "object" && token !== null && "accessToken" in token
       ? String((token as { accessToken: unknown }).accessToken)
       : null;
   if (!accessToken) {
+    // Expected state (not a 500): refresh failed / no account cookie — the
+    // client wrapper treats 401 as the re-auth signal.
     return NextResponse.json({ error: "no_token", reauth: true }, { status: 401 });
   }
 
