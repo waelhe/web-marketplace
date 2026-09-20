@@ -19,6 +19,28 @@ const backendURL = process.env.BACKEND_URL ?? "http://localhost:8080";
 
 export const auth = betterAuth({
   secret: requiredEnv("BETTER_AUTH_SECRET"),
+  // Client IP for rate limiting — the Railway contract. Railway's edge
+  // terminates TLS and provides the client's remote IP in `X-Real-IP`; it
+  // does NOT send `X-Forwarded-For` (Railway public-networking reference,
+  // "Request Headers" table: X-Real-IP / X-Forwarded-Proto /
+  // X-Forwarded-Host / X-Railway-Edge / X-Request-Start — no forwarded-for;
+  // docs.railway.com/llms-full.txt, fetched 2026-09-20). Better Auth's
+  // default walks only `x-forwarded-for`
+  // (@better-auth/core/dist/utils/ip.mjs DEFAULT_IP_HEADERS), so on the
+  // deployed origin getIP() returned null and rate limiting fell back to a
+  // single shared per-path bucket — measured in the 16aecc06 deploy logs
+  // ("Rate limiting could not determine a client IP…"), meaning one
+  // abusive client would throttle every user on auth paths. The official
+  // option (@better-auth/core init-options.d.mts,
+  // advanced.ipAddress.ipAddressHeaders) walks headers in order and trusts
+  // a single-value header without trustedProxies — the edge overwrites
+  // X-Real-IP, so this read is trustworthy. Local dev is unaffected:
+  // getIP() falls back to 127.0.0.1 in development (ip.mjs isDevelopment).
+  advanced: {
+    ipAddress: {
+      ipAddressHeaders: ["x-real-ip"],
+    },
+  },
   plugins: [
     genericOAuth({
       config: [
