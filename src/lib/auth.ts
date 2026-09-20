@@ -22,12 +22,16 @@ export const auth = betterAuth({
     genericOAuth({
       config: [
         {
-          // providerId names the backend's RegisteredClient
-          // ("marketplace-web"). The registered redirect is the framework
-          // callback BELOW — not the legacy /login/oauth2/code/... path:
-          // it must equal the registered string exactly (RFC 9700 §4.1.3),
-          // measured verbatim on the wire 2026-09-15 and re-verified live
-          // 2026-09-17 (authorize URL carried it character-for-character).
+          // providerId is the LOCAL route name (shapes the framework
+          // callback below); the backend's RegisteredClient clientId is
+          // env-driven (OAUTH_CLIENT_ID) — "marketplace-bff" on the live
+          // Railway backend, measured 2026-09-21 (authorize answered
+          // 302→/login with this pair after its redirect set gained the
+          // callback below, and a client_credentials exchange at the
+          // token endpoint answered 200 with the real secret). The
+          // callback must equal a registered string exactly (RFC 9700
+          // §4.1.3) — measured verbatim on the wire 2026-09-15 and
+          // re-verified live 2026-09-17 and 2026-09-21.
           providerId: "marketplace-web",
           clientId: requiredEnv("OAUTH_CLIENT_ID"),
           clientSecret: requiredEnv("OAUTH_CLIENT_SECRET"),
