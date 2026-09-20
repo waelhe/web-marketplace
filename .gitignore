@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local agent/dev-loop artifacts (session ids, dev server log)
+.agent-session-id
+dev-server.log

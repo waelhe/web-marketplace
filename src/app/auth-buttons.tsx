@@ -7,11 +7,13 @@ export function SignInButton() {
   return (
     <button
       type="button"
+      className="button"
+      data-variant="primary"
       onClick={() =>
         authClient.signIn.social({ provider: "marketplace-web", callbackURL: "/profile" })
       }
     >
-      Sign in
+      تسجيل الدخول
     </button>
   );
 }
@@ -21,13 +23,14 @@ export function SignOutButton() {
   return (
     <button
       type="button"
+      className="button"
       onClick={async () => {
         await authClient.signOut();
         router.push("/");
         router.refresh();
       }}
     >
-      Sign out
+      تسجيل الخروج
     </button>
   );
 }
