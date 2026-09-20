@@ -34,8 +34,16 @@ session cookie.
 
 ## Rules
 
-- Never commit secrets: `.env*` is gitignored; `.env.example` holds placeholders only; real dev values live in local `.env.local`.
-- Backend must run locally first (DB + Redis + jar with the two OAuth2 clients) for any live verification.
+- Never commit secrets: `.env*` is gitignored; `.env.example` holds placeholders only; real dev values live in local `.env.local`; production values live only in Railway service variables.
+- Backend for live verification: the Railway production service
+  https://app-java-v3-production.up.railway.app (service `app-java-v3`).
+  Local `.env.local` and the deployed service both point `BACKEND_URL` at
+  it. Full login/consent/session flows additionally need a real backend
+  user account.
+- This repo deploys as Railway service `web-marketplace` (GitHub-connected,
+  branch `main`, auto-deploy): https://web-marketplace-production-5cc1.up.railway.app.
 - Add no dependency unless measured-needed against the pinned stack; Next.js builds must stay green (`npm run build`).
-- Run everything with the pinned toolchain `../.tools/node-v26.8.2-win-x64` (Node v26.8.2, enforced by `engines` + `.npmrc engine-strict`) — ambient `node` on this machine is older and must not be used.
+- Run everything with the pinned toolchain `../.tools/node-v26.8.2` (Node
+  v26.8.2, enforced by `engines` + `.npmrc engine-strict`) — ambient `node`
+  on this machine is older and must not be used.
 - After every edit, verify the page still works at runtime using the next-dev-loop Skill (guide Step 4).

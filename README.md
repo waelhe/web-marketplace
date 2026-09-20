@@ -20,8 +20,11 @@ cp .env.example .env.local   # then fill in (dev values: backend runbook)
 npm run dev                  # http://localhost:3000
 ```
 
-Backend must run locally first (DB + Redis + jar with the two OAuth2
-clients — see backend `labs/oauth2-verification` runbook).
+Backend: the marketplace backend runs as the Railway production service
+`app-java-v3` (https://app-java-v3-production.up.railway.app) — local dev
+and the deployed service both point `BACKEND_URL` at it. Full login-flow
+verification additionally needs a real backend user account (the seeded
+admin password is not a known constant).
 
 ## Routes
 
@@ -76,14 +79,37 @@ All decisions measured against the docs bundled INSIDE `next@16.3.5`
   client-side data caching (TanStack Query/SWR) waits for the first
   interactive page that needs it.
 
-## Verification (P2)
+## Deployment (Railway, 2026-09-21)
 
-`npm run build` green + live login/read flow against local backend
-(authorize → login → consent → code → session → `/me` 200).
+- Service `web-marketplace` in the app-java-v3 Railway project, GitHub-
+  connected to this repo (branch `main`, auto-deploy trigger), builder
+  RAILPACK.
+- Public URL: https://web-marketplace-production-5cc1.up.railway.app
+  (domain targetPort 8080 — Railway injects `PORT=8080` and `next start`
+  listens on it, the documented platform contract).
+- Runtime env lives ONLY in Railway variables: `BETTER_AUTH_SECRET`,
+  `BETTER_AUTH_URL` (the public URL above), `BACKEND_URL`,
+  `OAUTH_CLIENT_ID`/`OAUTH_CLIENT_SECRET` (the backend's registered client
+  `marketplace-bff`). No secrets in the repo.
+- Backend-side registration (converged by its `OAuth2ClientSecretInitializer`
+  on boot): `OAUTH_CLIENT_REDIRECT_URIS` carries BOTH callbacks — the local
+  dev `http://localhost:3000/api/auth/callback/marketplace-web` and the
+  deployed `https://web-marketplace-production-5cc1.up.railway.app/api/auth/callback/marketplace-web`;
+  `CORS_ALLOWED_ORIGINS` carries the deployed origin.
 
-The 2026-09-20 foundation run was verified live WITHOUT the backend (it is
-stopped in that sandbox): compilation, routes, RTL DOM attributes, Cairo
-font application, 404/boundary rendering, lint, typecheck, and the
-production build are all measured green; OAuth discovery/relay flows were
-NOT live-verifiable there and carry no claims (per AGENTS.md the backend
-must run first).
+## Verification
+
+`npm run build` green; OAuth chain live-verified 2026-09-21 against the
+Railway backend, from BOTH the local dev server and the deployed service:
+OIDC discovery 200, authorize with PKCE S256 answers 302 → `/login` for
+both registered callbacks, `client_credentials` exchange answers 200 with
+a real JWT, and the browser E2E (home → sign-in click → backend login form)
+was measured on both origins.
+
+The remaining steps of the full user flow — form login, consent, callback,
+session, `/me` through the relay — require a real backend user account and
+are honestly NOT yet live-verified. The 2026-09-20 foundation run was
+verified live WITHOUT the backend (it was stopped in that sandbox):
+compilation, routes, RTL DOM attributes, Cairo font application,
+404/boundary rendering, lint, typecheck, and the production build were all
+measured green.
