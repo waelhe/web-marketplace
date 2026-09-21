@@ -17,9 +17,17 @@ export default async function Home() {
             GETs; the first SEO-indexable page) and signed-in alike. */}
         <Link href="/listings">تصفّح الإعلانات</Link>
       </p>
+      <p>
+        {/* The neighborhood picker — public geo surface (anonymous GETs);
+            the community entry for members. */}
+        <Link href="/neighborhoods">المناطق والأحياء — اختر حارتك</Link>
+      </p>
       {session ? (
         <>
           <p>مسجّل الدخول باسم: {session.user.name || session.user.email}</p>
+          <p>
+            <Link href="/neighborhood">حارتي — مجتمع الجيران</Link>
+          </p>
           <p>
             <Link href="/profile">الملف الشخصي (يقرأ /me عبر الوسيط)</Link>
           </p>

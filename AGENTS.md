@@ -33,6 +33,17 @@ session cookie.
   backend-composed schema.org JSON-LD embedded verbatim (the backend's
   L39 `listing-path` contract defaults to this exact route); unknown ids
   → not-found boundary + `noindex` (documented streamed-404)
+- `/neighborhoods` — PUBLIC geo picker (roadmap stage 2): `?parent=`
+  drill-down + `?q=` autocomplete (2-char floor) over the backend's
+  administrative tree via `src/lib/api/geo.ts`; the `/geo/tree` read is
+  NOT used (409 CONFLICT-001 on production — measured); level-3 leaves
+  carry the join affordance (Server Action), anonymous visitors get the
+  sign-in gate instead
+- `/neighborhood` — AUTHENTICATED neighborhood home (L41 + L42):
+  anonymous → sign-in gate (`noindex`; nothing community is public);
+  member → membership card + feed + composer — data via
+  `src/lib/api/community.ts` (the authenticated RSC channel), writes via
+  Server Actions in `src/app/neighborhood/actions.ts` (`backendSend`)
 - `/profile` — DAL session + direct backend `/me` fetch (server data layer,
   NOT a self-fetch through the BFF route — packaged BFF guide forbids it)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)

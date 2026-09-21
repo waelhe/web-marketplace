@@ -36,6 +36,14 @@ admin password is not a known constant).
   template + canonical + OpenGraph) and the backend-composed schema.org
   JSON-LD embedded verbatim; unknown/inactive ids render the not-found
   boundary with `noindex` (the documented streamed-404 contract)
+- `/neighborhoods` — PUBLIC geo picker (roadmap stage 2): drill-down
+  (`?parent=`) + autocomplete (`?q=`, 2-char floor) over the backend's
+  administrative tree — anonymous GETs, the community discovery surface;
+  level-3 leaves carry the join affordance (session-aware)
+- `/neighborhood` — AUTHENTICATED neighborhood home (L41 membership +
+  L42 feed): anonymous → sign-in gate (nothing community is public —
+  measured 401 contract); member → membership card, feed, composer
+  (Server Actions, `useActionState` forms)
 - `/profile` — DAL session + DIRECT backend `/me` fetch (server data layer)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
 - `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth)

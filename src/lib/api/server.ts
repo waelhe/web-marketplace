@@ -107,6 +107,62 @@ export async function backendGet<T>(path: string): Promise<BackendResult<T>> {
   return { ok: true, data: (await upstream.json()) as T, status: upstream.status };
 }
 
+/**
+ * Direct backend WRITE for Server Actions — the mutating-data counterpart
+ * of backendGet, on the identical channel discipline: resolve the session
+ * Bearer (auto-refresh included), call BACKEND_URL directly (never a
+ * self-fetch through the /api/backend route handler), return expected
+ * failures as data. `body` is JSON-serialized; `method` is PUT/POST/DELETE.
+ *
+ * The official security contract rides two layers: the framework's
+ * Server-Action boundary (POST-only, Origin/Host CSRF check) and the
+ * backend's resource-server chain (401/403/404 gates) — the backend is
+ * the authorization authority; this channel only carries the session's
+ * own token. 204 No Content resolves to `data: null`.
+ */
+export async function backendSend<T>(
+  method: "PUT" | "POST" | "DELETE",
+  path: string,
+  body?: unknown,
+): Promise<BackendResult<T>> {
+  const bearer = await resolveBearer();
+  if (!bearer) {
+    return { ok: false, status: 401, problem: null, unauthenticated: true };
+  }
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${BACKEND_URL}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${bearer}`,
+        Accept: "application/problem+json, application/json",
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      cache: "no-store",
+    });
+  } catch {
+    return { ok: false, status: 0, problem: null, unauthenticated: false };
+  }
+
+  if (!upstream.ok) {
+    const problem = await decodeBody(upstream);
+    return {
+      ok: false,
+      status: upstream.status,
+      problem,
+      unauthenticated: upstream.status === 401,
+    };
+  }
+
+  if (upstream.status === 204) {
+    return { ok: true, data: null as T, status: 204 };
+  }
+
+  return { ok: true, data: (await upstream.json()) as T, status: upstream.status };
+}
+
 async function decodeBody(res: Response): Promise<ProblemDetail | null> {
   try {
     return decodeProblem(await res.json());
