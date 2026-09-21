@@ -28,7 +28,14 @@ admin password is not a known constant).
 
 ## Routes
 
-- `/` — sign in / out, session state (Arabic RTL UI)
+- `/` — sign in / out, session state + the public browse entry link
+  (Arabic RTL UI)
+- `/listings` — PUBLIC active-listing browse (paginated; anonymous GETs —
+  crawlers see the same page visitors do)
+- `/listings/[id]` — PUBLIC listing detail: `generateMetadata` (title
+  template + canonical + OpenGraph) and the backend-composed schema.org
+  JSON-LD embedded verbatim; unknown/inactive ids render the not-found
+  boundary with `noindex` (the documented streamed-404 contract)
 - `/profile` — DAL session + DIRECT backend `/me` fetch (server data layer)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
 - `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth)
@@ -78,6 +85,35 @@ All decisions measured against the docs bundled INSIDE `next@16.3.5`
 - Recorded debt: exact `/me` DTO types wait for the OpenAPI export; typed
   client-side data caching (TanStack Query/SWR) waits for the first
   interactive page that needs it.
+
+## Public listing surfaces (2026-09-22, packaged-docs-anchored)
+
+- The public catalog data channel (`src/lib/api/public.ts`): anonymous
+  direct server fetch (no session, no Bearer) — measured live against the
+  Railway production backend: `GET /api/v1/listings` (browse) and
+  `GET /api/v1/listings/{id}` (detail) answer anonymous GETs.
+- React `cache()` dedups the detail read across `generateMetadata` and the
+  page body — ONE backend GET per request, honoring the backend's L40
+  view-counter contract (every successful detail read counts one view).
+- The backend's L39 SEO contract points HERE: its
+  `marketplace.catalog.seo.listing-path` defaults to `/listings/{id}` —
+  this route IS the contract-mandated public page (JSON-LD `url` + sitemap
+  entries compose against it once the backend binds its
+  `public-site-base-url`).
+- JSON-LD embedding follows the packaged JSON-LD guide: native
+  `<script type="application/ld+json">`, `<` escaped as `\u003c`, the
+  backend-composed block embedded VERBATIM (frontend never recomposes
+  facts). Live-verified branch pending: production currently has no
+  property-block listing (measured: the single e2e listing carries
+  `property: null` → `jsonLd: null`).
+- Streamed-404 trade-off (measured + documented): with the root
+  `loading.tsx` boundary, unknown/inactive listing ids render the
+  not-found UI with `noindex` but HTTP 200 — the official streaming
+  contract ("does not lead to indexation"). A real 404 status would
+  require removing the loading boundary (blank screens for 0.6–2.7s
+  Railway round trips) — recorded as a deliberate non-goal.
+- `metadataBase` reuses `BETTER_AUTH_URL` (the app's own origin in dev and
+  production) so canonical/OG URLs resolve absolutely from one env fact.
 
 ## Deployment (Railway, 2026-09-21)
 

@@ -15,7 +15,18 @@ const cairo = Cairo({
 
 // Single-locale Arabic app: no [lang] routing segment needed (i18n guide);
 // direction and language are static facts of the root document.
+//
+// metadataBase resolves relative canonical/openGraph URLs to absolute ones
+// (metadata-functions guide) and reuses the app's own origin — the same
+// env var that already carries it in dev (localhost:3000) and production
+// (the Railway public URL): BETTER_AUTH_URL. The backend's L39 SEO
+// contract composes its JSON-LD `url`/sitemap entries against this same
+// origin once its `marketplace.catalog.seo.public-site-base-url` is
+// bound — one origin fact, one env source, no second variable to drift.
+const appOrigin = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(appOrigin),
   title: {
     default: "Marketplace — السوق",
     template: "%s — Marketplace",

@@ -25,12 +25,20 @@ session cookie.
 
 ## Routes
 
-- `/` — sign in/out, session state (Arabic RTL UI)
+- `/` — sign in/out, session state + the public browse entry link (Arabic RTL UI)
+- `/listings` — PUBLIC active-listing browse (paginated; anonymous GETs —
+  the SEO-indexable surface, data via `src/lib/api/public.ts`)
+- `/listings/[id]` — PUBLIC listing detail: `generateMetadata` (title
+  template + canonical + OpenGraph via `metadataBase`) and the
+  backend-composed schema.org JSON-LD embedded verbatim (the backend's
+  L39 `listing-path` contract defaults to this exact route); unknown ids
+  → not-found boundary + `noindex` (documented streamed-404)
 - `/profile` — DAL session + direct backend `/me` fetch (server data layer,
   NOT a self-fetch through the BFF route — packaged BFF guide forbids it)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
 - `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth;
-  client-side use ONLY — server components use `src/lib/api/server.ts`)
+  client-side use ONLY — server components use `src/lib/api/server.ts`
+  for authenticated data, `src/lib/api/public.ts` for public data)
 
 ## Rules
 

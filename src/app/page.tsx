@@ -12,6 +12,11 @@ export default async function Home() {
   return (
     <main>
       <h1>السوق</h1>
+      <p>
+        {/* The public browse surface — reachable signed-out (anonymous
+            GETs; the first SEO-indexable page) and signed-in alike. */}
+        <Link href="/listings">تصفّح الإعلانات</Link>
+      </p>
       {session ? (
         <>
           <p>مسجّل الدخول باسم: {session.user.name || session.user.email}</p>

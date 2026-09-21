@@ -155,3 +155,123 @@ pre {
   overflow-inline: auto;
   font-size: var(--text-sm);
 }
+
+/* ===== Listing surfaces (public browse + detail) ===== */
+
+.listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--space-4);
+  list-style: none;
+  margin-block: var(--space-4);
+  padding: 0;
+}
+
+/* The whole card is the link target (block-level anchor, no nested
+   interactive elements) — generous touch target, logical radius. */
+.listing-card {
+  display: block;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  color: inherit;
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.listing-card:hover {
+  border-color: var(--color-accent);
+}
+
+.listing-card:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.listing-card h2 {
+  font-size: var(--text-lg);
+  margin: 0 0 var(--space-2);
+}
+
+.listing-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-2);
+}
+
+.listing-category {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.listing-price {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin: 0;
+}
+
+.listing-pager {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-block: var(--space-6);
+}
+
+.listing-crumb {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.listing-description {
+  margin-block: var(--space-4);
+  white-space: pre-line;
+}
+
+/* Detail property facts — a definition grid that reads as a spec sheet
+   in RTL (labels at the inline-start edge). */
+.property-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.property-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+  padding-block-end: var(--space-2);
+}
+
+.property-fact dt {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.property-fact dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.amenity-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+}
+
+.amenity-list li {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+}
