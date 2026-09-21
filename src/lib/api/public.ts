@@ -81,3 +81,24 @@ export const getListingDetail = cache(
   async (id: string): Promise<BackendResult<ListingDetail>> =>
     publicGet(`/api/v1/listings/${encodeURIComponent(id)}`),
 );
+
+/**
+ * One provider's public listings: `GET /api/v1/listings/provider/{id}`
+ * — paginated ACTIVE listings of a provider with the L31 property block
+ * batch-embedded per page. The path id is the PROVIDER USER id (the
+ * users.id space — provider_listings.provider_id, the A1 contract), NOT
+ * the provider profile id. Measured contract: ACTIVE-only (the public
+ * profile surface, CWE-200 guarded); the provider dashboard therefore
+ * renders the caller's inventory as the world sees it and declares the
+ * non-ACTIVE listing read a backend gap.
+ */
+export const getProviderListings = cache(
+  async (
+    providerUserId: string,
+    page: number,
+    size: number,
+  ): Promise<BackendResult<PagedResponse<ListingDetail>>> =>
+    publicGet(
+      `/api/v1/listings/provider/${encodeURIComponent(providerUserId)}?page=${page}&size=${size}`,
+    ),
+);

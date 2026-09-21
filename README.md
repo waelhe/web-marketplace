@@ -44,6 +44,18 @@ admin password is not a known constant).
   L42 feed): anonymous → sign-in gate (nothing community is public —
   measured 401 contract); member → membership card, feed, composer
   (Server Actions, `useActionState` forms)
+- `/provider` — AUTHENTICATED provider home (roadmap stage 3,
+  Nextdoor Business): anonymous → sign-in gate; no provider profile (the
+  me-surfaces' 404 house answer) → the L36 onboarding form; provider →
+  dashboard (L40 view analytics, L25 stats, the public ACTIVE inventory,
+  the create entry)
+- `/provider/listings/new` — AUTHENTICATED create-listing form (born
+  DRAFT; the backend's VERIFIED gate surfaces its own words on submit)
+- `/provider/listings/[id]` — AUTHENTICATED listing manage: L38
+  completeness checklist, field editing + L31 property block (geo
+  location select), and the lifecycle actions (activate = the L46
+  bridge trigger; prefill rides the public detail read — ACTIVE-only,
+  the measured read model)
 - `/profile` — DAL session + DIRECT backend `/me` fetch (server data layer)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
 - `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth)

@@ -333,8 +333,11 @@ pre {
   margin-block: var(--space-4);
 }
 
-/* The post composer — same logical form layout as the geo search. */
-.post-composer {
+/* The post composer — same logical form layout as the geo search.
+   (Stage 3: .stack-form is the generalized name — the provider forms
+   ride the exact same layout; the community class stays untouched.) */
+.post-composer,
+.stack-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -344,7 +347,10 @@ pre {
 
 .post-composer input,
 .post-composer select,
-.post-composer textarea {
+.post-composer textarea,
+.stack-form input,
+.stack-form select,
+.stack-form textarea {
   font: inherit;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -353,18 +359,23 @@ pre {
   color: var(--color-fg);
 }
 
-.post-composer textarea {
+.post-composer textarea,
+.stack-form textarea {
   resize: vertical;
 }
 
 .post-composer input:focus-visible,
 .post-composer select:focus-visible,
-.post-composer textarea:focus-visible {
+.post-composer textarea:focus-visible,
+.stack-form input:focus-visible,
+.stack-form select:focus-visible,
+.stack-form textarea:focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
 }
 
-.post-composer button {
+.post-composer button,
+.stack-form button {
   align-self: flex-start;
 }
 
@@ -385,4 +396,109 @@ pre {
 .post-body {
   margin: 0;
   white-space: pre-line;
+}
+
+/* ── Provider surfaces (stage 3) ─────────────────────────────── */
+
+/* The inline lifecycle form — label + control + button on one row,
+   wrapping on narrow viewports (logical properties, RTL-first). */
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  max-inline-size: 40rem;
+}
+
+.inline-form label {
+  font-size: 0.9em;
+}
+
+.inline-form input {
+  font: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+
+.inline-form input:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.inline-form .page-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* The action row — lifecycle forms side by side. */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+/* The destructive exit — visually distinct (danger tokens), never the
+   default look; a plain bordered button in the danger color. */
+.button[data-variant="danger"] {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* The stats rows (L40 views / L25 aggregates). */
+.stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin-block: var(--space-3);
+  padding: 0;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+  padding-block-end: var(--space-2);
+}
+
+.stat-value {
+  font-weight: 600;
+}
+
+/* The L38 completeness checklist — the four quarters. */
+.completeness-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin-block: var(--space-3);
+  padding: 0;
+}
+
+.completeness-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.completeness-list li[data-present="yes"] > span:first-child {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.completeness-list li[data-present="no"] > span:first-child {
+  opacity: 0.6;
+}
+
+.completeness-list .page-note {
+  flex-basis: 100%;
+  margin: 0;
 }
