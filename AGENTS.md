@@ -43,7 +43,7 @@ session cookie.
 - This repo deploys as Railway service `web-marketplace` (GitHub-connected,
   branch `main`, auto-deploy): https://web-marketplace-production-5cc1.up.railway.app.
 - Add no dependency unless measured-needed against the pinned stack; Next.js builds must stay green (`npm run build`).
-- Run everything with the pinned toolchain `../.tools/node-v26.8.2` (Node
+- Run everything with the pinned toolchain `../.tools/node-v26.8.2-win-x64` (Node
   v26.8.2, enforced by `engines` + `.npmrc engine-strict`) — ambient `node`
   on this machine is older and must not be used.
 - After every edit, verify the page still works at runtime using the next-dev-loop Skill (guide Step 4).
