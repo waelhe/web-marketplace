@@ -32,7 +32,10 @@ console.log("accessToken len:", payload.accessToken?.length ?? "none");
 console.log("refreshToken len:", payload.refreshToken?.length ?? "none");
 
 const basic = Buffer.from(`${env.OAUTH_CLIENT_ID}:${env.OAUTH_CLIENT_SECRET}`).toString("base64");
-const res = await fetch("https://app-java-v3-production.up.railway.app/oauth2/token", {
+// Same BACKEND_URL the app itself uses (.env.local); hardcoded Railway origin
+// kept only as fallback so the script and the app cannot drift apart.
+const tokenUrl = `${env.BACKEND_URL ?? "https://app-java-v3-production.up.railway.app"}/oauth2/token`;
+const res = await fetch(tokenUrl, {
   method: "POST",
   headers: {
     "Content-Type": "application/x-www-form-urlencoded",
