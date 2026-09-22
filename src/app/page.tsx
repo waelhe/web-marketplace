@@ -34,6 +34,13 @@ export default async function Home() {
             <Link href="/provider">لوحة المزوّد — إعلاناتك</Link>
           </p>
           <p>
+            {/* The bookings home (stage 6 — الحجز والدفع): the
+                consumer's own bookings + payment state. Session-only
+                like every authenticated surface (the anonymous home
+                never carries it — the measured privacy contract). */}
+            <Link href="/bookings">حجوزاتي</Link>
+          </p>
+          <p>
             {/* The inbox (stage 4) — notifications, contact requests,
                 and neighbor conversations. */}
             <Link href="/inbox">الصندوق — إشعاراتك ورسائلك</Link>

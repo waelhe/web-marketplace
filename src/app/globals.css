@@ -634,3 +634,58 @@ pre {
 .reply-block .page-note {
   margin-block: var(--space-1);
 }
+
+/* Stage 6 (الحجز والدفع) — the booking status badge: a small
+   stateful chip on every booking card/detail. PENDING = outlined
+   (waiting on the provider); CONFIRMED/COMPLETED = accent (live or
+   finished stays); CANCELLED = danger. The variants reuse the
+   existing semantic tokens — no new palette entries. */
+.booking-status {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.booking-status[data-status="PENDING"] {
+  color: var(--color-muted);
+}
+
+.booking-status[data-status="CONFIRMED"],
+.booking-status[data-status="COMPLETED"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.booking-status[data-status="CANCELLED"] {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* Stage 6 — the provider's published availability slots: one row per
+   window, the booked flag as the trailing value (the same
+   stat-row anatomy, lighter: no bottom rule between slots). */
+.slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin-block: var(--space-3);
+  padding: 0;
+}
+
+.slot-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.slot-row[data-booked="yes"] {
+  opacity: 0.6;
+}

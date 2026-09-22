@@ -73,10 +73,34 @@ admin password is not a known constant).
   direct + booking threads): messages oldest-first, composer,
   view-marks-read; own-message marking via the measured `/users/me`
   identity chain
+- `/bookings` — AUTHENTICATED consumer bookings home (roadmap stage 6,
+  الحجز والدفع): the caller's own bookings self-scoped through the
+  ME chain (`GET /bookings/consumer/{me.id}`); anonymous → sign-in
+  gate — `src/lib/api/booking.ts`
+- `/bookings/[id]` — AUTHENTICATED participant-scoped booking detail
+  (stage 6): the backend refuses non-participants (its own words,
+  rendered verbatim); the caller's role joins through their own
+  consumer/provider first pages (BookingResponse carries no
+  participant ids — measured); role sections: consumer
+  cancel/payment/review, provider confirm/complete/cancel/reverse
+  review; the payment block resolves the intent via the deterministic
+  idempotency key (read-or-create; no "intent by booking" read
+  exists) with the honest PROCESSING/no-Stripe state
+- `/listings/[id]/book` — AUTHENTICATED booking request (stage 6):
+  gate-before-any-listing-read; UTC-instant stay window
+  ([startsAt, endsAt) half-open); server-derived pricing; the
+  exact-slot gate's words surface verbatim; success redirects to the
+  new booking
+- `/provider/bookings` — AUTHENTICATED provider bookings +
+  availability (stage 6): incoming bookings via the ME chain + the
+  published slots (the exact-slot gate's source) + the slot publish
+  form on the measured query-string contract (`@RequestParam`
+  startsAt/endsAt — never a JSON body)
 - `/listings/[id]` — PUBLIC detail (generateMetadata + verbatim
   JSON-LD) now also carries the L34 public lead form (name/phone/
   message — no account required; the app's first public write via
-  `backendSendPublic`)
+  `backendSendPublic`) and the stage-6 booking entry LINK «احجز هذا
+  المكان» (a link — the page's form count stays exactly 1)
 - `/neighborhood` — feed posts carry «راسل الجار» (L44 direct
   conversation entry, idempotent open per pair)
 - `/profile` — DAL session + DIRECT backend `/me` fetch (server data layer)

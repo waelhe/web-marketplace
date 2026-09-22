@@ -216,6 +216,12 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
             إعلان جديد
           </Link>
         </p>
+        <p className="listing-meta">
+          {/* Roadmap stage 6 — the provider's booking surface: incoming
+              bookings + the availability slots the exact-slot gate
+              consumes (the consumer's window must match one exactly). */}
+          <Link href="/provider/bookings">حجوزات ضيوفك — وإدارة التوافر</Link>
+        </p>
         {/* The measured inventory contract: this list is the PUBLIC
             provider surface (ACTIVE-only). Non-ACTIVE listings are not
             listable by any backend surface — the manage page (by id) is

@@ -90,3 +90,37 @@ export function replyToReview(
     { reply },
   );
 }
+
+/**
+ * The consumer review — `POST /api/v1/reviews` (roadmap stage 6: the
+ * booking-gated write the reputation stage declared awaiting). The
+ * backend's own gates teach the caller (measured,
+ * ReviewsService.create): 409 "Review already exists for booking"
+ * (one per direction), 403 "Only the booking consumer can submit a
+ * review", 400 "Cannot review a booking that is not COMPLETED"; the
+ * rating bounds are the request's own @Min(1)/@Max(5).
+ */
+export function createReview(
+  bookingId: string,
+  rating: number,
+  comment: string | null,
+): Promise<BackendResult<ReviewView>> {
+  return backendSend("POST", "/api/v1/reviews", { bookingId, rating, comment });
+}
+
+/**
+ * The reverse review — `POST /api/v1/reviews/reverse` (the booking's
+ * provider rates its consumer; I8/L21 two-way reviews). Same request
+ * shape, same gates mirrored: 409 "Reverse review already exists for
+ * booking", 403 "Only the booking provider can submit a reverse
+ * review", 400 on a booking that is not COMPLETED. The provider's own
+ * rating average is unaffected (the aggregate filters the FORWARD
+ * direction only — the backend's own contract).
+ */
+export function createReverseReview(
+  bookingId: string,
+  rating: number,
+  comment: string | null,
+): Promise<BackendResult<ReviewView>> {
+  return backendSend("POST", "/api/v1/reviews/reverse", { bookingId, rating, comment });
+}

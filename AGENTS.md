@@ -84,10 +84,40 @@ session cookie.
   direct + booking threads): messages oldest-first, composer, and the
   view-marks-read effect; message ownership rides the measured
   `GET /users/me` identity chain (senderId === me.id)
+- `/bookings` — AUTHENTICATED consumer bookings home (roadmap stage 6,
+  الحجز والدفع): anonymous → sign-in gate (`noindex`); the caller's
+  own bookings self-scoped through the ME chain (`GET
+  /bookings/consumer/{me.id}` — the id resolves from the backend's
+  /me projection, never from the client) — data via
+  `src/lib/api/booking.ts`, `?page=` pagination
+- `/bookings/[id]` — AUTHENTICATED participant-scoped booking detail
+  (stage 6): the backend refuses non-participants with its own words
+  (rendered verbatim); the caller's ROLE joins through their own
+  consumer/provider first pages (BookingResponse carries NO
+  participant ids — measured); role-classified sections: consumer
+  cancel/payment/review, provider confirm/complete/cancel/reverse
+  review; the payment block resolves the intent through the
+  deterministic idempotency key (read-or-create — no "intent by
+  booking" read exists) and renders amountCents (the booking's only
+  readable total) with the honest PROCESSING/no-Stripe state
+- `/listings/[id]/book` — AUTHENTICATED booking request (stage 6):
+  the gate renders BEFORE any listing read (the measured privacy
+  contract); the stay window [startsAt, endsAt) as UTC instants
+  (datetime-local interpreted as UTC — the stated convention), the
+  total DERIVED server-side, the exact-slot gate's 400 words surface
+  verbatim; success redirects to the new booking
+- `/provider/bookings` — AUTHENTICATED provider bookings + availability
+  (stage 6): incoming bookings self-scoped via the ME chain (`GET
+  /bookings/provider/{me.id}`) + the provider's published slots (the
+  exact-slot gate's source; authenticated read, window computed inside
+  the channel) + the slot publish form on the MEASURED query-string
+  contract (`@RequestParam startsAt/endsAt` — never a JSON body)
 - `/listings/[id]` now also carries the L34 PUBLIC lead form (the
   mediated-contact model — name/phone/message, no account required;
   the app's first public write via `backendSendPublic`, attribution
-  when a session exists)
+  when a session exists) and the stage-6 booking entry LINK «احجز هذا
+  المكان» (a link, never a form — the page's form count stays exactly
+  1)
 - `/neighborhood` feed posts carry «راسل الجار» — the L44 entry
   (idempotent `POST /messages/conversations/direct`; hidden on own
   posts via the /me chain; the backend's 400-self guard is the
