@@ -48,9 +48,23 @@ session cookie.
   Nextdoor Business): anonymous → sign-in gate (`noindex`); no provider
   profile (the me-surfaces' 404 house answer) → the L36 onboarding
   form; provider → dashboard (L40 view analytics + L25 stats + the
-  public ACTIVE inventory + the create entry) — data via
-  `src/lib/api/provider.ts`, writes via Server Actions in
+  public ACTIVE inventory + the create entry + the stage-5 reviews
+  section: reviews about me newest-first via `GET
+  /reviews/provider/{userId}` on the session's own backend user id
+  (the A1 contract), each unreplied review carrying the L21 reply
+  form `POST /reviews/{id}/reply`) — data via `src/lib/api/provider.ts`
+  + `src/lib/api/reputation.ts`, writes via Server Actions in
   `src/app/provider/actions.ts`
+- `/providers/[id]` — PUBLIC provider page (roadmap stage 5,
+  السمعة — the second SEO surface, L36): one anonymous read
+  `GET /providers/{profileId}/public` (measured: NO auth gate — unknown
+  ids answer 404 NF-001) carrying the profile + status badge + the
+  aggregate rating block + the VERIFIED-gated ACTIVE listings page;
+  `generateMetadata` (title template + canonical + OG — indexable);
+  unknown ids → not-found boundary + `noindex` (the documented
+  streamed-404); the full reviews LIST is not renderable here (reviews
+  are keyed by the provider user id no public read exposes — declared
+  backend gap) — data via `src/lib/api/reputation.ts`
 - `/provider/listings/new` — AUTHENTICATED create-listing form (born
   DRAFT; the backend's VERIFIED gate surfaces its own words on submit)
 - `/provider/listings/[id]` — AUTHENTICATED listing manage: the L38

@@ -48,7 +48,14 @@ admin password is not a known constant).
   Nextdoor Business): anonymous → sign-in gate; no provider profile (the
   me-surfaces' 404 house answer) → the L36 onboarding form; provider →
   dashboard (L40 view analytics, L25 stats, the public ACTIVE inventory,
-  the create entry)
+  the create entry, and the stage-5 reviews section — reviews about me
+  via `GET /reviews/provider/{userId}` on the session's backend user id,
+  plus the L21 reply form `POST /reviews/{id}/reply`)
+- `/providers/[id]` — PUBLIC provider page (roadmap stage 5, السمعة —
+  the second SEO surface, L36): one anonymous read carries the profile +
+  status badge + aggregate rating block + the VERIFIED-gated ACTIVE
+  listings page (paginated); full metadata (canonical + OG); unknown ids
+  → not-found boundary + noindex — `src/lib/api/reputation.ts`
 - `/provider/listings/new` — AUTHENTICATED create-listing form (born
   DRAFT; the backend's VERIFIED gate surfaces its own words on submit)
 - `/provider/listings/[id]` — AUTHENTICATED listing manage: L38

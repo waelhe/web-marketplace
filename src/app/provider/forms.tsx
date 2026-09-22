@@ -18,6 +18,7 @@ import {
   deleteMediaAction,
   pauseListingAction,
   renewListingAction,
+  replyToReviewAction,
   updateListingAction,
   uploadMediaAction,
   upsertPropertyAction,
@@ -639,6 +640,41 @@ export function MediaDeleteButton({ mediaId }: { mediaId: string }) {
         {pending ? "…" : "احذف"}
       </button>
       {state.status === "error" ? <StateMessage state={state} /> : null}
+    </form>
+  );
+}
+
+/**
+ * Reply to one review (roadmap stage 5 — السمعة): the L21 two-way
+ * review surface, one public reply per review, rendered only on
+ * reviews with no reply yet (the backend's entity rejects a second —
+ * its own words teach the boundary). The client mirror is the blank
+ * gate alone (ReplyRequest is @NotBlank, no authored maximum).
+ */
+export function ReviewReplyForm({ reviewId }: { reviewId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    replyToReviewAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="stack-form">
+      <input type="hidden" name="reviewId" value={reviewId} />
+      <label htmlFor={`reply-${reviewId}`}>ردّك العلني على المراجعة</label>
+      <textarea
+        id={`reply-${reviewId}`}
+        name="reply"
+        rows={3}
+        required
+        placeholder="شكرًا لك — نعمل على تحسين ما ذكرت."
+      />
+      <p className="field-hint">
+        رد واحد علني لكل مراجعة — يظهر على صفحتك العامة مع المراجعة نفسها.
+      </p>
+      <button type="submit" className="button" data-variant="primary" disabled={pending}>
+        {pending ? "جارٍ الإرسال…" : "انشر الرد"}
+      </button>
+      <StateMessage state={state} />
     </form>
   );
 }

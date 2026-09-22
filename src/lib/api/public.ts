@@ -27,7 +27,7 @@ import type { ListingDetail, ListingSummary, PagedResponse } from "./types";
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
 
 /** Direct anonymous GET — no session, no Bearer, no cookies. */
-async function publicGet<T>(path: string): Promise<BackendResult<T>> {
+export async function publicGet<T>(path: string): Promise<BackendResult<T>> {
   let upstream: Response;
   try {
     upstream = await fetch(`${BACKEND_URL}${path}`, {
