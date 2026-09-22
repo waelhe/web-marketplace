@@ -15,9 +15,11 @@ import {
   archiveListingAction,
   becomeProviderAction,
   createListingAction,
+  deleteMediaAction,
   pauseListingAction,
   renewListingAction,
   updateListingAction,
+  uploadMediaAction,
   upsertPropertyAction,
 } from "./actions";
 import type { ActionState } from "./actions";
@@ -36,6 +38,7 @@ import {
   PROPERTY_PURPOSES,
   PROPERTY_TYPE_LABELS,
   PROPERTY_TYPES,
+  MEDIA_ALLOWED_CONTENT_TYPES,
   type ProviderActorType,
 } from "@/lib/api/provider-contract";
 import type { PropertyBlock } from "@/lib/api/types";
@@ -581,6 +584,61 @@ export function PropertyForm({
         {pending ? "جارٍ الحفظ…" : "احفظ تفاصيل العقار"}
       </button>
       <StateMessage state={state} />
+    </form>
+  );
+}
+
+/**
+ * The photo upload form (L28/L34, roadmap stage 4) — a plain form whose
+ * FormData carries the File to the Server Action (the official file
+ * upload path through Server Actions; the action's channel does the
+ * declare → PUT → confirm chain server-side). The client pre-check
+ * mirrors the backend's allowlist and size cap for a zero-roundtrip
+ * reject with the same words; the backend stays the authority.
+ */
+export function MediaUploadForm({ listingId }: { listingId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    uploadMediaAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="stack-form">
+      <input type="hidden" name="listingId" value={listingId} />
+      <label htmlFor="media-file">صورة من جهازك</label>
+      <input
+        id="media-file"
+        name="file"
+        type="file"
+        accept={MEDIA_ALLOWED_CONTENT_TYPES.join(",")}
+        required
+      />
+      <p className="field-hint">
+        JPEG أو PNG أو WebP أو GIF — حتى ١٠ ميغابايت. تظهر الصورة في الإعلان بعد
+        اعتمادها على الخادم.
+      </p>
+      <button type="submit" className="button" data-variant="primary" disabled={pending}>
+        {pending ? "جارٍ الرفع…" : "ارفع الصورة"}
+      </button>
+      <StateMessage state={state} />
+    </form>
+  );
+}
+
+/** Delete one photo — a per-asset small form (the deletePost pattern). */
+export function MediaDeleteButton({ mediaId }: { mediaId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    deleteMediaAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="inline-action">
+      <input type="hidden" name="mediaId" value={mediaId} />
+      <button type="submit" className="button" data-variant="danger" disabled={pending}>
+        {pending ? "…" : "احذف"}
+      </button>
+      {state.status === "error" ? <StateMessage state={state} /> : null}
     </form>
   );
 }

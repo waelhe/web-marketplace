@@ -56,8 +56,28 @@ session cookie.
 - `/provider/listings/[id]` — AUTHENTICATED listing manage: the L38
   completeness checklist, field editing + the L31 property block (geo
   location select) prefilled from the public detail read (ACTIVE-only —
-  the measured read model), and the lifecycle actions whose ACTIVATION
-  is the L46 bridge trigger (`ListingActivatedEvent`)
+  the measured read model), the lifecycle actions whose ACTIVATION is
+  the L46 bridge trigger (`ListingActivatedEvent`), and the L28/L34
+  photo surface (presigned declare → PUT → confirm + gallery + delete;
+  S3-unconfigured answers 503 and renders honestly — the whole media
+  channel is storage-gated on the backend)
+- `/inbox` — AUTHENTICATED inbox (roadmap stage 4): the in-app
+  notification feed (mark-read) + the L22 preference matrix (7 types ×
+  3 channels; the in-app column always on, diffs only are upserted) +
+  the L34 provider lead inbox (status tabs + one-way moves) — data via
+  `src/lib/api/inbox.ts`
+- `/inbox/conversations/[id]` — AUTHENTICATED conversation view (L44
+  direct + booking threads): messages oldest-first, composer, and the
+  view-marks-read effect; message ownership rides the measured
+  `GET /users/me` identity chain (senderId === me.id)
+- `/listings/[id]` now also carries the L34 PUBLIC lead form (the
+  mediated-contact model — name/phone/message, no account required;
+  the app's first public write via `backendSendPublic`, attribution
+  when a session exists)
+- `/neighborhood` feed posts carry «راسل الجار» — the L44 entry
+  (idempotent `POST /messages/conversations/direct`; hidden on own
+  posts via the /me chain; the backend's 400-self guard is the
+  authority)
 - `/profile` — DAL session + direct backend `/me` fetch (server data layer,
   NOT a self-fetch through the BFF route — packaged BFF guide forbids it)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)

@@ -21,3 +21,11 @@ export function formatPrice(price: number, currency: string): string {
 export function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("ar", { dateStyle: "medium" }).format(new Date(iso));
 }
+
+/** ISO instant → Arabic medium date + time (chat threads: the time matters). */
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("ar", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(iso));
+}

@@ -8,6 +8,7 @@ import {
   getMyFeed,
   getMyMembership,
 } from "@/lib/api/community";
+import { getMyBackendUser } from "@/lib/api/inbox";
 import {
   CATEGORY_LABELS,
   FEED_PAGE_SIZE,
@@ -15,7 +16,7 @@ import {
   type PostCategory,
 } from "@/lib/api/community-contract";
 import { findGeoNodeById } from "@/lib/api/geo";
-import { CreatePostForm, LeaveForm } from "./forms";
+import { CreatePostForm, LeaveForm, MessageNeighborButton } from "./forms";
 
 /**
  * حارتي — the authenticated neighborhood home (roadmap stage 2's
@@ -123,7 +124,14 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
   const node = await findGeoNodeById(membership.data.locationId);
   const neighborhoodName = node?.nameAr ?? null;
 
-  const feed = await getMyFeed(page, FEED_PAGE_SIZE, category);
+  const [feed, me] = await Promise.all([
+    getMyFeed(page, FEED_PAGE_SIZE, category),
+    // My backend user id (the /me projection) — powers the feed's
+    // self-message suppression; on failure every post keeps its button
+    // and the backend's own 400-self guard answers honestly.
+    getMyBackendUser(),
+  ]);
+  const myBackendId = me.ok ? me.id : null;
 
   return (
     <main>
@@ -204,6 +212,12 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                           projection contract — no invented identity display. */}
                     </p>
                     <p className="post-body">{post.body}</p>
+                    {/* L44 entry: message the author (hidden on my own
+                        posts via the measured /me identity chain — the
+                        backend's 400-self guard remains the authority). */}
+                    {myBackendId === null || post.authorId !== myBackendId ? (
+                      <MessageNeighborButton authorId={post.authorId} />
+                    ) : null}
                   </li>
                 ))}
               </ul>

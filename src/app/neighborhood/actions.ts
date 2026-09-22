@@ -24,6 +24,7 @@ import {
   joinNeighborhood,
   leaveNeighborhood,
 } from "@/lib/api/community";
+import { openDirectConversation } from "@/lib/api/inbox";
 import { POST_CATEGORIES, type PostCategory } from "@/lib/api/community-contract";
 import { isUuid } from "@/lib/api/geo";
 
@@ -160,4 +161,44 @@ export async function createPostAction(
   // redirect (not refresh): a fresh navigation remounts the form empty —
   // the new post at the top of the feed is itself the success feedback.
   redirect("/neighborhood");
+}
+
+/**
+ * Open (or reuse) the direct conversation with a post's author — L44's
+ * consumer entry (roadmap stage 4). The backend owns every gate: 400 on
+ * self ("Cannot open a direct conversation with yourself" — its own
+ * words), 404 on an unknown recipient, 429 on the conversationCreate
+ * budget; the action only carries the session's token and lands the
+ * caller on the conversation. Idempotent by the backend's design: the
+ * pair's thread returns 200-existing exactly like 201-new — both land
+ * on the same page.
+ */
+export async function messageNeighborAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const recipientId = text(formData, "recipientId");
+  if (!isUuid(recipientId)) {
+    return { status: "error", message: "معرّف الجار غير صالح." };
+  }
+
+  const result = await openDirectConversation(recipientId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر فتح المحادثة (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  // redirect (not refresh): the conversation is a new surface, not a
+  // re-render of the feed — the router streams its RSC payload in the
+  // same action response.
+  redirect(`/inbox/conversations/${result.data.id}`);
 }

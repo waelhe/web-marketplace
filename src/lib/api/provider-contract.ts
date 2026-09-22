@@ -214,3 +214,48 @@ export const BUILDING_YEAR_MAX = 2100;
  * documented words: "no silently-immortal listing".
  */
 export const DEFAULT_EXPIRY_DAYS = 90;
+
+/**
+ * Media vocabulary (L28/L34 fourth completeness quarter — measured from
+ * MediaProperties/MediaService and the live OpenAPI 2026-09-22): the
+ * server-side allowlist anything else is rejected against BEFORE any URL
+ * is signed, and the declared size cap. The cap's *authoritative* value
+ * is the backend's MEDIA_MAX_UPLOAD_BYTES (default 10485760 measured in
+ * application.yml) — these constants mirror it for client-side pre-checks
+ * and server-side early rejects; the backend remains the enforcement.
+ */
+export const MEDIA_ALLOWED_CONTENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+] as const;
+export type MediaContentType = (typeof MEDIA_ALLOWED_CONTENT_TYPES)[number];
+
+/** application.yml: max-upload-bytes: ${MEDIA_MAX_UPLOAD_BYTES:10485760} */
+export const MEDIA_MAX_UPLOAD_BYTES_DEFAULT = 10485760;
+
+/** The presigned-upload declaration response (MediaService.MediaUploadView). */
+export interface MediaUploadView {
+  mediaId: string;
+  objectKey: string;
+  uploadUrl: string;
+  /** Presign TTL as an ISO-8601 duration string (e.g. "PT15M"). */
+  urlLifetime: string;
+}
+
+/** One media asset as the listing's media surface returns it (display order). */
+export interface MediaAssetView {
+  id: string;
+  listingId: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  /** 1-based display order within the listing. */
+  position: number;
+  /** Presigned GET URL of the original object. */
+  downloadUrl: string;
+  /** Presigned GET URL of the thumbnail — null until processing completes. */
+  thumbUrl: string | null;
+  createdAt: string;
+}

@@ -7,10 +7,14 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { getListingCompleteness } from "@/lib/api/provider";
 import { getListingDetail } from "@/lib/api/public";
 import { GEO_ROOT_ID, getGeoChildren, isUuid } from "@/lib/api/geo";
+import { listListingMedia } from "@/lib/api/media";
+import type { MediaAssetView } from "@/lib/api/provider-contract";
 import {
   ActivateListingForm,
   ArchiveListingForm,
   EditListingForm,
+  MediaDeleteButton,
+  MediaUploadForm,
   PauseListingForm,
   PropertyForm,
   RenewListingForm,
@@ -198,6 +202,8 @@ export default async function ManageListingPage({ params }: ManagePageProps) {
           <CompletenessCard completeness={completeness.data} />
         </section>
 
+        <MediaSection listingId={id} />
+
         <section className="card">
           <h2>دورة النشر</h2>
           <p className="page-note">
@@ -275,6 +281,8 @@ export default async function ManageListingPage({ params }: ManagePageProps) {
         <h2>الاكتمال (L38)</h2>
         <CompletenessCard completeness={completeness.data} />
       </section>
+
+      <MediaSection listingId={listing.id} />
 
       <section className="card">
         <h2>تعديل الحقول</h2>
@@ -359,5 +367,73 @@ function CompletenessCard({
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * The photos section (L28/L34, roadmap stage 4) — the fourth completeness
+ * quarter's surface. The whole media channel is S3-gated on the backend
+ * (requireStorage() on every read and write): when storage is
+ * unconfigured the listing's media endpoints answer 503, and this
+ * section renders that state honestly with the backend's own words
+ * instead of an empty gallery.
+ */
+async function MediaSection({ listingId }: { listingId: string }) {
+  const media = await listListingMedia(listingId);
+
+  return (
+    <section className="card" aria-labelledby="media-heading">
+      <h2 id="media-heading">صور الإعلان</h2>
+      {media.ok ? (
+        <>
+          {media.data.length === 0 ? (
+            <p className="page-note" role="status">
+              لا صور بعد — أول صورة ترفع ربع الاكتمال الرابع.
+            </p>
+          ) : (
+            <ul className="media-gallery">
+              {media.data.map((asset: MediaAssetView) => (
+                <li key={asset.id} className="media-item">
+                  {/* Presigned URLs: the storage host is runtime deployment
+                      data (not a build-time known origin), so plain <img>
+                      — next/image remotePatterns cannot encode it without
+                      inventing a host. TTL 15m; the page is dynamic. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={asset.thumbUrl ?? asset.downloadUrl}
+                    alt={`صورة ${new Intl.NumberFormat("ar").format(asset.position)} من الإعلان`}
+                    loading="lazy"
+                  />
+                  <p className="listing-meta">
+                    <span>{`#${new Intl.NumberFormat("ar").format(asset.position)}`}</span>
+                    <span>·</span>
+                    <span>
+                      {new Intl.NumberFormat("ar").format(asset.sizeBytes)} بايت
+                    </span>
+                  </p>
+                  <MediaDeleteButton mediaId={asset.id} />
+                </li>
+              ))}
+            </ul>
+          )}
+          <MediaUploadForm listingId={listingId} />
+        </>
+      ) : media.status === 503 ? (
+        // The backend's inert default, stated in its own words — a
+        // backend-owner configuration step, not a frontend gap.
+        <p className="page-note" role="status">
+          {problemMessage(
+            media.problem,
+            "خدمة وسائط الإعلان غير مهيّأة على الخادم (تخزين S3 غير مربوط) — الرفع يُفعّل عند تهيئة التخزين.",
+          )}
+        </p>
+      ) : (
+        <p className="page-note" role="status">
+          {media.unauthenticated
+            ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
+            : problemMessage(media.problem, `تعذّر قراءة صور الإعلان (رمز ${media.status}).`)}
+        </p>
+      )}
+    </section>
   );
 }

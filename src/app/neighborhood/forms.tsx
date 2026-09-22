@@ -10,7 +10,12 @@
  */
 
 import { useActionState } from "react";
-import { createPostAction, joinAction, leaveAction } from "./actions";
+import {
+  createPostAction,
+  joinAction,
+  leaveAction,
+  messageNeighborAction,
+} from "./actions";
 import type { ActionState } from "./actions";
 import { CATEGORY_LABELS, POST_CATEGORIES } from "@/lib/api/community-contract";
 
@@ -111,6 +116,29 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
         {pending ? "جارٍ النشر…" : "انشر في الحارة"}
       </button>
       <StateMessage state={state} />
+    </form>
+  );
+}
+
+/**
+ * «راسل الجار» — L44's feed entry (roadmap stage 4). Opens (or reuses)
+ * the direct conversation with the post's author; the backend's own
+ * gates (400 self / 404 unknown / 429 budget) surface verbatim through
+ * the action state. A per-post form: the author id rides a hidden field.
+ */
+export function MessageNeighborButton({ authorId }: { authorId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    messageNeighborAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="inline-action">
+      <input type="hidden" name="recipientId" value={authorId} />
+      <button type="submit" className="button" disabled={pending}>
+        {pending ? "جارٍ الفتح…" : "راسل الجار"}
+      </button>
+      {state.status === "error" ? <StateMessage state={state} /> : null}
     </form>
   );
 }

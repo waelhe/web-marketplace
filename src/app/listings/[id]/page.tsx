@@ -5,6 +5,7 @@ import { getListingDetail } from "@/lib/api/public";
 import { formatDate, formatPrice } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
 import type { ListingDetail, PropertyType } from "@/lib/api/types";
+import { LeadForm } from "../lead-form";
 
 // The public listing detail — the page the backend's L39 SEO contract
 // points at (CatalogProperties.listingPath defaults to "/listings/{id}":
@@ -120,6 +121,17 @@ export default async function ListingPage({ params }: ListingPageProps) {
       </section>
 
       {listing.property ? <PropertySection listing={listing} /> : null}
+
+      {/* L34 — the mediated-contact model: a public form (no account
+          required) that reaches the provider through their inbox. */}
+      <section className="card" aria-labelledby="contact-heading">
+        <h2 id="contact-heading">تواصل مع صاحب الإعلان</h2>
+        <p className="page-note">
+          اترك اسمك ورقمك ورسالتك — يصل الطلب إلى صاحب الإعلان في صندوقه، ويتواصل معك
+          مباشرة. لا حاجة لحساب.
+        </p>
+        <LeadForm listingId={listing.id} />
+      </section>
 
       <p>
         <Link href="/">الرئيسية</Link>

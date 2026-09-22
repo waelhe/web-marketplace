@@ -51,6 +51,17 @@ import {
   type ProviderActorType,
 } from "@/lib/api/provider-contract";
 import { isUuid } from "@/lib/api/geo";
+import {
+  completeUpload,
+  deleteMedia,
+  putToPresignedUrl,
+  requestUpload,
+} from "@/lib/api/media";
+import {
+  MEDIA_ALLOWED_CONTENT_TYPES,
+  MEDIA_MAX_UPLOAD_BYTES_DEFAULT,
+  type MediaContentType,
+} from "@/lib/api/provider-contract";
 
 /**
  * The form state contract shared by every provider action form
@@ -532,4 +543,120 @@ export async function upsertPropertyAction(
 
   refresh();
   return { status: "success", message: "حُفظت تفاصيل العقار." };
+}
+
+/**
+ * Upload one listing photo — the L28/L34 presigned flow completing the
+ * fourth completeness quarter (roadmap stage 4). The whole chain rides
+ * the BFF: declare (the backend signs, after its own allowlist/size/
+ * ownership gates) → PUT the bytes to the presigned storage URL (the
+ * signature pins the declared Content-Type) → confirm (server-side
+ * HeadObject verification). Tokens never reach the browser; no storage
+ * CORS is assumed.
+ *
+ * Client-side pre-validation mirrors the backend's bean contract so the
+ * common mistakes fail fast with the same words — the backend remains
+ * the enforcement authority on every field.
+ */
+export async function uploadMediaAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const listingId = formData.get("listingId");
+  if (typeof listingId !== "string" || !isUuid(listingId)) {
+    return { status: "error", message: "معرّف الإعلان غير صالح." };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { status: "error", message: "اختر صورة أولاً." };
+  }
+  if (!MEDIA_ALLOWED_CONTENT_TYPES.includes(file.type as MediaContentType)) {
+    return {
+      status: "error",
+      message: `نوع الصورة غير مدعوم (${file.type || "غير معروف"}) — المسموح: JPEG أو PNG أو WebP أو GIF.`,
+    };
+  }
+  if (file.size > MEDIA_MAX_UPLOAD_BYTES_DEFAULT) {
+    return {
+      status: "error",
+      message: `حجم الصورة يتجاوز الحد (١٠ ميغابايت) — حجمها ${new Intl.NumberFormat("ar").format(file.size)} بايت.`,
+    };
+  }
+
+  // 1) Declare — the backend signs only after its own gates pass
+  //    (ownership included); 503 = storage unconfigured, surfaced as-is.
+  const declared = await requestUpload(listingId, file.type, file.size);
+  if (!declared.ok) {
+    if (declared.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        declared.problem,
+        `تعذّر بدء الرفع (رمز ${declared.status}).`,
+      ),
+    };
+  }
+
+  // 2) PUT the bytes to the presigned URL (Content-Type pinned in the
+  //    signature — sent verbatim). A storage failure leaves the asset
+  //    PENDING on the backend (re-confirmable); we surface the failure
+  //    honestly rather than confirm a phantom upload.
+  const put = await putToPresignedUrl(
+    declared.data.uploadUrl,
+    file.type,
+    await file.arrayBuffer(),
+  );
+  if (!put.ok) {
+    return {
+      status: "error",
+      message: `تعذّر رفع الصورة إلى التخزين (رمز ${put.status}) — لم تُعتمد؛ جرّب مجدداً.`,
+    };
+  }
+
+  // 3) Confirm — HeadObject verifies the object exists with exactly the
+  //    declared type and size, then the asset goes visible on the listing.
+  const confirmed = await completeUpload(declared.data.mediaId);
+  if (!confirmed.ok) {
+    if (confirmed.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        confirmed.problem,
+        `تعذّر اعتماد الصورة (رمز ${confirmed.status}).`,
+      ),
+    };
+  }
+
+  await refresh();
+  return { status: "success", message: "رُفعت الصورة وظهرت في الإعلان." };
+}
+
+/** Soft-delete one photo (owner-scoped on the backend; 204 on success). */
+export async function deleteMediaAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const mediaId = formData.get("mediaId");
+  if (typeof mediaId !== "string" || !isUuid(mediaId)) {
+    return { status: "error", message: "معرّف الصورة غير صالح." };
+  }
+
+  const result = await deleteMedia(mediaId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر حذف الصورة (رمز ${result.status}).`),
+    };
+  }
+
+  await refresh();
+  return { status: "success", message: "حُذفت الصورة." };
 }

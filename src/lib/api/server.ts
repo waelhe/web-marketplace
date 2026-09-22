@@ -112,7 +112,8 @@ export async function backendGet<T>(path: string): Promise<BackendResult<T>> {
  * of backendGet, on the identical channel discipline: resolve the session
  * Bearer (auto-refresh included), call BACKEND_URL directly (never a
  * self-fetch through the /api/backend route handler), return expected
- * failures as data. `body` is JSON-serialized; `method` is PUT/POST/DELETE.
+ * failures as data. `body` is JSON-serialized; `method` is
+ * PUT/POST/PATCH/DELETE (PATCH measured on the leads inbox move).
  *
  * The official security contract rides two layers: the framework's
  * Server-Action boundary (POST-only, Origin/Host CSRF check) and the
@@ -121,7 +122,7 @@ export async function backendGet<T>(path: string): Promise<BackendResult<T>> {
  * own token. 204 No Content resolves to `data: null`.
  */
 export async function backendSend<T>(
-  method: "PUT" | "POST" | "DELETE",
+  method: "PUT" | "POST" | "PATCH" | "DELETE",
   path: string,
   body?: unknown,
 ): Promise<BackendResult<T>> {
@@ -136,6 +137,56 @@ export async function backendSend<T>(
       method,
       headers: {
         Authorization: `Bearer ${bearer}`,
+        Accept: "application/problem+json, application/json",
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      cache: "no-store",
+    });
+  } catch {
+    return { ok: false, status: 0, problem: null, unauthenticated: false };
+  }
+
+  if (!upstream.ok) {
+    const problem = await decodeBody(upstream);
+    return {
+      ok: false,
+      status: upstream.status,
+      problem,
+      unauthenticated: upstream.status === 401,
+    };
+  }
+
+  if (upstream.status === 204) {
+    return { ok: true, data: null as T, status: 204 };
+  }
+
+  return { ok: true, data: (await upstream.json()) as T, status: upstream.status };
+}
+
+/**
+ * Direct backend write on the measured PUBLIC write surfaces — the
+ * session-optional twin of backendSend. The bearer attaches when a
+ * session exists ("a valid one attributes the lead" — the backend's own
+ * contract) and is omitted entirely when it does not; the backend's
+ * security chain remains the authority (a presented-but-invalid token
+ * still 401s there; no token takes the anonymous path the surface
+ * permits). Today this is exactly the L34 lead submission (no mandatory
+ * authentication) — every other write surface stays on backendSend.
+ */
+export async function backendSendPublic<T>(
+  method: "POST",
+  path: string,
+  body?: unknown,
+): Promise<BackendResult<T>> {
+  const bearer = await resolveBearer();
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${BACKEND_URL}${path}`, {
+      method,
+      headers: {
+        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
         Accept: "application/problem+json, application/json",
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       },

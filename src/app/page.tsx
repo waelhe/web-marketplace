@@ -34,6 +34,11 @@ export default async function Home() {
             <Link href="/provider">لوحة المزوّد — إعلاناتك</Link>
           </p>
           <p>
+            {/* The inbox (stage 4) — notifications, contact requests,
+                and neighbor conversations. */}
+            <Link href="/inbox">الصندوق — إشعاراتك ورسائلك</Link>
+          </p>
+          <p>
             <Link href="/profile">الملف الشخصي (يقرأ /me عبر الوسيط)</Link>
           </p>
           <SignOutButton />

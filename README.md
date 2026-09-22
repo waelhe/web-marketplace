@@ -53,9 +53,25 @@ admin password is not a known constant).
   DRAFT; the backend's VERIFIED gate surfaces its own words on submit)
 - `/provider/listings/[id]` — AUTHENTICATED listing manage: L38
   completeness checklist, field editing + L31 property block (geo
-  location select), and the lifecycle actions (activate = the L46
+  location select), the lifecycle actions (activate = the L46
   bridge trigger; prefill rides the public detail read — ACTIVE-only,
-  the measured read model)
+  the measured read model), and the L28/L34 photo surface (presigned
+  declare → PUT → confirm; S3-unconfigured = 503, rendered honestly)
+- `/inbox` — AUTHENTICATED inbox (stage 4): notification feed +
+  mark-read, the L22 preference matrix (in-app channel always on;
+  diffs-only upsert keeps the stored matrix sparse), and the L34
+  provider lead inbox (status tabs + one-way moves) —
+  `src/lib/api/inbox.ts`
+- `/inbox/conversations/[id]` — AUTHENTICATED conversation view (L44
+  direct + booking threads): messages oldest-first, composer,
+  view-marks-read; own-message marking via the measured `/users/me`
+  identity chain
+- `/listings/[id]` — PUBLIC detail (generateMetadata + verbatim
+  JSON-LD) now also carries the L34 public lead form (name/phone/
+  message — no account required; the app's first public write via
+  `backendSendPublic`)
+- `/neighborhood` — feed posts carry «راسل الجار» (L44 direct
+  conversation entry, idempotent open per pair)
 - `/profile` — DAL session + DIRECT backend `/me` fetch (server data layer)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
 - `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth)
