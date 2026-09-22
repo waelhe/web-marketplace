@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getSession } from "@/lib/dal";
 import { backendGet } from "@/lib/api/server";
@@ -9,6 +10,15 @@ import { SignOutButton } from "../auth-buttons";
 // the typed API layer lands with the OpenAPI export (recorded debt: exact
 // DTO types come from the backend contract, not invention).
 type MePayload = Record<string, unknown>;
+
+// Private surface — `noindex` is the honest robots contract for
+// session-scoped content (the one private route that was missing it;
+// surfaced by the production battery's anonymous-privacy probe, 2026-09-22).
+export const metadata: Metadata = {
+  title: "الملف الشخصي",
+  description: "جلستك الحالية وبيانات حسابك من الخادم",
+  robots: { index: false },
+};
 
 export default async function ProfilePage() {
   const session = await getSession();
