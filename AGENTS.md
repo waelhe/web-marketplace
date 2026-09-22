@@ -143,11 +143,20 @@ session cookie.
 ## Rules
 
 - Never commit secrets: `.env*` is gitignored; `.env.example` holds placeholders only; real dev values live in local `.env.local`; production values live only in Railway service variables.
-- Backend for live verification: the Railway production service
-  https://app-java-v3-production.up.railway.app (service `app-java-v3`).
-  Local `.env.local` and the deployed service both point `BACKEND_URL` at
-  it. Full login/consent/session flows additionally need a real backend
-  user account.
+- Dev backend (since 2026-09-22): the backend team's shared **staging** service
+  https://app-java-v3-staging-staging.up.railway.app (their runbook:
+  `docs/frontend-dev-oauth-setup.md` @ `6b19a73` in app-java-v3 — never a
+  local backend checkout, never production). Local `.env.local` points
+  `BACKEND_URL` there with the dev client `marketplace-web-staging` (shareable
+  staging secret — dev-only, never in production; the production secret
+  never leaves Railway). The OAuth chain is measured live to the backend
+  login page; completing a login additionally needs a backend account's
+  credentials (the seeded `admin` password is not a known constant —
+  README).
+- Production verification of pushes still measures the Railway production
+  service https://app-java-v3-production.up.railway.app (service
+  `app-java-v3`) — the deployed `web-marketplace` service keeps pointing
+  `BACKEND_URL` at it.
 - This repo deploys as Railway service `web-marketplace` (GitHub-connected,
   branch `main`, auto-deploy): https://web-marketplace-production-5cc1.up.railway.app.
 - Add no dependency unless measured-needed against the pinned stack; Next.js builds must stay green (`npm run build`).

@@ -20,11 +20,14 @@ cp .env.example .env.local   # then fill in (dev values: backend runbook)
 npm run dev                  # http://localhost:3000
 ```
 
-Backend: the marketplace backend runs as the Railway production service
-`app-java-v3` (https://app-java-v3-production.up.railway.app) — local dev
-and the deployed service both point `BACKEND_URL` at it. Full login-flow
-verification additionally needs a real backend user account (the seeded
-admin password is not a known constant).
+Backend: local dev runs against the backend team's shared **staging**
+service (https://app-java-v3-staging-staging.up.railway.app) per their
+runbook (`docs/frontend-dev-oauth-setup.md` in app-java-v3) — `.env.local`
+points `BACKEND_URL` there with the dev client `marketplace-web-staging`
+(the shareable staging secret comes from the backend team; never commit it).
+The deployed production service keeps pointing at the production backend.
+Completing a full login flow additionally needs a backend account's
+credentials (the seeded admin password is not a known constant).
 
 ## Routes
 
