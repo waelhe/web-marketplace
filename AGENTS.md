@@ -99,7 +99,18 @@ session cookie.
   review; the payment block resolves the intent through the
   deterministic idempotency key (read-or-create — no "intent by
   booking" read exists) and renders amountCents (the booking's only
-  readable total) with the honest PROCESSING/no-Stripe state
+  readable total) with the honest PROCESSING/no-Stripe state; the
+  disputes section (L24 — النزاعات): the booking's disputes via
+  `GET /bookings/{id}/disputes` (participant or ADMIN — the backend's
+  own gate; its refusal words rendered verbatim) + the open form for
+  KNOWN roles on the measured query-string contract (`POST
+  /bookings/{id}/disputes?reason` — `@RequestParam`, never a JSON
+  body; NO booking-status gate exists on the backend's open — none
+  invented); the resolve outcome (decision + refund total) renders as
+  a measured fact when present — the decision itself is the
+  administration's (ADMIN-only, roles not carried by /me — measured)
+  — data via `src/lib/api/disputes.ts` + its pure contract
+  `disputes-contract.ts`
 - `/listings/[id]/book` — AUTHENTICATED booking request (stage 6):
   the gate renders BEFORE any listing read (the measured privacy
   contract); the stay window [startsAt, endsAt) as UTC instants

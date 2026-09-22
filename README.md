@@ -85,7 +85,13 @@ admin password is not a known constant).
   cancel/payment/review, provider confirm/complete/cancel/reverse
   review; the payment block resolves the intent via the deterministic
   idempotency key (read-or-create; no "intent by booking" read
-  exists) with the honest PROCESSING/no-Stripe state
+  exists) with the honest PROCESSING/no-Stripe state; the disputes
+  section (L24 — النزاعات): the booking's disputes (participant or
+  ADMIN — the backend's own gate) + the open form for known roles on
+  the measured query-string contract (`POST
+  /bookings/{id}/disputes?reason`); the resolve outcome renders when
+  present — the decision itself is the administration's (ADMIN-only,
+  undiscoverable from /me) — `src/lib/api/disputes.ts`
 - `/listings/[id]/book` — AUTHENTICATED booking request (stage 6):
   gate-before-any-listing-read; UTC-instant stay window
   ([startsAt, endsAt) half-open); server-derived pricing; the

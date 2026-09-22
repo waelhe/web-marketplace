@@ -23,10 +23,12 @@ import {
   createBookingAction,
   createReviewAction,
   createReverseReviewAction,
+  openDisputeAction,
   processPaymentIntentAction,
   type ActionState,
 } from "./actions";
 import { REVIEW_RATING_MAX, REVIEW_RATING_MIN } from "@/lib/api/booking-contract";
+import { DISPUTE_REASON_MAX_LENGTH } from "@/lib/api/disputes-contract";
 
 const IDLE: ActionState = { status: "idle" };
 
@@ -231,6 +233,44 @@ export function BookingReviewForm({
       </p>
       <button type="submit" className="button" data-variant="primary" disabled={pending}>
         {pending ? "جارٍ النشر…" : "انشر التقييم"}
+      </button>
+      <StateMessage state={state} />
+    </form>
+  );
+}
+
+/**
+ * The dispute open form — L24: either booking participant states the
+ * reason (≤ 1000 chars, the column's own bound mirrored in HTML
+ * validation; @NotBlank stays the backend's). The backend has NO
+ * booking-status gate on open (measured) so the form asks no state;
+ * the resolve is the administration's decision — the surfaced state
+ * is whatever the backend said, never a claimed outcome.
+ */
+export function DisputeOpenForm({ bookingId }: { bookingId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    openDisputeAction,
+    IDLE,
+  );
+
+  return (
+    <form action={action} className="stack-form">
+      <input type="hidden" name="bookingId" value={bookingId} />
+      <label htmlFor={`dispute-reason-${bookingId}`}>سبب النزاع</label>
+      <textarea
+        id={`dispute-reason-${bookingId}`}
+        name="reason"
+        rows={3}
+        required
+        maxLength={DISPUTE_REASON_MAX_LENGTH}
+        placeholder="ما الذي لم يسلُم في هذا الحجز؟"
+      />
+      <p className="field-hint">
+        النزاع يراه الطرف الآخر وإدارة السوق — والحسم (بقراره المالي) يظهر هنا عند
+        صدوره.
+      </p>
+      <button type="submit" className="button" data-variant="danger" disabled={pending}>
+        {pending ? "جارٍ الفتح…" : "افتح النزاع"}
       </button>
       <StateMessage state={state} />
     </form>

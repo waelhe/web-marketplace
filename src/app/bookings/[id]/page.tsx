@@ -10,6 +10,13 @@ import {
   resolvePaymentIntent,
   type BookingRole,
 } from "@/lib/api/booking";
+import { getMyBackendUser } from "@/lib/api/inbox";
+import { getBookingDisputes } from "@/lib/api/disputes";
+import {
+  DISPUTE_RESOLUTION_LABELS,
+  DISPUTE_STATUS_LABELS,
+  type DisputeView,
+} from "@/lib/api/disputes-contract";
 import {
   BOOKING_STATUS_LABELS,
   CONSUMER_CANCELLABLE,
@@ -22,6 +29,7 @@ import {
 import {
   BookingLifecycleForm,
   BookingReviewForm,
+  DisputeOpenForm,
   PaymentProcessForm,
 } from "../forms";
 
@@ -47,6 +55,17 @@ import {
  * measured in the inert path) and completion stays the backend's
  * webhook/admin path — the honest PROCESSING state, never a claimed
  * success.
+ *
+ * The disputes section (L24 — النزاعات) renders for every successful
+ * booking read: the booking read's own participant gate already held
+ * (participant or ADMIN), and the list read answers that same audience
+ * (the backend's authority — its refusal words surface verbatim). The
+ * open form renders for KNOWN roles only (a participant beyond both
+ * first pages classifies "unknown" and gets the shared facts — the
+ * stage-6 convention); the backend's open has NO booking-status gate
+ * (measured), so none is invented here. The resolve is the
+ * administration's decision (ADMIN-only, undiscoverable from /me —
+ * measured) — its outcome renders when it exists, never claimed.
  *
  * Private surface — `noindex` is the honest robots contract.
  */
@@ -170,6 +189,8 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
       {role === "provider" ? (
         <ProviderSections bookingId={booking.id} status={status} />
       ) : null}
+
+      <DisputesSection bookingId={booking.id} role={role} />
 
       <p>
         <Link href="/">الرئيسية</Link>
@@ -305,5 +326,90 @@ async function PaymentSection({ bookingId }: { bookingId: string }) {
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * The disputes section (L24 — النزاعات): the booking's disputes and
+ * the participant's open form. The list read is the backend's own
+ * authority (the booking read above already held its participant
+ * gate); the resolve outcome renders as a measured fact when present —
+ * the decision itself is the administration's (ADMIN-only, roles not
+ * carried by /me — measured), never claimed here. refundedAmountCents
+ * renders in MINOR units: the dispute response carries no currency
+ * (measured) and the total is never guessed.
+ */
+async function DisputesSection({
+  bookingId,
+  role,
+}: {
+  bookingId: string;
+  role: BookingRole;
+}) {
+  const [disputes, me] = await Promise.all([
+    getBookingDisputes(bookingId),
+    getMyBackendUser(),
+  ]);
+
+  return (
+    <section className="card" aria-labelledby="disputes-heading">
+      <h2 id="disputes-heading">النزاعات</h2>
+      {disputes.ok ? (
+        disputes.data.length === 0 ? (
+          <p className="page-note">لا نزاعات على هذا الحجز بعد.</p>
+        ) : (
+          <ul className="dispute-list">
+            {disputes.data.map((dispute) => (
+              <DisputeItem key={dispute.id} dispute={dispute} mine={me.ok && dispute.openedBy === me.id} />
+            ))}
+          </ul>
+        )
+      ) : (
+        <p className="page-note" role="status">
+          {disputes.unauthenticated
+            ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
+            : problemMessage(
+                disputes.problem,
+                `تعذّرت قراءة نزاعات الحجز (رمز ${disputes.status}).`,
+              )}
+        </p>
+      )}
+      {role !== "unknown" ? <DisputeOpenForm bookingId={bookingId} /> : null}
+      <p className="page-note">
+        {/* The measured seams, stated honestly: the resolve is the
+            administration's decision (its financial outcome included),
+            and the dispute response carries no currency — the refunded
+            total renders in minor units, never guessed. */}
+        حسم النزاع قرار إدارة السوق بقراره المالي (استرداد أو بقاء أو بلا
+        حركة) — يظهر هنا عند صدوره، وإجمالي ما استُرد يُعرض بالوحدات الصغرى
+        لأن استجابة النزاع لا تحمل العملة.
+      </p>
+    </section>
+  );
+}
+
+/** One dispute card — the measured facts of a single dispute row. */
+function DisputeItem({ dispute, mine }: { dispute: DisputeView; mine: boolean }) {
+  return (
+    <li className="dispute-item">
+      <div className="dispute-head">
+        <span className="dispute-status" data-status={dispute.status}>
+          {DISPUTE_STATUS_LABELS[dispute.status] ?? dispute.status}
+        </span>
+        <span className="listing-meta">فتحه {mine ? "أنت" : "طرف آخر"}</span>
+      </div>
+      <p className="dispute-reason">{dispute.reason}</p>
+      <p className="listing-meta">{formatDateTime(dispute.createdAt)}</p>
+      {dispute.status === "RESOLVED" && dispute.resolution ? (
+        <p className="listing-meta">
+          الحسم: {DISPUTE_RESOLUTION_LABELS[dispute.resolution] ?? dispute.resolution}
+          {dispute.refundedAmountCents !== null
+            ? ` — إجمالي ما استُرد: ${new Intl.NumberFormat("ar").format(
+                dispute.refundedAmountCents,
+              )} وحدة صغرى`
+            : ""}
+        </p>
+      ) : null}
+    </li>
   );
 }

@@ -32,6 +32,8 @@ import {
   createBooking,
   processPaymentIntent,
 } from "@/lib/api/booking";
+import { openDispute } from "@/lib/api/disputes";
+import { DISPUTE_REASON_MAX_LENGTH } from "@/lib/api/disputes-contract";
 import { createReview, createReverseReview } from "@/lib/api/reputation";
 import { REVIEW_RATING_MAX, REVIEW_RATING_MIN } from "@/lib/api/booking-contract";
 
@@ -322,4 +324,52 @@ export async function createReverseReviewAction(
 
   refresh();
   return { status: "success", message: "نُشر تقييمك للضيف." };
+}
+
+/**
+ * Open a dispute — POST /api/v1/bookings/{id}/disputes (L24, either
+ * booking participant; the reason rides the query string on the
+ * backend's own @RequestParam contract). NO booking-status gate and
+ * no per-booking limit exist on the backend's open (measured) — this
+ * action mirrors only the reason's @NotBlank and the reason column's
+ * 1000-char bound; the participant 403 and every other gate stay the
+ * backend's, their words surfacing verbatim. The resolve is the
+ * administration's decision (ADMIN-only, undiscoverable from /me —
+ * measured) — the success message states exactly that, never a
+ * claimed outcome.
+ */
+export async function openDisputeAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) {
+    return { status: "error", message: "سجّل الدخول أولاً لفتح النزاع." };
+  }
+
+  const bookingId = text(formData, "bookingId");
+  if (!isUuid(bookingId)) return { status: "error", message: "معرّف الحجز غير صالح." };
+
+  const reason = text(formData, "reason");
+  if (reason.length === 0) {
+    return { status: "error", message: "سبب النزاع مطلوب." };
+  }
+  if (reason.length > DISPUTE_REASON_MAX_LENGTH) {
+    return {
+      status: "error",
+      message: `سبب النزاع حتى ${new Intl.NumberFormat("ar").format(DISPUTE_REASON_MAX_LENGTH)} حرفًا.`,
+    };
+  }
+
+  const result = await openDispute(bookingId, reason);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر فتح النزاع (رمز ${result.status}).`),
+    };
+  }
+
+  refresh();
+  return { status: "success", message: "فُتح النزاع — الحسم بيد إدارة السوق ويظهر هنا عند صدوره." };
 }
