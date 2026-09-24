@@ -857,3 +857,101 @@ pre {
   gap: var(--space-2);
   padding-block-start: var(--space-1);
 }
+
+/* ── Task 4 — Skeleton/EmptyState/Pagination (append-only per R2; :root owned by Task 1).
+   Tokens consumed are Task-1/Task-3 actuals only: --surface, --border, --ink,
+   --primary, --primary-ink + scale (--space-1/2/4/6/8, --text-sm/lg,
+   --radius-md/lg, --focus-ring). EmptyState hint reuses the pre-existing
+   .page-note rule above; Pagination nav reuses the pre-existing
+   .listing-pager rule and prev/next reuse the pre-existing .button rule —
+   no duplicate selectors appended here. Contrast law: title and page numbers
+   use --ink; current page is --primary background with --primary-ink text;
+   skeleton pulse is an opacity animation over --border (warm, no motion
+   without consent). No pages import these yet — zero visual change. */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block: var(--space-4);
+}
+
+.skeleton-line {
+  height: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--border);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line {
+    animation: none;
+  }
+}
+
+.empty-state {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-4);
+  margin-block: var(--space-4);
+  text-align: center;
+}
+
+.empty-state-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--space-2);
+}
+
+.empty-state .page-note {
+  margin: 0;
+}
+
+.empty-state-action {
+  margin-block-start: var(--space-4);
+}
+
+.pager-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pager-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-8);
+  min-height: 44px;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.pager-num:hover {
+  border-color: var(--primary);
+}
+
+.pager-num:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.pager-num[aria-current="page"] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 700;
+}
