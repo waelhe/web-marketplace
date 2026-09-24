@@ -822,3 +822,38 @@ pre {
   font-size: var(--text-sm);
   color: var(--danger);
 }
+
+/* ── Task 3 — PageHeader layout (append-only per R2; :root owned by Task 1).
+   Tokens consumed are Task-1/Task-2 actuals only: --ink, --space-1/2/4,
+   --text-2xl. Description reuses the pre-existing .page-note rule above;
+   no duplicate selector appended here. Contrast law: title uses --ink.
+   PriceTag reuses pre-existing .listing-price; ListingCard reuses
+   pre-existing .listing-card/.listing-meta/.listing-category; Stat reuses
+   pre-existing .stat-row/.stat-value — no new declarations for those. */
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-block: var(--space-4);
+}
+
+.page-header-text h1 {
+  font-size: var(--text-2xl);
+  color: var(--ink);
+  margin: 0 0 var(--space-2);
+}
+
+.page-header-text .page-note {
+  margin: 0;
+}
+
+.page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block-start: var(--space-1);
+}
