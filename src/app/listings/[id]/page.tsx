@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getListingDetail } from "@/lib/api/public";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
 import type { ListingDetail, PropertyType } from "@/lib/api/types";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { PriceTag } from "@/components/ui/price";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ShareButton } from "./share-button";
 import { LeadForm } from "../lead-form";
 
 // The public listing detail — the page the backend's L39 SEO contract
@@ -17,6 +22,13 @@ import { LeadForm } from "../lead-form";
 // VERBATIM (the packaged JSON-LD guide's <script type="application/ld+json">
 // with `<` escaped) — the backend supplies the measured facts; the
 // frontend never recomposes them.
+//
+// Task 7 composition (compose only — no new fetches, no new tokens):
+// PageHeader + Badge + PriceTag + client-only ShareButton (Web Share API
+// with copy-link fallback) + an honest EmptyState gallery. CUT with
+// evidence: reviews (provider-scoped read, no providerId on the detail
+// payload), gallery images (media read is authenticated-only), similar,
+// save (zero live contracts — Task 0). Lead-form logic untouched.
 
 type ListingPageProps = PageProps<"/listings/[id]">;
 
@@ -103,12 +115,12 @@ export default async function ListingPage({ params }: ListingPageProps) {
       <p className="listing-crumb">
         <Link href="/listings">الإعلانات</Link> / <span>{listing.category}</span>
       </p>
-      <h1>{listing.title}</h1>
+      <PageHeader title={listing.title} actions={<ShareButton title={listing.title} />} />
 
       <section className="card" aria-label="بيانات الإعلان">
-        <p className="listing-price">{formatPrice(listing.price, listing.currency)}</p>
+        <PriceTag price={listing.price} currency={listing.currency} />
         <p className="listing-meta">
-          <span className="listing-category">{listing.category}</span>
+          <Badge tone="muted">{listing.category}</Badge>
           {listing.maxGuests !== null ? (
             <>
               <span>·</span>
@@ -121,6 +133,26 @@ export default async function ListingPage({ params }: ListingPageProps) {
       </section>
 
       {listing.property ? <PropertySection listing={listing} /> : null}
+
+      {/* Gallery images CUT (R23/R33): the only media read
+          (GET /api/v1/media/listings/{id}) is authenticated-only
+          (src/lib/api/media.ts — backendGet with session), so a public
+          SEO page must not fetch it. Zero images render EmptyState —
+          never stock photos. */}
+      <section aria-labelledby="gallery-heading">
+        <h2 id="gallery-heading">صور الإعلان</h2>
+        <EmptyState
+          title="لا توجد صور متاحة"
+          hint="لم تُنشر صور لهذا الإعلان على السطح العام بعد."
+        />
+      </section>
+
+      {/* Reviews DROPPED (R6/R33): the only reviews read is
+          provider-scoped (GET /api/v1/reviews/provider/{providerId},
+          Task 0) and the detail payload carries no providerId
+          (src/lib/api/types.ts ListingDetail — measured live) — nothing
+          to derive, so no block and no invented contract. Similar/save
+          CUT per Task 0 (zero similar/bookmark paths) — share-only. */}
 
       {/* L34 — the mediated-contact model: a public form (no account
           required) that reaches the provider through their inbox. */}
