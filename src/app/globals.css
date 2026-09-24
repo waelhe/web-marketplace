@@ -23,7 +23,8 @@
 
   /* Layer 3 — retained scale tokens (pre-existing measured values; kept so
      all existing selectors keep working and visual output is unchanged.
-     Tasks 2-6 consume these names: --space-*, --radius-*, --font-sans, --text-*). */
+     Retained names: --font-sans, --text-*, --space-*, --container-max,
+     --radius-md/lg, --color-*, --focus-ring). */
   /* Typography (self-hosted variable font — see layout.tsx) */
   --font-sans: var(--font-cairo), system-ui, sans-serif;
 
@@ -61,6 +62,8 @@
 
   /* Focus ring (logical start-agnostic) */
   --focus-ring: 2px solid var(--color-accent);
+  --danger: var(--color-danger);
+  --primary-ink: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
