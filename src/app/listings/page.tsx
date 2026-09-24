@@ -147,7 +147,64 @@ function hrefOf(link: Record<string, string>): string {
 export async function generateMetadata({ searchParams }: ListingsPageProps): Promise<Metadata> {
   const sp = await searchParams;
   const { link, page } = readUrlState(sp);
-  const canonicalParams: Record<string, string> = { ...link };
+  // Canonical rebuilds from the SANITIZED snapshot only (fix round 1/5):
+  // invalid enums / non-finite numbers / unresolved location prose /
+  // centerless radius never appear in the canonical. Raw `locationRaw`
+  // stays solely in the location input defaultValue (page body below).
+  const q = link.q || undefined;
+  const category = link.category || undefined;
+  const minPrice = finiteNumber(link.minPrice);
+  const maxPrice = finiteNumber(link.maxPrice);
+  const checkIn = link.checkIn || undefined;
+  const checkOut = link.checkOut || undefined;
+  const guests = finiteNumber(link.guests);
+  const purpose = enumValue(link.purpose, PURPOSES);
+  const propertyType = enumValue(link.propertyType, PROPERTY_TYPES);
+  const minRooms = finiteNumber(link.minRooms);
+  const minBathrooms = finiteNumber(link.minBathrooms);
+  const minAreaM2 = finiteNumber(link.minAreaM2);
+  const lat = finiteNumber(link.lat);
+  const lng = finiteNumber(link.lng);
+  const sort = acceptedSort(link.sort);
+  const locationRaw = link.locationId ?? "";
+  let resolvedLocationId: string | undefined;
+  if (locationRaw !== "") {
+    if (isUuid(locationRaw)) {
+      resolvedLocationId = locationRaw;
+    } else if (locationRaw.length >= GEO_SUGGEST_MIN_LENGTH) {
+      try {
+        const suggest = await getGeoSuggest(locationRaw);
+        if (suggest.ok && suggest.data.length > 0) {
+          resolvedLocationId = suggest.data[0].id;
+        }
+      } catch {
+        resolvedLocationId = undefined;
+      }
+    }
+  }
+  const radiusRaw = finiteNumber(link.radiusKm);
+  const radiusKm =
+    radiusRaw !== undefined && (resolvedLocationId !== undefined || (lat !== undefined && lng !== undefined))
+      ? radiusRaw
+      : undefined;
+  const canonicalParams: Record<string, string> = {};
+  if (q !== undefined) canonicalParams.q = q;
+  if (category !== undefined) canonicalParams.category = category;
+  if (minPrice !== undefined) canonicalParams.minPrice = String(minPrice);
+  if (maxPrice !== undefined) canonicalParams.maxPrice = String(maxPrice);
+  if (checkIn !== undefined) canonicalParams.checkIn = checkIn;
+  if (checkOut !== undefined) canonicalParams.checkOut = checkOut;
+  if (guests !== undefined) canonicalParams.guests = String(guests);
+  if (resolvedLocationId !== undefined) canonicalParams.locationId = resolvedLocationId;
+  if (purpose !== undefined) canonicalParams.purpose = purpose;
+  if (propertyType !== undefined) canonicalParams.propertyType = propertyType;
+  if (minRooms !== undefined) canonicalParams.minRooms = String(minRooms);
+  if (minBathrooms !== undefined) canonicalParams.minBathrooms = String(minBathrooms);
+  if (minAreaM2 !== undefined) canonicalParams.minAreaM2 = String(minAreaM2);
+  if (lat !== undefined) canonicalParams.lat = String(lat);
+  if (lng !== undefined) canonicalParams.lng = String(lng);
+  if (radiusKm !== undefined) canonicalParams.radiusKm = String(radiusKm);
+  if (sort !== undefined) canonicalParams.sort = sort;
   if (page > 0) canonicalParams.page = String(page);
   const query = new URLSearchParams(canonicalParams).toString();
   return {
@@ -190,10 +247,17 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     if (isUuid(locationRaw)) {
       resolvedLocationId = locationRaw;
     } else if (locationRaw.length >= GEO_SUGGEST_MIN_LENGTH) {
-      const suggest = await getGeoSuggest(locationRaw);
-      if (suggest.ok && suggest.data.length > 0) {
-        resolvedLocationId = suggest.data[0].id;
-        resolvedLocationName = suggest.data[0].nameAr;
+      // THROW-safe (fix round 1/5): on throw treat as unresolved — ignore
+      // the filter, preserve the text, show the existing note; never 500.
+      try {
+        const suggest = await getGeoSuggest(locationRaw);
+        if (suggest.ok && suggest.data.length > 0) {
+          resolvedLocationId = suggest.data[0].id;
+          resolvedLocationName = suggest.data[0].nameAr;
+        }
+      } catch {
+        resolvedLocationId = undefined;
+        resolvedLocationName = undefined;
       }
     }
   }
@@ -224,6 +288,30 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   if (lat !== undefined) criteria.lat = lat;
   if (lng !== undefined) criteria.lng = lng;
   if (radiusKm !== undefined) criteria.radiusKm = radiusKm;
+
+  // Sanitized snapshot for canonical + pager hrefs (fix round 1/5): ONLY
+  // defined criteria members + the accepted sort. Invalid enums /
+  // non-finite numbers / unresolved location prose / dropped centerless
+  // radius never appear here. Raw `locationRaw` stays solely in the
+  // location input defaultValue above.
+  const sanitizedLink: Record<string, string> = {};
+  if (q !== undefined) sanitizedLink.q = q;
+  if (category !== undefined) sanitizedLink.category = category;
+  if (minPrice !== undefined) sanitizedLink.minPrice = String(minPrice);
+  if (maxPrice !== undefined) sanitizedLink.maxPrice = String(maxPrice);
+  if (checkIn !== undefined) sanitizedLink.checkIn = checkIn;
+  if (checkOut !== undefined) sanitizedLink.checkOut = checkOut;
+  if (guests !== undefined) sanitizedLink.guests = String(guests);
+  if (resolvedLocationId !== undefined) sanitizedLink.locationId = resolvedLocationId;
+  if (purpose !== undefined) sanitizedLink.purpose = purpose;
+  if (propertyType !== undefined) sanitizedLink.propertyType = propertyType;
+  if (minRooms !== undefined) sanitizedLink.minRooms = String(minRooms);
+  if (minBathrooms !== undefined) sanitizedLink.minBathrooms = String(minBathrooms);
+  if (minAreaM2 !== undefined) sanitizedLink.minAreaM2 = String(minAreaM2);
+  if (lat !== undefined) sanitizedLink.lat = String(lat);
+  if (lng !== undefined) sanitizedLink.lng = String(lng);
+  if (radiusKm !== undefined) sanitizedLink.radiusKm = String(radiusKm);
+  if (sort !== undefined) sanitizedLink.sort = sort;
 
   const filtered = Object.keys(criteria).length > 0 || sort !== undefined;
   const result = filtered
@@ -370,7 +458,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
           {chips.map((chip) => (
             <li key={chip.key}>
               <Link
-                href={hrefWithout(link, chip.key)}
+                href={hrefWithout(sanitizedLink, chip.key)}
                 aria-label={`إزالة مرشح ${chip.label}`}
               >
                 {`${chip.label}: ${chip.value} ✕`}
@@ -392,7 +480,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
             page > 0 && result.data.totalElements > 0 ? (
               <p className="page-note" role="status">
                 لا توجد إعلانات في هذه الصفحة.{" "}
-                <Link href={hrefOf(link)}>العودة إلى الصفحة الأولى</Link>
+                <Link href={hrefOf(sanitizedLink)}>العودة إلى الصفحة الأولى</Link>
               </p>
             ) : filtered ? (
               <EmptyState
@@ -426,7 +514,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                 page={page}
                 totalPages={result.data.totalPages}
                 basePath="/listings"
-                params={link}
+                params={sanitizedLink}
               />
             </>
           )
