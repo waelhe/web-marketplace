@@ -7,6 +7,23 @@
    numbers. */
 
 :root {
+  /* Layer 1 — primitive tokens (Task 1, brief-exact, all measured) */
+  --warm-50: #FDFBF7; --warm-100: #FFFFFF; --warm-200: #EDE6DA;
+  --ink-900: #1C1917; --ink-500: #78716C;
+  --teal-700: #0F766E; --teal-600: #0D9488;
+  --amber-500: #D97706;
+  /* Layer 2 — semantic tokens (Task 1, brief-exact, all measured).
+     Contrast rules (brief): body text uses --ink/--primary only (never
+     --primary-strong/--accent as text); --primary-strong is large-type /
+     graphics only; --accent is background-only with --ink on top. */
+  --bg: var(--warm-50); --surface: var(--warm-100); --border: var(--warm-200);
+  --ink: var(--ink-900); --ink-2: var(--ink-500);
+  --primary: var(--teal-700); --primary-strong: var(--teal-600);
+  --accent: var(--amber-500);
+
+  /* Layer 3 — retained scale tokens (pre-existing measured values; kept so
+     all existing selectors keep working and visual output is unchanged.
+     Tasks 2-6 consume these names: --space-*, --radius-*, --font-sans, --text-*). */
   /* Typography (self-hosted variable font — see layout.tsx) */
   --font-sans: var(--font-cairo), system-ui, sans-serif;
 
