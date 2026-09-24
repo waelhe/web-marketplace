@@ -32,39 +32,12 @@ export default async function Home() {
       />
 
       {/* Hero search — native GET to /listings (no client JS required).
-          Param names are the Task-0-verified /api/v1/search contract;
-          Task 6 owns parsing/sanitizing on the listings page. */}
+          Three fields only (approved spec §2: text + category + location);
+          the full filter set lives on the /listings sidebar, not here.
+          Param names are the Task-0-verified /api/v1/search contract. */}
       <form method="get" action="/listings" role="search" aria-label="البحث في الإعلانات">
         <Field label="البحث">
           <input type="search" name="q" autoComplete="off" />
-        </Field>
-        <Field label="التصنيف">
-          <input type="text" name="category" autoComplete="off" />
-        </Field>
-        <Field label="السعر الأدنى">
-          <input type="number" name="minPrice" />
-        </Field>
-        <Field label="السعر الأقصى">
-          <input type="number" name="maxPrice" />
-        </Field>
-        <Field label="تاريخ الوصول">
-          <input type="date" name="checkIn" />
-        </Field>
-        <Field label="تاريخ المغادرة">
-          <input type="date" name="checkOut" />
-        </Field>
-        <Field label="عدد الضيوف">
-          <input type="number" name="guests" />
-        </Field>
-        <Field label="معرّف الموقع">
-          <input type="text" name="locationId" autoComplete="off" />
-        </Field>
-        <Field label="الغرض">
-          <select name="purpose" defaultValue="">
-            <option value="">الكل</option>
-            <option value="RENT">إيجار</option>
-            <option value="SALE">بيع</option>
-          </select>
         </Field>
         <Field label="نوع العقار">
           <select name="propertyType" defaultValue="">
@@ -77,28 +50,16 @@ export default async function Home() {
             <option value="GARAGE">كراج</option>
           </select>
         </Field>
-        <Field label="الغرف (أدنى)">
-          <input type="number" name="minRooms" />
-        </Field>
-        <Field label="الحمامات (أدنى)">
-          <input type="number" name="minBathrooms" />
-        </Field>
-        <Field label="المساحة م² (أدنى)">
-          <input type="number" name="minAreaM2" />
-        </Field>
-        <Field label="خط العرض">
-          <input type="number" name="lat" step="any" />
-        </Field>
-        <Field label="خط الطول">
-          <input type="number" name="lng" step="any" />
-        </Field>
-        <Field label="النطاق كم">
-          <input type="number" name="radiusKm" step="any" />
+        <Field label="الموقع">
+          <input type="text" name="locationId" autoComplete="off" />
         </Field>
         <Button variant="primary" size="md" type="submit">
           ابحث
         </Button>
       </form>
+      <p>
+        <Link href="/listings">تصفّح كل الإعلانات مع الفلاتر الكاملة ←</Link>
+      </p>
 
       <section aria-labelledby="featured-heading">
         <h2 id="featured-heading">إعلانات مميزة</h2>
