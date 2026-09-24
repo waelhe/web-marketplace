@@ -49,15 +49,17 @@
   --radius-md: 0.5rem;
   --radius-lg: 1rem;
 
-  /* Color: light scheme (semantic, not literal) */
-  --color-bg: #ffffff;
-  --color-fg: #1a1a1a;
-  --color-muted: #6b6b6b;
-  --color-surface: #f5f5f5;
-  --color-border: #e2e2e2;
-  --color-accent: #0f766e;
-  --color-accent-fg: #ffffff;
-  --color-danger: #b91c1c;
+  /* Legacy channel aliases — the pre-system selectors still consume
+     --color-*; aliasing them to the warm semantic layer makes the whole
+     shell warm with ONE source of truth (no per-selector edits). */
+  --color-bg: var(--bg);
+  --color-fg: var(--ink);
+  --color-muted: var(--ink-2);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-accent: var(--primary);
+  --color-accent-fg: var(--primary-ink);
+  --color-danger: var(--danger);
   --color-danger-fg: #ffffff;
 
   /* Focus ring (logical start-agnostic) */
@@ -66,19 +68,9 @@
   --primary-ink: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #0a0a0a;
-    --color-fg: #ededed;
-    --color-muted: #a0a0a0;
-    --color-surface: #1a1a1a;
-    --color-border: #333333;
-    --color-accent: #2dd4bf;
-    --color-accent-fg: #04211e;
-    --color-danger: #ef4444;
-    --color-danger-fg: #ffffff;
-  }
-}
+/* Light-warm only (approved spec §1): no automatic dark scheme — the
+   former prefers-color-scheme block was overriding the warm layer to
+   black/teal. Any future dark theme ships as an explicit opt-in class. */
 
 * {
   box-sizing: border-box;
