@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 // Error boundary (file-conventions/error): MUST be a Client Component.
 // Next 16.3.5 props: error (with digest) + retry() — retry re-fetches and
 // re-renders the boundary children (reference prefers it over reset()).
 // Server-side errors arrive as a generic message + digest identifier only,
-// which is safe to surface as-is.
+// which is safe to surface as-is. Visual language is the Task-2 Button
+// (variant/size/type props only, R19) + the pre-existing .page-note; the
+// contract (props, digest logging, retry) is unchanged.
 export default function ErrorPage({
   error,
   retry,
@@ -27,9 +31,10 @@ export default function ErrorPage({
           : "تعذّر إكمال هذا الجزء من الصفحة."}
       </p>
       <p>
-        <button type="button" className="button" onClick={() => retry()}>
+        <Button variant="primary" size="md" type="button" onClick={() => retry()}>
           إعادة المحاولة
-        </button>
+        </Button>{" "}
+        <Link href="/">العودة إلى الصفحة الرئيسية</Link>
       </p>
     </main>
   );
