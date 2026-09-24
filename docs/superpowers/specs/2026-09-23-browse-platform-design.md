@@ -44,9 +44,14 @@
 
 `Skeleton` لكل سطح (وحد `loading.tsx` الجذري يبقى — عقد البثّ) · `EmptyState` موحد · `error.tsx`/`global-error.tsx` بمظهر النظام بلا كشف تقني. **خطة التحقق الملزمة لكل زيادة:** (1) تثبيت العقود من `api-docs` الحي قبل التنفيذ (2) `typegen`→lint→`tsc`→`build` بالمثبتة (3) `agent-browser` لقطات ومقارنة (4) دمج محلي فقط — الدفع والإنتاج بكلمة المالك.
 
-## بوابات ما قبل التنفيذ (ليست ثغرات — شروط مسماة بمصدرها)
+## بوابات ما قبل التنفيذ (مُثبَّتة من `api-docs` الحي بتاريخ Task 0 — المصدر: `https://app-java-v3-production.up.railway.app/v3/api-docs`)
 
-قبل أي سطر: تُثبَّت من `api-docs` الباك أند الحي: أسماء باراميترات البحث/الفرز/الترقيم · عقد قراءة المراجعات · عقد «المشابهة» (يسقط من النطاق إن غاب) · عقد «الحفظ» (يسقط إن غاب: مشاركة فقط). ما لا عقد له لا يُبنى — معلناً لا مسكوتاً عنه.
+- **البحث/الفلترة (مُثبَّت):** `GET /api/v1/search` (عملية `searchWithCriteria`، عامة بلا auth) — باراميترات query الدقيقة: `q` · `category` · `minPrice` · `maxPrice` · `checkIn` (date-time) · `checkOut` (date-time) · `guests` · `locationId` (uuid) · `purpose` (enum: `RENT`/`SALE`) · `propertyType` (enum: `APARTMENT`/`VILLA`/`LAND`/`SHOP`/`OFFICE`/`GARAGE`) · `minRooms` · `minBathrooms` · `minAreaM2` · `lat` · `lng` · `radiusKm` · `pageable` (إلزامي).
+- **التصفّح العام (مُثبَّت):** `GET /api/v1/listings` (عملية `listActive`، عامة) — `pageable` فقط (بلا فلاتر query). `GET /api/v1/listings/category/{category}` (عملية `listByCategory`) و`GET /api/v1/search/category/{category}` (عملية `searchByCategory`) للفئة عبر path.
+- **الترقيم/الفرز (مُثبَّت):** `Pageable` = `page` (int ≥0) · `size` (int ≥1) · `sort` (مصفوفة نصوص `property,dir`)؛ الاستجابة `PagedResponseListingSummary` = `content[]` · `pageNumber` · `pageSize` · `totalElements` · `totalPages` · `last`. التفاصيل: `GET /api/v1/listings/{id}` (عملية `getById_2`، عامة، `id` بصيغة uuid).
+- **قراءة المراجعات (مُثبَّت جزئياً):** `GET /api/v1/reviews/provider/{providerId}` (عملية `listByProvider`، عامة، `providerId` uuid + `pageable`) — نطاق المزوّد فقط. لا يوجد مسار قراءة مراجعات بنطاق القائمة (`/api/v1/reviews` هو `POST` فقط) — مراجعات per-listing تُعرض عبر مسار المزوّد أو تُسقط إن تعذّر الربط.
+- **«المشابهة» (CUT — بدليل):** لا يوجد أي مسار يحوي `similar` في `api-docs` الحي — تسقط من النطاق (قاعدة المواصفة)، لا تُبتكر.
+- **«الحفظ» (CUT — بدليل):** لا يوجد أي مسار `bookmark`/`favorite`/`wishlist`؛ الموجود فقط `GET+POST /api/v1/me/saved-searches` (عملية `list` — حفظ بحوث لا حفظ قوائم) — حفظ القوائم يسقط، وتبقى المشاركة فقط.
 
 ## ملحق: متطلبات بوابة G-N4 — هوية الأعمال المحلية (معتمد 2026-09-24)
 
