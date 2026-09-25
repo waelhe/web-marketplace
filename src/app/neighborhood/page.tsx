@@ -207,14 +207,21 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                   </p>
                   <ul className="feed-list">
                     {feed.data.content.map((post) => (
-                      <li key={post.id} className="card post-card">
+                      <li key={post.id} className="hood-post">
                         <h3>{post.title}</h3>
-                        <p className="listing-meta">
-                          <span className="listing-category">{CATEGORY_LABELS[post.category]}</span>
-                          <span>·</span>
-                          <span>{formatDate(post.createdAt)}</span>
+                        <p className="hood-post-meta">
                           {/* The author is an opaque UUID by the backend's
-                              projection contract — no invented identity display. */}
+                              projection contract — the avatar shows the first
+                              two characters, the only identity signal that
+                              contract carries. No invented name, no "user"
+                              label (the contract carries none). */}
+                          <span className="hood-avatar" aria-hidden="true">
+                            {post.authorId.slice(0, 2).toUpperCase()}
+                          </span>
+                          <span className={`hood-cat hood-cat-${post.category.toLowerCase()}`}>
+                            {CATEGORY_LABELS[post.category]}
+                          </span>
+                          <span>{formatDate(post.createdAt)}</span>
                         </p>
                         <p className="post-body">{post.body}</p>
                         {/* L42's conversational layer (batch-2 spec §1): the

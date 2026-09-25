@@ -1603,3 +1603,17 @@ textarea {
   .hood-layout { grid-template-columns: 20rem 1fr; align-items: start; }
   .hood-side { position: sticky; top: var(--space-4); }
 }
+
+/* The feed post's identity row: a hairline card, the category's inline-start
+   edge, and an initials avatar. The avatar is the author's OPAQUE id's first
+   two characters — the only identity signal the contract carries — so it is
+   aria-hidden and never stands in for a name. */
+.hood-post { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); display: grid; gap: var(--space-2); }
+.hood-post-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--text-sm); color: var(--ink-2); }
+.hood-avatar { inline-size: 2rem; block-size: 2rem; border-radius: 999px; background: var(--primary); color: var(--primary-ink); display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: 700; }
+.hood-post h3 { font-size: 1.125rem; font-weight: 800; color: var(--ink); margin: 0; }
+.hood-cat { border-inline-start: 3px solid var(--accent); padding-inline-start: var(--space-2); }
+.hood-cat-general { border-inline-start-color: var(--accent); }
+.hood-cat-classified { border-inline-start-color: var(--primary); }
+.hood-cat-lost_found { border-inline-start-color: var(--danger); }
+.hood-cat-recommendation { border-inline-start-color: var(--ink-2); }
