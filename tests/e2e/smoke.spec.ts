@@ -74,3 +74,21 @@ test("no horizontal overflow at 375px (RTL shell)", async ({ page }) => {
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("booking and profile forms remain gated from anonymous smoke coverage", async ({
+  page,
+}) => {
+  const bookingResponse = await page.goto(
+    "/listings/00000000-0000-0000-0000-000000000000/book",
+  );
+  expect(bookingResponse?.status()).toBe(200);
+  await expect(
+    page.getByText("الحجز للمستخدمين المسجّلين", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator('input[name="startsAt"]')).toHaveCount(0);
+
+  const profileResponse = await page.goto("/profile");
+  expect(profileResponse?.status()).toBe(200);
+  await expect(page.getByText("لم تسجّل الدخول", { exact: false })).toBeVisible();
+  await expect(page.locator('select[name="rating"]')).toHaveCount(0);
+});

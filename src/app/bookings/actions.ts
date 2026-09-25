@@ -46,7 +46,7 @@ import { REVIEW_RATING_MAX, REVIEW_RATING_MIN } from "@/lib/api/booking-contract
  */
 export type ActionState =
   | { status: "idle" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string; field?: "endsAt" | "rating" }
   | { status: "success"; message: string };
 
 const REAUTH_MESSAGE = "جلستك انتهت — سجّل الدخول من جديد ثم أعد المحاولة.";
@@ -113,7 +113,11 @@ export async function createBookingAction(
   if (!ends.ok) return { status: "error", message: ends.message };
 
   if (new Date(starts.iso).getTime() >= new Date(ends.iso).getTime()) {
-    return { status: "error", message: "نهاية الإقامة يجب أن تكون بعد بدايتها." };
+    return {
+      status: "error",
+      field: "endsAt",
+      message: "نهاية الإقامة يجب أن تكون بعد بدايتها.",
+    };
   }
 
   const notes = optionalText(formData, "notes");
@@ -339,7 +343,9 @@ export async function createReviewAction(
   if (!isUuid(bookingId)) return { status: "error", message: "معرّف الحجز غير صالح." };
 
   const parsed = parseReviewForm(formData);
-  if (!parsed.ok) return { status: "error", message: parsed.message };
+  if (!parsed.ok) {
+    return { status: "error", field: "rating", message: parsed.message };
+  }
 
   const result = await createReview(bookingId, parsed.rating, parsed.comment);
   if (!result.ok) {
@@ -372,7 +378,9 @@ export async function createReverseReviewAction(
   if (!isUuid(bookingId)) return { status: "error", message: "معرّف الحجز غير صالح." };
 
   const parsed = parseReviewForm(formData);
-  if (!parsed.ok) return { status: "error", message: parsed.message };
+  if (!parsed.ok) {
+    return { status: "error", field: "rating", message: parsed.message };
+  }
 
   const result = await createReverseReview(bookingId, parsed.rating, parsed.comment);
   if (!result.ok) {

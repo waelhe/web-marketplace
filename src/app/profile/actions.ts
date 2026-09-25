@@ -20,7 +20,7 @@ import { isUuid } from "@/lib/api/geo";
 
 export type ActionState =
   | { status: "idle" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string; field?: "rating" }
   | { status: "success"; message: string };
 
 const REAUTH_MESSAGE = "جلستك انتهت — سجّل الدخول من جديد ثم أعد المحاولة.";
@@ -54,6 +54,7 @@ export async function updateReviewAction(
   if (!Number.isFinite(rating) || rating < REVIEW_RATING_MIN || rating > REVIEW_RATING_MAX) {
     return {
       status: "error",
+      field: "rating",
       message: `التقييم رقم بين ${REVIEW_RATING_MIN} و${REVIEW_RATING_MAX}.`,
     };
   }

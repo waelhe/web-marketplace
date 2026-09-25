@@ -11,11 +11,12 @@
 import { useActionState } from "react";
 import { updateReviewAction, type ActionState } from "./actions";
 import { REVIEW_RATING_MAX, REVIEW_RATING_MIN } from "@/lib/api/booking-contract";
+import { Field } from "@/components/ui/field";
 
 const IDLE: ActionState = { status: "idle" };
 
 function StateMessage({ state }: { state: ActionState }) {
-  if (state.status === "error") {
+  if (state.status === "error" && !state.field) {
     return (
       <p className="page-note" role="alert">
         {state.message}
@@ -52,22 +53,26 @@ export function ReviewEditForm({
       <summary className="link-like">حرّر مراجعتك</summary>
       <form action={action} className="stack-form">
         <input type="hidden" name="reviewId" value={reviewId} />
-        <label htmlFor={`review-edit-rating-${reviewId}`}>التقييم الجديد</label>
-        <select
-          id={`review-edit-rating-${reviewId}`}
-          name="rating"
-          defaultValue={String(rating)}
-          required
+        <Field
+          label="التقييم الجديد"
+          error={state.status === "error" && state.field === "rating" ? state.message : undefined}
         >
-          {Array.from({ length: REVIEW_RATING_MAX - REVIEW_RATING_MIN + 1 }, (_, index) => {
-            const value = REVIEW_RATING_MIN + index;
-            return (
-              <option key={value} value={value}>
-                {new Intl.NumberFormat("ar").format(value)}
-              </option>
-            );
-          })}
-        </select>
+          <select
+            id={`review-edit-rating-${reviewId}`}
+            name="rating"
+            defaultValue={String(rating)}
+            required
+          >
+            {Array.from({ length: REVIEW_RATING_MAX - REVIEW_RATING_MIN + 1 }, (_, index) => {
+              const value = REVIEW_RATING_MIN + index;
+              return (
+                <option key={value} value={value}>
+                  {new Intl.NumberFormat("ar").format(value)}
+                </option>
+              );
+            })}
+          </select>
+        </Field>
         <label htmlFor={`review-edit-comment-${reviewId}`}>التعليق الجديد</label>
         <textarea
           id={`review-edit-comment-${reviewId}`}

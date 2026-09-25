@@ -31,11 +31,12 @@ import {
 } from "./actions";
 import { REVIEW_RATING_MAX, REVIEW_RATING_MIN } from "@/lib/api/booking-contract";
 import { DISPUTE_REASON_MAX_LENGTH } from "@/lib/api/disputes-contract";
+import { Field } from "@/components/ui/field";
 
 const IDLE: ActionState = { status: "idle" };
 
 function StateMessage({ state }: { state: ActionState }) {
-  if (state.status === "error") {
+  if (state.status === "error" && !state.field) {
     return (
       <p className="page-note" role="alert">
         {state.message}
@@ -75,14 +76,18 @@ export function BookingRequestForm({ listingId }: { listingId: string }) {
         required
         dir="ltr"
       />
-      <label htmlFor="booking-ends">نهاية الإقامة (بتوقيت UTC)</label>
-      <input
-        id="booking-ends"
-        name="endsAt"
-        type="datetime-local"
-        required
-        dir="ltr"
-      />
+      <Field
+        label="نهاية الإقامة (بتوقيت UTC)"
+        error={state.status === "error" && state.field === "endsAt" ? state.message : undefined}
+      >
+        <input
+          id="booking-ends"
+          name="endsAt"
+          type="datetime-local"
+          required
+          dir="ltr"
+        />
+      </Field>
       <p className="field-hint">
         النافذة من البداية إلى النهاية نصف مفتوحة — صباح المغادرة ليس ليلة محسوبة.
         يجب أن تطابق فتحة توافر منشورة تمامًا (يعلّمك الخادم كلماته عند عدم المطابقة).
@@ -246,26 +251,28 @@ export function BookingReviewForm({
   return (
     <form action={action} className="stack-form">
       <input type="hidden" name="bookingId" value={bookingId} />
-      <label htmlFor={`review-rating-${bookingId}-${direction}`}>
-        {isConsumer ? "تقييمك للمزوّد" : "تقييمك للضيف"}
-      </label>
-      <select
-        id={`review-rating-${bookingId}-${direction}`}
-        name="rating"
-        required
-        defaultValue="5"
-        dir="ltr"
+      <Field
+        label={isConsumer ? "تقييمك للمزوّد" : "تقييمك للضيف"}
+        error={state.status === "error" && state.field === "rating" ? state.message : undefined}
       >
-        {Array.from(
-          { length: REVIEW_RATING_MAX - REVIEW_RATING_MIN + 1 },
-          (_, index) => REVIEW_RATING_MIN + index,
-        ).map((value) => (
-          <option key={value} value={value}>
-            {new Intl.NumberFormat("ar").format(value)} من{" "}
-            {new Intl.NumberFormat("ar").format(REVIEW_RATING_MAX)}
-          </option>
-        ))}
-      </select>
+        <select
+          id={`review-rating-${bookingId}-${direction}`}
+          name="rating"
+          required
+          defaultValue="5"
+          dir="ltr"
+        >
+          {Array.from(
+            { length: REVIEW_RATING_MAX - REVIEW_RATING_MIN + 1 },
+            (_, index) => REVIEW_RATING_MIN + index,
+          ).map((value) => (
+            <option key={value} value={value}>
+              {new Intl.NumberFormat("ar").format(value)} من{" "}
+              {new Intl.NumberFormat("ar").format(REVIEW_RATING_MAX)}
+            </option>
+          ))}
+        </select>
+      </Field>
       <label htmlFor={`review-comment-${bookingId}-${direction}`}>
         {isConsumer ? "تعليقك العلني (اختياري)" : "تعليقك العلني عن الضيف (اختياري)"}
       </label>

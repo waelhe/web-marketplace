@@ -1548,6 +1548,7 @@ pre {
 }
 
 .btn,
+.button,
 .listing-card,
 a,
 input,
@@ -1562,7 +1563,7 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton-line { animation: none; }
-  .btn, .listing-card, a, input, select, textarea { transition: none; }
+  .btn, .button, .listing-card, a, input, select, textarea { transition: none; }
 }
 
 .featured-ribbon {
