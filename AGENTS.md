@@ -96,7 +96,7 @@ session cookie.
 - This repo deploys as Railway service `web-marketplace` (GitHub-connected,
   branch `main`, auto-deploy): https://web-marketplace-production-5cc1.up.railway.app.
 - Add no dependency unless measured-needed against the pinned stack; Next.js builds must stay green (`npm run build`).
-- Safety net: `npm run test:unit` (vitest: problem decoder + formatters) and `npm run test:e2e` (Playwright smoke via installed Edge: hero form, sanitize-200s, relay 401, noindex, POST-only) must stay green; e2e boots its own dev on :3101 and asserts structure/contracts only (never data rows).
+- Safety net: `npm run test:unit` (vitest: problem decoder + formatters) and `npm run test:e2e` (Playwright smoke via installed Chrome: hero form, sanitize-200s, relay 401, noindex, POST-only) must stay green; e2e boots its own dev on :3101 and asserts structure/contracts only (never data rows).
 - Run everything with the pinned toolchain `../.tools/node-v26.8.2-win-x64` (Node
   v26.8.2, enforced by `engines` + `.npmrc engine-strict`) — ambient `node`
   on this machine is older and must not be used.
