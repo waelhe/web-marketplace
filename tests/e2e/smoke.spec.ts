@@ -97,6 +97,7 @@ test("neighborhood renders the anonymous gate without a feed fetch", async ({ pa
   const res = await page.goto("/neighborhood");
   expect(res?.status()).toBe(200);
   await expect(page.getByRole("heading", { name: "حارتي" })).toBeVisible();
+  await expect(page.getByText("هذا القسم لأعضاء الحارات")).toBeVisible();
   const robots = await page.locator('meta[name="robots"]').first().getAttribute("content");
   expect(robots).toContain("noindex");
 });
