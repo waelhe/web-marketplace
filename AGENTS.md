@@ -27,7 +27,15 @@ session cookie.
 
 - `/` — sign in/out, session state + the public browse entry link (Arabic RTL UI)
 - `/listings` — PUBLIC active-listing browse (paginated; anonymous GETs —
-  the SEO-indexable surface, data via `src/lib/api/public.ts`)
+  the SEO-indexable surface, data via `src/lib/api/public.ts`) + the
+  L35 session-aware saved-searches strip (batch-1 spec §2): chips that
+  restore the stored criteria through the URL (the measured name map
+  query/latitude/longitude ↔ q/lat/lng; the stay window rides ISO
+  instants on the wire — a plain date answers the measured 400 — while
+  the URL keeps the date form), the per-chip delete and the save form
+  (`alertEnabled` FALSE by default — alerts are the backend matcher's
+  alone) — data via `src/lib/api/saved-searches.ts`, writes via Server
+  Actions in `src/app/listings/actions.ts`
 - `/listings/[id]` — PUBLIC listing detail: `generateMetadata` (title
   template + canonical + OpenGraph via `metadataBase`) and the
   backend-composed schema.org JSON-LD embedded verbatim (the backend's
@@ -75,6 +83,17 @@ session cookie.
   photo surface (presigned declare → PUT → confirm + gallery + delete;
   S3-unconfigured answers 503 and renders honestly — the whole media
   channel is storage-gated on the backend)
+- `/provider/listings/[id]/pricing` — AUTHENTICATED listing price
+  calendar (L26 host tools, batch-1 spec §1): the weekend multiplier
+  upsert/remove ((0,10] scale 3 — the backend's Bean Validation + V41)
+  and the seasonal ranges [fromDate, toDate) with absolute nightly
+  prices (a real overlap answers 409 in the backend's own words);
+  the calendar read doubles as the ownership probe (403 foreign / 404
+  unknown) and carries NO status gate (measured 200 on an archived
+  listing); RULES-ONLY display — the effective nightly price of any
+  stay is the backend's PricingService, never recomputed client-side
+  — data via `src/lib/api/pricing.ts`, writes via Server Actions in
+  `src/app/provider/listings/[id]/pricing/actions.ts`
 - `/inbox` — AUTHENTICATED inbox (roadmap stage 4): the in-app
   notification feed (mark-read) + the L22 preference matrix (7 types ×
   3 channels; the in-app column always on, diffs only are upserted) +

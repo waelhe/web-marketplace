@@ -8,6 +8,16 @@ import {
 } from "@/lib/api/public";
 import { getGeoSuggest, GEO_SUGGEST_MIN_LENGTH, isUuid } from "@/lib/api/geo";
 import { problemMessage } from "@/lib/problem";
+import { getSession } from "@/lib/dal";
+import { formatDate } from "@/lib/format";
+import {
+  getSavedSearches,
+  linkFromCriteria,
+  savedSearchLabel,
+  toWireInstant,
+  type SavedSearchView,
+} from "@/lib/api/saved-searches";
+import { SaveSearchForm, SavedSearchDeleteButton } from "./saved-search-forms";
 import { PageHeader } from "@/components/ui/page-header";
 import { ListingCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -223,8 +233,13 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   const category = link.category || undefined;
   const minPrice = finiteNumber(link.minPrice);
   const maxPrice = finiteNumber(link.maxPrice);
-  const checkIn = link.checkIn || undefined;
-  const checkOut = link.checkOut || undefined;
+  // The stay window on the WIRE rides ISO instants (measured live
+  // 2026-09-25 on staging: a plain date answers 400 "Failed to convert
+  // 'checkIn'", an ISO instant answers 200). The URL keeps the date
+  // input's own plain form (URL-as-state untouched); toWireInstant
+  // converts at this parse boundary and drops malformed values (R27).
+  const checkIn = toWireInstant(link.checkIn);
+  const checkOut = toWireInstant(link.checkOut);
   const guests = finiteNumber(link.guests);
   const purpose = enumValue(link.purpose, PURPOSES);
   const propertyType = enumValue(link.propertyType, PROPERTY_TYPES);
@@ -299,8 +314,10 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   if (category !== undefined) sanitizedLink.category = category;
   if (minPrice !== undefined) sanitizedLink.minPrice = String(minPrice);
   if (maxPrice !== undefined) sanitizedLink.maxPrice = String(maxPrice);
-  if (checkIn !== undefined) sanitizedLink.checkIn = checkIn;
-  if (checkOut !== undefined) sanitizedLink.checkOut = checkOut;
+  // URL form preserved in every link (chips/pagination/save form) — the
+  // ISO-instant conversion lives only on the backend call below.
+  if (checkIn !== undefined) sanitizedLink.checkIn = link.checkIn;
+  if (checkOut !== undefined) sanitizedLink.checkOut = link.checkOut;
   if (guests !== undefined) sanitizedLink.guests = String(guests);
   if (resolvedLocationId !== undefined) sanitizedLink.locationId = resolvedLocationId;
   if (purpose !== undefined) sanitizedLink.purpose = purpose;
@@ -314,9 +331,47 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   if (sort !== undefined) sanitizedLink.sort = sort;
 
   const filtered = Object.keys(criteria).length > 0 || sort !== undefined;
+  // Actual criteria (not sort alone) — the save affordance's own rule:
+  // a saved search without criteria is the backend's legal "كل
+  // الإعلانات" form, but saving nothing is not an affordance worth
+  // rendering; the spec pins the button on non-default FILTERS.
+  const hasCriteria = Object.keys(criteria).length > 0;
   const result = filtered
     ? await searchListings(criteria, page, LISTINGS_PAGE_SIZE, sort)
     : await getActiveListings(page, LISTINGS_PAGE_SIZE);
+
+  // ---- L35 (spec §2): the session-aware saved-searches strip ----
+  // Anonymous visitors (and crawlers) get the exact page they got
+  // before — the strip is personal state rendered only for a session;
+  // its failures render honestly (re-auth hint / backend words).
+  const session = await getSession();
+  let savedSearches: SavedSearchView[] = [];
+  let savedSearchesNote: string | null = null;
+  if (session !== null) {
+    const saved = await getSavedSearches();
+    if (saved.ok) {
+      savedSearches = saved.data.content;
+    } else if (saved.unauthenticated) {
+      savedSearchesNote =
+        "جلستك مع الباك اند منتهية — سجّل الدخول من جديد لرؤية بحوثك المحفوظة.";
+    } else if (saved.status === 0) {
+      savedSearchesNote = "الخادم الخلفي غير متاح حالياً — بحوثك المحفوظة غير قابلة للقراءة الآن.";
+    } else {
+      savedSearchesNote = problemMessage(
+        saved.problem,
+        `تعذّرت قراءة بحوثك المحفوظة (رمز ${saved.status}).`,
+      );
+    }
+  }
+  const showSavedStrip =
+    session !== null &&
+    (savedSearches.length > 0 || savedSearchesNote !== null || hasCriteria);
+
+  // The save form's payload: the sanitized URL state minus sort (sort
+  // and page are not criteria — they never round-trip through the
+  // backend's SearchCriteria record).
+  const saveLink: Record<string, string> = { ...sanitizedLink };
+  delete saveLink.sort;
 
   // Active (backend-bound) filters for chips — individual clear + clear-all.
   const chips: { key: string; label: string; value: string }[] = [];
@@ -324,8 +379,8 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   if (category !== undefined) chips.push({ key: "category", label: "التصنيف", value: category });
   if (minPrice !== undefined) chips.push({ key: "minPrice", label: "السعر الأدنى", value: link.minPrice });
   if (maxPrice !== undefined) chips.push({ key: "maxPrice", label: "السعر الأقصى", value: link.maxPrice });
-  if (checkIn !== undefined) chips.push({ key: "checkIn", label: "الوصول", value: checkIn });
-  if (checkOut !== undefined) chips.push({ key: "checkOut", label: "المغادرة", value: checkOut });
+  if (checkIn !== undefined) chips.push({ key: "checkIn", label: "الوصول", value: link.checkIn });
+  if (checkOut !== undefined) chips.push({ key: "checkOut", label: "المغادرة", value: link.checkOut });
   if (guests !== undefined) chips.push({ key: "guests", label: "الضيوف", value: link.guests });
   if (resolvedLocationId !== undefined)
     chips.push({ key: "locationId", label: "الموقع", value: resolvedLocationName ?? locationRaw });
@@ -466,6 +521,57 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {/* L35: the saved-searches strip (session-aware; anonymous sees
+          nothing here). Chips restore their criteria through the URL —
+          the measured name map reconverted (query→q, latitude→lat,
+          longitude→lng, instants back to the date form); the delete
+          affordance is the per-chip small form; the save form carries
+          the sanitized criteria as hidden inputs. */}
+      {showSavedStrip ? (
+        <section className="saved-searches" aria-label="بحوثك المحفوظة">
+          {savedSearchesNote !== null ? (
+            <p className="page-note" role="status">
+              {savedSearchesNote}
+            </p>
+          ) : savedSearches.length > 0 ? (
+            <>
+              <p className="saved-searches-title">بحوثك المحفوظة</p>
+              <ul className="saved-search-list">
+                {savedSearches.map((saved) => {
+                  const chipQuery = new URLSearchParams(
+                    linkFromCriteria(saved.criteria),
+                  ).toString();
+                  return (
+                    <li key={saved.id} className="saved-search-chip">
+                      <Link
+                        href={chipQuery ? `/listings?${chipQuery}` : "/listings"}
+                      >
+                        {savedSearchLabel(saved.criteria)}
+                      </Link>
+                      {saved.alertEnabled ? (
+                        <span
+                          className="saved-search-flag"
+                          title="التنبيه مفعّل عند مطابقة إعلان جديد"
+                        >
+                          تنبيه
+                        </span>
+                      ) : null}
+                      {saved.lastMatchedAt !== null ? (
+                        <span className="saved-search-meta">
+                          آخر مطابقة {formatDate(saved.lastMatchedAt)}
+                        </span>
+                      ) : null}
+                      <SavedSearchDeleteButton id={saved.id} />
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : null}
+          {hasCriteria ? <SaveSearchForm link={saveLink} /> : null}
+        </section>
       ) : null}
 
       {locationUnresolved ? (

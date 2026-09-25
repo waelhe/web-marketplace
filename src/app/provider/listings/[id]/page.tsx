@@ -216,6 +216,11 @@ export default async function ManageListingPage({ params }: ManagePageProps) {
             <RenewListingForm listingId={id} />
             <ArchiveListingForm listingId={id} />
           </div>
+          <p className="listing-meta">
+            <Link href={`/provider/listings/${id}/pricing`}>
+              التسعير (نهاية الأسبوع والمواسم) — قابل للإدارة في أي حالة
+            </Link>
+          </p>
         </section>
 
         <section className="card">
@@ -270,6 +275,8 @@ export default async function ManageListingPage({ params }: ManagePageProps) {
         </p>
         <p className="listing-meta">
           <Link href={`/listings/${listing.id}`}>عرضه كما يراه الزوّار</Link>
+          <span>·</span>
+          <Link href={`/provider/listings/${listing.id}/pricing`}>التسعير (نهاية الأسبوع والمواسم)</Link>
         </p>
         <div className="action-row">
           <PauseListingForm listingId={listing.id} />

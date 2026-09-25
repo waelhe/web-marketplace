@@ -1309,3 +1309,125 @@ pre {
   color: var(--ink-2);
   font-size: var(--text-sm);
 }
+
+/* ===== L35: the saved-searches strip (batch-1 spec §2) — session-aware
+   chips above the browse results; semantic tokens only, logical
+   properties for the RTL document. ===== */
+.saved-searches {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+  margin-block-start: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.saved-searches-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.saved-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.saved-search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.saved-search-chip > a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.saved-search-chip > a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.saved-search-flag {
+  /* --accent is background-only, always with --ink on top (contrast rule) */
+  background: var(--accent);
+  color: var(--ink);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.saved-search-meta {
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+}
+
+.save-search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.save-search-form .page-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.save-search-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+/* ===== L26: the listing price calendar (batch-1 spec §1) — the
+   seasonal-ranges table and its native disclosure edit rows. ===== */
+.pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.pricing-table th,
+.pricing-table td {
+  border: 1px solid var(--border);
+  padding: var(--space-2);
+  text-align: start;
+}
+
+.pricing-table th {
+  background: var(--surface);
+  font-weight: 700;
+}
+
+.pricing-edit-row > td {
+  background: var(--bg);
+}
+
+.pricing-edit-row details > summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-size: var(--text-sm);
+}
+
+.pricing-edit-row details[open] > summary {
+  margin-block-end: var(--space-2);
+}
