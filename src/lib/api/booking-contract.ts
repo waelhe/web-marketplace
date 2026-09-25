@@ -147,6 +147,55 @@ export interface AvailabilitySlotView {
 }
 
 /**
+ * ProviderAvailabilityRule — the weekly recurring window the slot
+ * generator expands into concrete slots (measured entity fields).
+ * `dayOfWeek` is the DayOfWeek enum name; times are LocalTime
+ * serialized "HH:mm:ss" — displayed as-is, never reinterpreted.
+ */
+export interface AvailabilityRuleView {
+  id: string;
+  providerId: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+/** ProviderTimeOff — a blocked window [startsAt, endsAt) (measured entity fields). */
+export interface ProviderTimeOffView {
+  id: string;
+  providerId: string;
+  startsAt: string;
+  endsAt: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+/** The DayOfWeek vocabulary the weekly-rule form offers (the enum's own names). */
+export const WEEK_DAYS = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+] as const;
+export type WeekDay = (typeof WEEK_DAYS)[number];
+
+/** Arabic labels of the measured DayOfWeek vocabulary (locale-first: Sunday start). */
+export const WEEK_DAY_LABELS: Record<WeekDay, string> = {
+  SUNDAY: "الأحد",
+  MONDAY: "الاثنين",
+  TUESDAY: "الثلاثاء",
+  WEDNESDAY: "الأربعاء",
+  THURSDAY: "الخميس",
+  FRIDAY: "الجمعة",
+  SATURDAY: "السبت",
+};
+
+/**
  * The deterministic payment-intent idempotency key — the bridge over
  * the measured backend gap (no "intent by booking" read exists). The
  * backend's createIntent is read-or-create on the idempotency key

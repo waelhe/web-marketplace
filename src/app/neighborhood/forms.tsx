@@ -12,6 +12,7 @@
 import { useActionState } from "react";
 import {
   createPostAction,
+  deletePostAction,
   joinAction,
   leaveAction,
   messageNeighborAction,
@@ -137,6 +138,36 @@ export function MessageNeighborButton({ authorId }: { authorId: string }) {
       <input type="hidden" name="recipientId" value={authorId} />
       <button type="submit" className="button" disabled={pending}>
         {pending ? "جارٍ الفتح…" : "راسل الجار"}
+      </button>
+      {state.status === "error" ? <StateMessage state={state} /> : null}
+    </form>
+  );
+}
+
+/**
+ * «احذف منشورك» — the author's own soft delete (batch-2 spec §1).
+ * Rendered only on the caller's OWN posts (the me chain decides in
+ * the page), but the backend's 403-for-anyone-else remains the
+ * authority. Success redirects to the feed re-rendered without the
+ * post — its comments follow in the read path (the backend's own
+ * contract).
+ */
+export function DeletePostButton({ postId }: { postId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    deletePostAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="inline-action">
+      <input type="hidden" name="postId" value={postId} />
+      <button
+        type="submit"
+        className="button"
+        data-variant="danger"
+        disabled={pending}
+      >
+        {pending ? "جارٍ الحذف…" : "احذف منشورك"}
       </button>
       {state.status === "error" ? <StateMessage state={state} /> : null}
     </form>

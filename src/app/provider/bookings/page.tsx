@@ -12,7 +12,7 @@ import {
   type BookingStatus,
   type BookingView,
 } from "@/lib/api/booking-contract";
-import { SlotPublishForm } from "./forms";
+import { AvailabilityRuleForm, SlotPublishForm, TimeOffForm } from "./forms";
 
 /**
  * حجوزات ضيوفك — roadmap stage 6's provider surface (الحجز والدفع):
@@ -136,6 +136,21 @@ export default async function ProviderBookingsPage({}: ProviderBookingsPageProps
           {new Intl.NumberFormat("ar").format(AVAILABILITY_WINDOW_DAYS)} يومًا).
         </p>
         <SlotPublishForm />
+
+        {/* The batch-2 spec §5 pair: the weekly rule (the generator's
+            source) and the time-off block — both on the MEASURED
+            query-string contracts, write-only by the contract's own
+            shape (no rules/time-off reads exist — measured). */}
+        <div className="availability-forms">
+          <div>
+            <h3>قاعدة أسبوعية</h3>
+            <AvailabilityRuleForm />
+          </div>
+          <div>
+            <h3>تعطيل نافذة</h3>
+            <TimeOffForm />
+          </div>
+        </div>
       </section>
 
       <p>

@@ -92,6 +92,19 @@ export const PROVIDER_PAGE_LISTINGS_SIZE = 12;
 export const PROVIDER_REVIEWS_PAGE_SIZE = 20;
 
 /**
+ * The /profile my-reviews page size — one page of "what I wrote" and
+ * one of "what providers said about me"; 20 = the backend's own
+ * default page (the same density decision as the provider dashboard).
+ */
+export const MY_REVIEWS_PAGE_SIZE = 20;
+
+/** Arabic labels of the measured review directions (ReviewResponse.direction). */
+export const REVIEW_DIRECTION_LABELS: Record<string, string> = {
+  CONSUMER_TO_PROVIDER: "تقييمي لمزوّد",
+  PROVIDER_TO_CONSUMER: "تقييم مزوّد لضيف",
+};
+
+/**
  * The reply mirror bound: the backend's own gate is @NotBlank
  * (ReplyRequest) with a TEXT column — no authored maximum. The client
  * mirrors the blank gate only; the backend remains the authority.

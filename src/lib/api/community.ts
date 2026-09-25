@@ -24,7 +24,15 @@
 
 import { backendGet, backendSend, type BackendResult } from "./server";
 import type { PagedResponse } from "./types";
-import type { NeighborhoodMembership, NeighborhoodPost, PostCategory } from "./community-contract";
+import type {
+  ContentReportView,
+  NeighborhoodMembership,
+  NeighborhoodPost,
+  PostCategory,
+  PostComment,
+  ReportReason,
+  ReportTargetType,
+} from "./community-contract";
 
 /**
  * Read the caller's ACTIVE membership — `GET /api/v1/me/neighborhood`.
@@ -91,4 +99,65 @@ export function createNeighborhoodPost(input: {
   body: string;
 }): Promise<BackendResult<NeighborhoodPost>> {
   return backendSend("POST", "/api/v1/neighborhood/posts", input);
+}
+
+/**
+ * Read one post's comments — `GET /api/v1/posts/{postId}/comments`.
+ * Chronological (createdAt ASC, id ASC — the backend's complete sort
+ * key); the post gate runs first (unknown/hidden/deleted → the honest
+ * 404) and the membership gate matches the feed's (active membership
+ * in the post's OWN neighborhood, else 403). Page 0 + a bounded size
+ * is the on-demand disclosure's read.
+ */
+export function getPostComments(
+  postId: string,
+  page: number,
+  size: number,
+): Promise<BackendResult<PagedResponse<PostComment>>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return backendGet(`/api/v1/posts/${encodeURIComponent(postId)}/comments?${params.toString()}`);
+}
+
+/**
+ * Comment on a post — `POST /api/v1/posts/{postId}/comments`
+ * `{body}` (≤ 2000 — the controller's bound). Same active-membership
+ * gate as the feed, in the post's OWN neighborhood; VISIBLE posts
+ * only (404 otherwise). The post's author is notified
+ * (POST_COMMENTED) after commit — unless the commenter IS the author.
+ */
+export function createPostComment(
+  postId: string,
+  body: string,
+): Promise<BackendResult<PostComment>> {
+  return backendSend("POST", `/api/v1/posts/${encodeURIComponent(postId)}/comments`, { body });
+}
+
+/**
+ * Delete my post — `DELETE /api/v1/posts/{postId}`. The author's own
+ * soft delete (the audit trail keeps every revision — the reads stop
+ * returning it and the comments follow in the read path). Only the
+ * author: anyone else answers 403; an unknown post answers 404. 204
+ * on success (resolves to `data: null`).
+ */
+export function deleteNeighborhoodPost(postId: string): Promise<BackendResult<null>> {
+  return backendSend<null>("DELETE", `/api/v1/posts/${encodeURIComponent(postId)}`);
+}
+
+/**
+ * Report a piece of content — `POST /api/v1/reports` (L45). Authenticated
+ * with NO membership condition (the plan's own reasoning: whoever can
+ * see the feed is a member already). The target must be VISIBLE
+ * content (404 unknown/hidden/deleted); reporting your own content
+ * answers 409; a second live report on the same target answers 409
+ * (one report per reporter per target — the V64 partial unique index).
+ * The report lands OPEN in the administrative queue. `note` is
+ * optional, ≤ 2000.
+ */
+export function createContentReport(input: {
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  note?: string;
+}): Promise<BackendResult<ContentReportView>> {
+  return backendSend("POST", "/api/v1/reports", input);
 }
