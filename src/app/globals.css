@@ -1581,12 +1581,16 @@ textarea {
   }
   .site-header-nav,
   .site-header-user-nav {
+    flex-wrap: nowrap;
     overflow-x: auto;
+    padding-inline: var(--space-1);
+    scroll-padding-inline: var(--space-1);
     scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
   }
   .site-header-nav > *,
   .site-header-user-nav > * {
+    flex: 0 0 auto;
     scroll-snap-align: start;
   }
 }
