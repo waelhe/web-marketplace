@@ -92,3 +92,11 @@ test("booking and profile forms remain gated from anonymous smoke coverage", asy
   await expect(page.getByText("لم تسجّل الدخول", { exact: false })).toBeVisible();
   await expect(page.locator('select[name="rating"]')).toHaveCount(0);
 });
+
+test("neighborhood renders the anonymous gate without a feed fetch", async ({ page }) => {
+  const res = await page.goto("/neighborhood");
+  expect(res?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "حارتي" })).toBeVisible();
+  const robots = await page.locator('meta[name="robots"]').first().getAttribute("content");
+  expect(robots).toContain("noindex");
+});
