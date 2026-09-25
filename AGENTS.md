@@ -183,7 +183,9 @@ session cookie.
   — the I8 trust view; both keyed by the /me-resolved user id, never
   client-sent) + «صدّر بياناتي» — the GDPR Art. 20 export download link
   (the `/api/account/export` route below)
-- `/admin` — AUTHENTICATED administration console (batch-3 spec): the
+- `/admin` — AUTHENTICATED administration console (batch-3 spec + the
+  batch-4 spec — the console II: the remaining 21 admin operations; the
+  whole `/api/v1/admin/**` contract now has a console home): the
   moderation report queue (L45's administrative counterpart — `GET
   /admin/reports?status=` FIFO on the complete sort key with the
   OPEN/RESOLVED/DISMISSED axis + per-open-report resolve `POST
@@ -195,15 +197,34 @@ session cookie.
   summaries whose id IS the intent id + confirm
   `POST /payments/intents/{id}/confirm {externalId}` + full refund
   `POST /payments/{paymentId}/refund` — the payment-row id appears in
-  no contract read, stated honestly on the form) — data via
-  `src/lib/api/admin.ts`, writes via Server Actions in
-  `src/app/admin/actions.ts`. The whole surface sits behind the
-  backend's three-layer hasRole('ADMIN') gates and `/me` carries no
-  roles (measured) — a non-admin caller sees the backend's own 403
-  AUTHZ-001 words rendered verbatim (the honest-failure pattern; the
-  admin happy paths are unverifiable with the test account — no ADMIN
-  credentials exist on our side, declared in the spec); `noindex`,
-  no public nav link (the administration knows the address)
+  no contract read, stated honestly on the form) — plus the batch-4
+  surfaces: the users administration (list + role PUT on the
+  `UserRole` source enum + status PUT (`@Pattern` DISABLED|ENABLED +
+  audited reason) + the I7 pseudonymize/purge-content/purge-audit-
+  history trio with its measured 503-SU-001 capability note), the
+  all-bookings read (`GET /admin/bookings?status=` — the status filter
+  passes through verbatim, no client-side vocabulary), the
+  all-listings inventory (rows carry `providerId` — the only contract
+  read that does) + archive + the L37 promotion PUT (empty `until`
+  CLEARS the boost — the backend's own semantics), the single-intent
+  read `GET /admin/payments/{id}`, provider verify/suspend (the
+  profile-id space), the administrative ledger (balance read +
+  `POST …/credit?paymentIntentId&amountCents` — a QUERY-STRING
+  contract), the dispute resolve (OPTIONAL body — absent = NO_ACTION)
+  and the geo admin trio (create/rename/delete with the source slug
+  `@Pattern`); the three input-driven reads (single intent, provider
+  balance, entity revisions) ride the URL as state through plain GET
+  forms (`?intentId=`, `?balanceProviderId=`, `?revisionEntity=&
+  revisionId=` — the `/neighborhoods?parent=` discipline, no
+  client-side fetch) — data via `src/lib/api/admin.ts`, writes via
+  Server Actions in `src/app/admin/actions.ts`. The whole surface sits
+  behind the backend's three-layer hasRole('ADMIN') gates and `/me`
+  carries no roles (measured) — a non-admin caller sees the backend's
+  own 403 AUTHZ-001 words rendered verbatim (the honest-failure
+  pattern; the admin happy paths are unverifiable with the test
+  account — no ADMIN credentials exist on our side, declared in the
+  spec); `noindex`, no public nav link (the administration knows the
+  address)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
 - `/api/account/export` — AUTHENTICATED download route (batch-2 spec §3,
   GDPR Art. 20): resolves the session Bearer with the relay's own

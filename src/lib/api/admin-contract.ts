@@ -122,3 +122,149 @@ export interface PaymentRefundView {
   createdAt: string;
   updatedAt: string;
 }
+
+/* ------------------------------------------------------------------ */
+/* Batch-4 — the administration console II (the remaining 21 admin    */
+/* operations: users ×6, bookings ×1, listings ×2 + promotion ×1,     */
+/* the single-intent read, providers verify/suspend ×2, ledger ×2,    */
+/* dispute resolve ×1, geo ×3, revisions ×2). Same discipline: every  */
+/* shape and vocabulary below is pinned from the backend source       */
+/* (app-java-v3, 2026-09-25) — see the batch-4 spec.                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * UserSummary (shared-api) — one row of the administration's user
+ * list. `role` rides the backend's own UserRole vocabulary (the
+ * ChangeRoleRequest contract passes it straight to
+ * UserRole.valueOf — the console's select pins the source enum).
+ */
+export interface UserSummaryView {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** The admin user list's page size (the spec's battery window). */
+export const ADMIN_USERS_PAGE_SIZE = 20;
+
+/** UserRole.java — the role command's own three-value vocabulary. */
+export const USER_ROLES = ["CONSUMER", "PROVIDER", "ADMIN"] as const;
+export type UserRoleValue = (typeof USER_ROLES)[number];
+
+/** Arabic UI labels of the MEASURED role vocabulary. */
+export const USER_ROLE_LABELS: Record<UserRoleValue, string> = {
+  CONSUMER: "مستهلك",
+  PROVIDER: "مزوّد",
+  ADMIN: "مدير",
+};
+
+/**
+ * ChangeStatusRequest (AdminController) — the status command's own
+ * vocabulary, pinned by @Pattern at the request boundary
+ * (DISABLED|ENABLED); the reason is part of the contract (it rides
+ * the identity module's structured audit line).
+ */
+export const USER_STATUSES = ["DISABLED", "ENABLED"] as const;
+export type UserStatusValue = (typeof USER_STATUSES)[number];
+
+/** Arabic UI labels of the MEASURED status vocabulary. */
+export const USER_STATUS_LABELS: Record<UserStatusValue, string> = {
+  DISABLED: "تعطيل الحساب",
+  ENABLED: "تفعيل الحساب",
+};
+
+/**
+ * BookingSummary (shared-api) — one row of the administration's
+ * ALL-bookings read. Carries BOTH participant ids (the admin view —
+ * the consumer BookingResponse never does, measured Task 23).
+ */
+export interface BookingSummaryView {
+  id: string;
+  consumerId: string;
+  providerId: string;
+  listingId: string;
+  status: string;
+  priceCents: number | null;
+  currency: string;
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** The admin bookings list's page size (the spec's battery window). */
+export const ADMIN_BOOKINGS_PAGE_SIZE = 20;
+
+/**
+ * ProviderListingSummary (shared-api) — one row of the
+ * administration's ALL-listings read. The only contract read whose
+ * rows expose `providerId` (AdminController-only — measured Task 26),
+ * the id source for the verify/suspend commands.
+ */
+export interface ProviderListingSummaryView {
+  id: string;
+  title: string;
+  category: string;
+  price: number;
+  providerId: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** The admin listings list's page size (the spec's battery window). */
+export const ADMIN_LISTINGS_PAGE_SIZE = 20;
+
+/**
+ * ListingPromotion (shared-api) — the L37 boost window's state after
+ * the PUT. `promotedUntil` is null when the boost is CLEARED (the
+ * same nullable-Instant contract the entity column carries).
+ */
+export interface ListingPromotionView {
+  id: string;
+  promotedUntil: string | null;
+}
+
+/**
+ * ProviderBalance (marketplace-ledger) — the provider's money state.
+ * The entity's id IS the providerId (getId is redefined); the balance
+ * is availableCents in MINOR units.
+ */
+export interface ProviderBalanceView {
+  id: string;
+  availableCents: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** ContentPurgeResponse (AdminController) — the free-text purge count. */
+export interface ContentPurgeResult {
+  purgedRows: number;
+}
+
+/** AuditPurgeResponse (AdminController) — the audit purge's two counts. */
+export interface AuditPurgeResult {
+  scrubbedRows: number;
+  usersAudRowsDeleted: number;
+}
+
+/**
+ * RevisionEntry (RevisionService) — one Envers revision row. `entity`
+ * is the RAW audited entity state (an arbitrary JSON object — never
+ * recomposed or reshaped client-side).
+ */
+export interface RevisionEntryView {
+  revisionNumber: number;
+  revisedAt: string;
+  revisionType: string;
+  entity: Record<string, unknown>;
+}
+
+/**
+ * GeoAdminController's slug bound — @Pattern on BOTH the create and
+ * rename bodies (2-120 lowercase latin letters, digits or dashes).
+ */
+export const GEO_SLUG_PATTERN = "[a-z0-9-]{2,120}";

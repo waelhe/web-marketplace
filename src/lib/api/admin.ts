@@ -32,13 +32,26 @@
 import { backendGet, backendSend, type BackendResult } from "./server";
 import type { PagedResponse } from "./types";
 import type { PaymentIntentView } from "./booking-contract";
+import type { DisputeResolution, DisputeView } from "./disputes-contract";
+import type { GeoNode } from "./geo";
+import type { ProviderProfileView } from "./provider-contract";
 import type {
+  AuditPurgeResult,
+  BookingSummaryView,
+  ContentPurgeResult,
+  ListingPromotionView,
   ModerationAction,
   ModerationReportView,
   PaymentRefundView,
   PaymentSummaryView,
   PricingRuleView,
+  ProviderBalanceView,
+  ProviderListingSummaryView,
   ReportStatusFilter,
+  RevisionEntryView,
+  UserStatusValue,
+  UserRoleValue,
+  UserSummaryView,
 } from "./admin-contract";
 
 /**
@@ -183,5 +196,344 @@ export function refundPayment(
   return backendSend(
     "POST",
     `/api/v1/payments/${encodeURIComponent(paymentId)}/refund`,
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Batch-4 — the administration console II channels (the remaining   */
+/* 21 admin operations, the batch-4 spec). Same authenticated server  */
+/* channel; every contract below is pinned from the backend source:   */
+/* AdminController (class-level ADMIN gate on all fourteen ops),      */
+/* GeoAdminController (class gate + service gate), LedgerController   */
+/* (method-level @PreAuthorize), the admin/providers/{id}/verify +   */
+/* suspend surface under the /api/v1/admin/** SecurityConfig rule,    */
+/* and DisputeController's admin resolve (optional body).            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The administration's user list — `GET /api/v1/admin/users?page=&size=`
+ * (UserSummary rows: id, email, displayName, role, timestamps).
+ */
+export function getUsers(
+  page = 0,
+  size = 20,
+): Promise<BackendResult<PagedResponse<UserSummaryView>>> {
+  return backendGet(`/api/v1/admin/users?page=${page}&size=${size}`);
+}
+
+/**
+ * Change one user's role — `PUT /api/v1/admin/users/{id}/role {role}`.
+ * The body's role rides the backend's own UserRole enum (valueOf —
+ * the console's select pins CONSUMER|PROVIDER|ADMIN from source).
+ */
+export function updateUserRole(
+  userId: string,
+  role: UserRoleValue,
+): Promise<BackendResult<null>> {
+  return backendSend(
+    "PUT",
+    `/api/v1/admin/users/${encodeURIComponent(userId)}/role`,
+    { role },
+  );
+}
+
+/**
+ * Disable/enable one account — `PUT /api/v1/admin/users/{id}/status
+ * {status, reason}`. Both fields are the backend's own request-bound
+ * contract (@Pattern DISABLED|ENABLED + @NotBlank reason — the reason
+ * rides the identity module's structured audit line).
+ */
+export function updateUserStatus(
+  userId: string,
+  status: UserStatusValue,
+  reason: string,
+): Promise<BackendResult<null>> {
+  return backendSend(
+    "PUT",
+    `/api/v1/admin/users/${encodeURIComponent(userId)}/status`,
+    { status, reason },
+  );
+}
+
+/**
+ * One-way account pseudonymization — `POST /api/v1/admin/users/{id}/
+ * pseudonymize {reason}` (I7's erasure flow, phase 1). The backend
+ * answers 503 SU-001 while its HMAC secret channel is unbound — the
+ * capability is OFF, not broken (stated on the form).
+ */
+export function pseudonymizeUser(
+  userId: string,
+  reason: string,
+): Promise<BackendResult<null>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/users/${encodeURIComponent(userId)}/pseudonymize`,
+    { reason },
+  );
+}
+
+/**
+ * The free-text content purge — `POST /api/v1/admin/users/{id}/
+ * purge-content {reason}` → {purgedRows} (I7 phase 3). Idempotent by
+ * the port contract; the service's own guard requires the account to
+ * be pseudonymized first (409 otherwise — the backend's words).
+ */
+export function purgeUserContent(
+  userId: string,
+  reason: string,
+): Promise<BackendResult<ContentPurgeResult>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/users/${encodeURIComponent(userId)}/purge-content`,
+    { reason },
+  );
+}
+
+/**
+ * The audit-identity purge — `POST /api/v1/admin/users/{id}/
+ * purge-audit-history {reason}` → {scrubbedRows, usersAudRowsDeleted}
+ * (I7 phase 3). Same pseudonymized-first guard; heavy and idempotent.
+ */
+export function purgeUserAuditHistory(
+  userId: string,
+  reason: string,
+): Promise<BackendResult<AuditPurgeResult>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/users/${encodeURIComponent(userId)}/purge-audit-history`,
+    { reason },
+  );
+}
+
+/**
+ * The administration's ALL-bookings read — `GET /api/v1/admin/bookings?
+ * status=&page=&size=` (BookingSummary rows carrying BOTH participant
+ * ids — the admin view). The optional status filter passes through
+ * verbatim (no client-side vocabulary — the backend is the authority).
+ */
+export function getAllBookings(
+  status: string | null,
+  page = 0,
+  size = 20,
+): Promise<BackendResult<PagedResponse<BookingSummaryView>>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+  if (status) params.set("status", status);
+  return backendGet(`/api/v1/admin/bookings?${params.toString()}`);
+}
+
+/**
+ * The administration's ALL-listings read — `GET /api/v1/admin/listings?
+ * page=&size=` (ProviderListingSummary rows). The only contract read
+ * whose rows expose providerId — the id source for verify/suspend.
+ */
+export function getAllListings(
+  page = 0,
+  size = 20,
+): Promise<BackendResult<PagedResponse<ProviderListingSummaryView>>> {
+  return backendGet(
+    `/api/v1/admin/listings?page=${page}&size=${size}`,
+  );
+}
+
+/**
+ * Archive one listing administratively — `POST /api/v1/admin/listings/
+ * {id}/archive`. The response is the archived summary row verbatim.
+ */
+export function archiveListing(
+  listingId: string,
+): Promise<BackendResult<ProviderListingSummaryView>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/listings/${encodeURIComponent(listingId)}/archive`,
+  );
+}
+
+/**
+ * Set (or clear) one listing's L37 boost window — `PUT /api/v1/admin/
+ * listings/{id}/promotion {until}`. An ABSENT/null until CLEARS the
+ * boost (the backend's own PUT semantics — an admin correcting a
+ * shading is the documented exit); the response is the resulting
+ * ListingPromotion state (promotedUntil: null when cleared).
+ */
+export function setListingPromotion(
+  listingId: string,
+  until: string | null,
+): Promise<BackendResult<ListingPromotionView>> {
+  return backendSend(
+    "PUT",
+    `/api/v1/admin/listings/${encodeURIComponent(listingId)}/promotion`,
+    { until },
+  );
+}
+
+/**
+ * One payment intent's summary — `GET /api/v1/admin/payments/{id}` (the
+ * single-intent read; same PaymentSummary shape as the list rows).
+ */
+export function getPaymentIntent(
+  intentId: string,
+): Promise<BackendResult<PaymentSummaryView>> {
+  return backendGet(
+    `/api/v1/admin/payments/${encodeURIComponent(intentId)}`,
+  );
+}
+
+/**
+ * Verify one provider — `POST /api/v1/admin/providers/{id}/verify`.
+ * The path id is a PROFILE id (the profile-id space — never the user
+ * id); the response is the updated ProviderResponse.
+ */
+export function verifyProvider(
+  providerId: string,
+): Promise<BackendResult<ProviderProfileView>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/providers/${encodeURIComponent(providerId)}/verify`,
+  );
+}
+
+/**
+ * Suspend one provider — `POST /api/v1/admin/providers/{id}/suspend`
+ * (same profile-id space; the response is the updated row).
+ */
+export function suspendProvider(
+  providerId: string,
+): Promise<BackendResult<ProviderProfileView>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/providers/${encodeURIComponent(providerId)}/suspend`,
+  );
+}
+
+/**
+ * One provider's ledger balance — `GET /api/v1/admin/ledger/providers/
+ * {providerId}/balance` → ProviderBalance (the entity's id IS the
+ * providerId; availableCents in minor units).
+ */
+export function getProviderBalance(
+  providerId: string,
+): Promise<BackendResult<ProviderBalanceView>> {
+  return backendGet(
+    `/api/v1/admin/ledger/providers/${encodeURIComponent(providerId)}/balance`,
+  );
+}
+
+/**
+ * Credit a provider's ledger from a payment — `POST /api/v1/admin/
+ * ledger/providers/{providerId}/credit?paymentIntentId&amountCents`.
+ * A QUERY-STRING contract (@RequestParam on the backend — never a
+ * JSON body), the same discipline as the batch-2 availability writes.
+ */
+export function creditProvider(
+  providerId: string,
+  paymentIntentId: string,
+  amountCents: number,
+): Promise<BackendResult<ProviderBalanceView>> {
+  const params = new URLSearchParams({
+    paymentIntentId,
+    amountCents: String(amountCents),
+  });
+  return backendSend(
+    "POST",
+    `/api/v1/admin/ledger/providers/${encodeURIComponent(providerId)}/credit?${params.toString()}`,
+  );
+}
+
+/**
+ * The administrative dispute resolution — `POST /api/v1/admin/disputes/
+ * {id}/resolve {resolution?}`. The BODY IS OPTIONAL: absent = NO_ACTION
+ * (the endpoint's own backward-compatible semantics — money never moves
+ * implicitly; REFUND_CONSUMER must be named). resolution === null sends
+ * NO body, exactly the measured contract.
+ */
+export function resolveDispute(
+  disputeId: string,
+  resolution: DisputeResolution | null,
+): Promise<BackendResult<DisputeView>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/disputes/${encodeURIComponent(disputeId)}/resolve`,
+    resolution === null ? undefined : { resolution },
+  );
+}
+
+/**
+ * Append a child location — `POST /api/v1/admin/geo {parentId, nameAr,
+ * nameEn?, slug}` (201 + the created GeoNode echo). The parent must
+ * exist (404 otherwise); slug conflicts answer 409 in the backend's
+ * own words; the slug rides the source @Pattern [a-z0-9-]{2,120}.
+ */
+export function createGeoLocation(input: {
+  parentId: string;
+  nameAr: string;
+  nameEn: string | null;
+  slug: string;
+}): Promise<BackendResult<GeoNode>> {
+  return backendSend("POST", "/api/v1/admin/geo", {
+    parentId: input.parentId,
+    nameAr: input.nameAr,
+    nameEn: input.nameEn,
+    slug: input.slug,
+  });
+}
+
+/**
+ * Rename / re-slug one location — `PATCH /api/v1/admin/geo/{id}
+ * {nameAr, nameEn?, slug}` (the level and parent are immutable — the
+ * backend's own contract). The response is the updated GeoNode.
+ */
+export function renameGeoLocation(
+  locationId: string,
+  input: {
+    nameAr: string;
+    nameEn: string | null;
+    slug: string;
+  },
+): Promise<BackendResult<GeoNode>> {
+  return backendSend(
+    "PATCH",
+    `/api/v1/admin/geo/${encodeURIComponent(locationId)}`,
+    input,
+  );
+}
+
+/**
+ * Soft-delete one childless location — `DELETE /api/v1/admin/geo/{id}`
+ * (204). A node WITH children answers 409 (no silent subtree
+ * orphaning — the backend's own words).
+ */
+export function deleteGeoLocation(
+  locationId: string,
+): Promise<BackendResult<null>> {
+  return backendSend(
+    "DELETE",
+    `/api/v1/admin/geo/${encodeURIComponent(locationId)}`,
+  );
+}
+
+/**
+ * The audited-entity names — `GET /api/v1/admin/revisions/entities`
+ * (the Envers @Audited entities, sorted). The revisions read's own
+ * entity-name axis.
+ */
+export function getAuditedEntities(): Promise<BackendResult<string[]>> {
+  return backendGet("/api/v1/admin/revisions/entities");
+}
+
+/**
+ * One entity's revision trail — `GET /api/v1/admin/revisions/
+ * {entityName}/{id}` → RevisionEntry rows {revisionNumber, revisedAt,
+ * revisionType, entity}. The entity payload is the RAW audited state —
+ * rendered verbatim, never recomposed.
+ */
+export function getRevisions(
+  entityName: string,
+  entityId: string,
+): Promise<BackendResult<RevisionEntryView[]>> {
+  return backendGet(
+    `/api/v1/admin/revisions/${encodeURIComponent(entityName)}/${encodeURIComponent(entityId)}`,
   );
 }
