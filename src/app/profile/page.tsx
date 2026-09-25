@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { getSession } from "@/lib/dal";
 import { backendGet } from "@/lib/api/server";
@@ -32,8 +33,18 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-/** One review row — rating, comment, reply, direction label, dates. */
-function ReviewRow({ review }: { review: ReviewView }) {
+/** One review row — rating, comment, reply, direction label, dates.
+ *  Optional children (the edit form) render INSIDE the row's <li>: a
+ *  <ul> may only hold <li> directly, and the row IS the <li> — wrapping
+ *  it in another <li> is invalid HTML and fails hydration (measured in
+ *  the dev log, fixed 2026-09-25). */
+function ReviewRow({
+  review,
+  children,
+}: {
+  review: ReviewView;
+  children?: ReactNode;
+}) {
   return (
     <li className="card post-card">
       <p className="listing-meta">
@@ -53,6 +64,7 @@ function ReviewRow({ review }: { review: ReviewView }) {
           <span>{review.reply}</span>
         </p>
       ) : null}
+      {children}
     </li>
   );
 }
@@ -128,8 +140,7 @@ export default async function ProfilePage() {
             ) : (
               <ul className="feed-list">
                 {written.data.content.map((review) => (
-                  <li key={review.id} className="card post-card">
-                    <ReviewRow review={review} />
+                  <ReviewRow key={review.id} review={review}>
                     {/* The edit (PUT /reviews/{id}) — the original reviewer
                         alone; the backend's own 403 is the authority. */}
                     <ReviewEditForm
@@ -137,7 +148,7 @@ export default async function ProfilePage() {
                       rating={review.rating}
                       comment={review.comment}
                     />
-                  </li>
+                  </ReviewRow>
                 ))}
               </ul>
             )
