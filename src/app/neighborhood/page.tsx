@@ -183,91 +183,93 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
           </section>
         </aside>
 
-      <section className="hood-main">
-        <h2>تغذية الحارة</h2>
-        {feed.ok ? (
-          feed.data.content.length === 0 ? (
-            page > 0 && feed.data.totalElements > 0 ? (
+        <section className="hood-main">
+          <section>
+            <h2>تغذية الحارة</h2>
+            {feed.ok ? (
+              feed.data.content.length === 0 ? (
+                page > 0 && feed.data.totalElements > 0 ? (
+                  <p className="page-note" role="status">
+                    لا منشورات في هذه الصفحة.{" "}
+                    <Link href="/neighborhood">العودة إلى الأولى</Link>
+                  </p>
+                ) : (
+                  <p className="page-note" role="status">
+                    لا منشورات في حارتك بعد — كن أول من يكتب لجيرانه.
+                  </p>
+                )
+              ) : (
+                <>
+                  <p className="page-note">
+                    {new Intl.NumberFormat("ar").format(feed.data.totalElements)} منشوراً —
+                    الصفحة {new Intl.NumberFormat("ar").format(feed.data.pageNumber + 1)} من{" "}
+                    {new Intl.NumberFormat("ar").format(Math.max(feed.data.totalPages, 1))}
+                  </p>
+                  <ul className="feed-list">
+                    {feed.data.content.map((post) => (
+                      <li key={post.id} className="card post-card">
+                        <h3>{post.title}</h3>
+                        <p className="listing-meta">
+                          <span className="listing-category">{CATEGORY_LABELS[post.category]}</span>
+                          <span>·</span>
+                          <span>{formatDate(post.createdAt)}</span>
+                          {/* The author is an opaque UUID by the backend's
+                              projection contract — no invented identity display. */}
+                        </p>
+                        <p className="post-body">{post.body}</p>
+                        {/* L42's conversational layer (batch-2 spec §1): the
+                            comments disclosure — an on-demand read, so a closed
+                            post costs the feed render nothing. */}
+                        <CommentsSection postId={post.id} />
+                        <div className="post-actions">
+                          {/* L44 entry: message the author (hidden on my own
+                              posts via the measured /me identity chain — the
+                              backend's 400-self guard remains the authority). */}
+                          {myBackendId === null || post.authorId !== myBackendId ? (
+                            <MessageNeighborButton authorId={post.authorId} />
+                          ) : (
+                            <DeletePostButton postId={post.id} />
+                          )}
+                          {/* L45 entry: report this content (authenticated; no
+                              membership condition — the backend's own gate). */}
+                          <ReportContentForm targetType="POST" targetId={post.id} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <nav className="listing-pager" aria-label="تصفّح الصفحات">
+                    {feed.data.pageNumber > 0 ? (
+                      <Link
+                        className="button"
+                        href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber}`}
+                      >
+                        الصفحة السابقة
+                      </Link>
+                    ) : null}
+                    {!feed.data.last ? (
+                      <Link
+                        className="button"
+                        href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber + 2}`}
+                      >
+                        الصفحة التالية
+                      </Link>
+                    ) : null}
+                  </nav>
+                </>
+              )
+            ) : feed.status === 403 ? (
               <p className="page-note" role="status">
-                لا منشورات في هذه الصفحة.{" "}
-                <Link href="/neighborhood">العودة إلى الأولى</Link>
+                عضويتك لم تعد فعّالة — غادِر ثم انضم من جديد إلى حارتك.
               </p>
             ) : (
               <p className="page-note" role="status">
-                لا منشورات في حارتك بعد — كن أول من يكتب لجيرانه.
+                {feed.unauthenticated
+                  ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
+                  : problemMessage(feed.problem, `تعذّر قراءة التغذية (رمز ${feed.status}).`)}
               </p>
-            )
-          ) : (
-            <>
-              <p className="page-note">
-                {new Intl.NumberFormat("ar").format(feed.data.totalElements)} منشوراً —
-                الصفحة {new Intl.NumberFormat("ar").format(feed.data.pageNumber + 1)} من{" "}
-                {new Intl.NumberFormat("ar").format(Math.max(feed.data.totalPages, 1))}
-              </p>
-              <ul className="feed-list">
-                {feed.data.content.map((post) => (
-                  <li key={post.id} className="card post-card">
-                    <h3>{post.title}</h3>
-                    <p className="listing-meta">
-                      <span className="listing-category">{CATEGORY_LABELS[post.category]}</span>
-                      <span>·</span>
-                      <span>{formatDate(post.createdAt)}</span>
-                      {/* The author is an opaque UUID by the backend's
-                          projection contract — no invented identity display. */}
-                    </p>
-                    <p className="post-body">{post.body}</p>
-                    {/* L42's conversational layer (batch-2 spec §1): the
-                        comments disclosure — an on-demand read, so a closed
-                        post costs the feed render nothing. */}
-                    <CommentsSection postId={post.id} />
-                    <div className="post-actions">
-                      {/* L44 entry: message the author (hidden on my own
-                          posts via the measured /me identity chain — the
-                          backend's 400-self guard remains the authority). */}
-                      {myBackendId === null || post.authorId !== myBackendId ? (
-                        <MessageNeighborButton authorId={post.authorId} />
-                      ) : (
-                        <DeletePostButton postId={post.id} />
-                      )}
-                      {/* L45 entry: report this content (authenticated; no
-                          membership condition — the backend's own gate). */}
-                      <ReportContentForm targetType="POST" targetId={post.id} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <nav className="listing-pager" aria-label="تصفّح الصفحات">
-                {feed.data.pageNumber > 0 ? (
-                  <Link
-                    className="button"
-                    href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber}`}
-                  >
-                    الصفحة السابقة
-                  </Link>
-                ) : null}
-                {!feed.data.last ? (
-                  <Link
-                    className="button"
-                    href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber + 2}`}
-                  >
-                    الصفحة التالية
-                  </Link>
-                ) : null}
-              </nav>
-            </>
-          )
-        ) : feed.status === 403 ? (
-          <p className="page-note" role="status">
-            عضويتك لم تعد فعّالة — غادِر ثم انضم من جديد إلى حارتك.
-          </p>
-        ) : (
-          <p className="page-note" role="status">
-            {feed.unauthenticated
-              ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
-              : problemMessage(feed.problem, `تعذّر قراءة التغذية (رمز ${feed.status}).`)}
-          </p>
-        )}
-      </section>
+            )}
+          </section>
+        </section>
       </div>
 
       <p>
