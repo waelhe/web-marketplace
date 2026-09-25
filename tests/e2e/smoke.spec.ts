@@ -10,11 +10,18 @@ test("home renders the Arabic hero with a native GET form", async ({
 }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/السوق/);
-  await expect(page.getByRole("heading", { name: "السوق" })).toBeVisible();
+  // Landing per approved spec §2 (Task 19): Arabic hero + 3-field form.
+  // Contract, not a frozen string: any Arabic h1 + the 3 hero names.
+  await expect(
+    page.getByRole("heading", { level: 1 }),
+  ).toBeVisible();
   const form = page.getByRole("search");
   await expect(form).toHaveAttribute("action", "/listings");
   await expect(form).toHaveAttribute("method", "get");
   await expect(form.locator('[name="q"]')).toBeVisible();
+  await expect(form.locator('[name="locationId"]')).toBeVisible();
+  // The 16-field wall must never return to the landing page.
+  await expect(form.locator("select")).toHaveCount(0);
 });
 
 test("invalid filter params never 500 and never leak into canonical", async ({

@@ -154,6 +154,22 @@ export default async function ListingPage({ params }: ListingPageProps) {
           to derive, so no block and no invented contract. Similar/save
           CUT per Task 0 (zero similar/bookmark paths) — share-only. */}
 
+      {/* L29/roadmap stage 6 — the booking entry (الحجز والدفع): a
+          LINK, not a form (this page's form count stays EXACTLY 1 —
+          the L34 lead form below). The request surface itself is
+          authenticated; anonymous visitors meet the sign-in gate
+          there, never a probe. */}
+      <section className="card" aria-labelledby="book-heading">
+        <h2 id="book-heading">احجز هذا المكان</h2>
+        <p className="page-note">
+          أقم إقامتك بنافذة محددة — المجموع يُحتسب في الخادم، والتأكيد بيد
+          صاحب المكان. (يتطلب تسجيل الدخول)
+        </p>
+        <Link className="button" data-variant="primary" href={`/listings/${listing.id}/book`}>
+          اطلب الحجز
+        </Link>
+      </section>
+
       {/* L34 — the mediated-contact model: a public form (no account
           required) that reaches the provider through their inbox. */}
       <section className="card" aria-labelledby="contact-heading">

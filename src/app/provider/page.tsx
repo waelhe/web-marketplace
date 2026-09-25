@@ -3,14 +3,16 @@ import Link from "next/link";
 import { SignInButton } from "@/app/auth-buttons";
 import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate, formatDateTime, formatPrice } from "@/lib/format";
 import { getMyListingViews, getMyStats } from "@/lib/api/provider";
+import { getProviderReviews } from "@/lib/api/reputation";
+import { PROVIDER_REVIEWS_PAGE_SIZE } from "@/lib/api/reputation-contract";
 import {
   VIEWS_WINDOW_DAYS,
   type ViewsWindowDays,
 } from "@/lib/api/provider-contract";
 import { getProviderListings } from "@/lib/api/public";
-import { BecomeProviderForm } from "./forms";
+import { BecomeProviderForm, ReviewReplyForm } from "./forms";
 
 /**
  * لوحة المزوّد — roadmap stage 3's consumer surface (the provider path,
@@ -110,9 +112,10 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
 
   // A profile exists → the dashboard. The aggregates ride parallel reads
   // (Server Components fetch in parallel — the packaged guide's model).
-  const [stats, listings] = await Promise.all([
+  const [stats, listings, reviews] = await Promise.all([
     getMyStats(),
     getProviderListings(session.userId, 0, 20),
+    getProviderReviews(session.userId, 0, PROVIDER_REVIEWS_PAGE_SIZE),
   ]);
 
   return (
@@ -213,6 +216,12 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
             إعلان جديد
           </Link>
         </p>
+        <p className="listing-meta">
+          {/* Roadmap stage 6 — the provider's booking surface: incoming
+              bookings + the availability slots the exact-slot gate
+              consumes (the consumer's window must match one exactly). */}
+          <Link href="/provider/bookings">حجوزات ضيوفك — وإدارة التوافر</Link>
+        </p>
         {/* The measured inventory contract: this list is the PUBLIC
             provider surface (ACTIVE-only). Non-ACTIVE listings are not
             listable by any backend surface — the manage page (by id) is
@@ -255,6 +264,59 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
             {problemMessage(
               listings.problem,
               `تعذّرت قراءة إعلاناتك (رمز ${listings.status}).`,
+            )}
+          </p>
+        )}
+      </section>
+
+      <section className="card">
+        <h2>المراجعات (السمعة)</h2>
+        {/* The reviews join is the session's own backend user id — the
+            same join the inventory read makes (the A1 contract:
+            reviews.provider_id IS the user id). The caller's own
+            aggregate is NOT rendered here: no "my profile" read exists
+            (the measured stage-3 gap) — the aggregate rides the L36
+            public page alone, and its join key (the profile id) is not
+            discoverable by this frontend. */}
+        {reviews.ok ? (
+          reviews.data.content.length === 0 ? (
+            <p className="page-note" role="status">
+              لا مراجعات بعد — تُكتب المراجعات عن حجوزات عملائك المكتملة.
+            </p>
+          ) : (
+            <ul className="feed-list">
+              {reviews.data.content.map((review) => (
+                <li key={review.id} className="card post-card">
+                  <p className="listing-meta">
+                    <span className="stat-value">
+                      {new Intl.NumberFormat("ar").format(review.rating)} من ٥
+                    </span>
+                    <span>·</span>
+                    <span>{formatDateTime(review.createdAt)}</span>
+                  </p>
+                  {review.comment ? (
+                    <p className="listing-description">{review.comment}</p>
+                  ) : null}
+                  {review.reply ? (
+                    <div className="reply-block">
+                      <p className="field-hint">ردّك:</p>
+                      <p className="listing-description">{review.reply}</p>
+                      <p className="page-note">
+                        نُشر {review.repliedAt ? formatDateTime(review.repliedAt) : ""}
+                      </p>
+                    </div>
+                  ) : (
+                    <ReviewReplyForm reviewId={review.id} />
+                  )}
+                </li>
+              ))}
+            </ul>
+          )
+        ) : (
+          <p className="page-note" role="status">
+            {problemMessage(
+              reviews.problem,
+              `تعذّرت قراءة المراجعات (رمز ${reviews.status}).`,
             )}
           </p>
         )}

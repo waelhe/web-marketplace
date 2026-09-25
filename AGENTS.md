@@ -48,9 +48,23 @@ session cookie.
   Nextdoor Business): anonymous → sign-in gate (`noindex`); no provider
   profile (the me-surfaces' 404 house answer) → the L36 onboarding
   form; provider → dashboard (L40 view analytics + L25 stats + the
-  public ACTIVE inventory + the create entry) — data via
-  `src/lib/api/provider.ts`, writes via Server Actions in
+  public ACTIVE inventory + the create entry + the stage-5 reviews
+  section: reviews about me newest-first via `GET
+  /reviews/provider/{userId}` on the session's own backend user id
+  (the A1 contract), each unreplied review carrying the L21 reply
+  form `POST /reviews/{id}/reply`) — data via `src/lib/api/provider.ts`
+  + `src/lib/api/reputation.ts`, writes via Server Actions in
   `src/app/provider/actions.ts`
+- `/providers/[id]` — PUBLIC provider page (roadmap stage 5,
+  السمعة — the second SEO surface, L36): one anonymous read
+  `GET /providers/{profileId}/public` (measured: NO auth gate — unknown
+  ids answer 404 NF-001) carrying the profile + status badge + the
+  aggregate rating block + the VERIFIED-gated ACTIVE listings page;
+  `generateMetadata` (title template + canonical + OG — indexable);
+  unknown ids → not-found boundary + `noindex` (the documented
+  streamed-404); the full reviews LIST is not renderable here (reviews
+  are keyed by the provider user id no public read exposes — declared
+  backend gap) — data via `src/lib/api/reputation.ts`
 - `/provider/listings/new` — AUTHENTICATED create-listing form (born
   DRAFT; the backend's VERIFIED gate surfaces its own words on submit)
 - `/provider/listings/[id]` — AUTHENTICATED listing manage: the L38
@@ -70,10 +84,51 @@ session cookie.
   direct + booking threads): messages oldest-first, composer, and the
   view-marks-read effect; message ownership rides the measured
   `GET /users/me` identity chain (senderId === me.id)
+- `/bookings` — AUTHENTICATED consumer bookings home (roadmap stage 6,
+  الحجز والدفع): anonymous → sign-in gate (`noindex`); the caller's
+  own bookings self-scoped through the ME chain (`GET
+  /bookings/consumer/{me.id}` — the id resolves from the backend's
+  /me projection, never from the client) — data via
+  `src/lib/api/booking.ts`, `?page=` pagination
+- `/bookings/[id]` — AUTHENTICATED participant-scoped booking detail
+  (stage 6): the backend refuses non-participants with its own words
+  (rendered verbatim); the caller's ROLE joins through their own
+  consumer/provider first pages (BookingResponse carries NO
+  participant ids — measured); role-classified sections: consumer
+  cancel/payment/review, provider confirm/complete/cancel/reverse
+  review; the payment block resolves the intent through the
+  deterministic idempotency key (read-or-create — no "intent by
+  booking" read exists) and renders amountCents (the booking's only
+  readable total) with the honest PROCESSING/no-Stripe state; the
+  disputes section (L24 — النزاعات): the booking's disputes via
+  `GET /bookings/{id}/disputes` (participant or ADMIN — the backend's
+  own gate; its refusal words rendered verbatim) + the open form for
+  KNOWN roles on the measured query-string contract (`POST
+  /bookings/{id}/disputes?reason` — `@RequestParam`, never a JSON
+  body; NO booking-status gate exists on the backend's open — none
+  invented); the resolve outcome (decision + refund total) renders as
+  a measured fact when present — the decision itself is the
+  administration's (ADMIN-only, roles not carried by /me — measured)
+  — data via `src/lib/api/disputes.ts` + its pure contract
+  `disputes-contract.ts`
+- `/listings/[id]/book` — AUTHENTICATED booking request (stage 6):
+  the gate renders BEFORE any listing read (the measured privacy
+  contract); the stay window [startsAt, endsAt) as UTC instants
+  (datetime-local interpreted as UTC — the stated convention), the
+  total DERIVED server-side, the exact-slot gate's 400 words surface
+  verbatim; success redirects to the new booking
+- `/provider/bookings` — AUTHENTICATED provider bookings + availability
+  (stage 6): incoming bookings self-scoped via the ME chain (`GET
+  /bookings/provider/{me.id}`) + the provider's published slots (the
+  exact-slot gate's source; authenticated read, window computed inside
+  the channel) + the slot publish form on the MEASURED query-string
+  contract (`@RequestParam startsAt/endsAt` — never a JSON body)
 - `/listings/[id]` now also carries the L34 PUBLIC lead form (the
   mediated-contact model — name/phone/message, no account required;
   the app's first public write via `backendSendPublic`, attribution
-  when a session exists)
+  when a session exists) and the stage-6 booking entry LINK «احجز هذا
+  المكان» (a link, never a form — the page's form count stays exactly
+  1)
 - `/neighborhood` feed posts carry «راسل الجار» — the L44 entry
   (idempotent `POST /messages/conversations/direct`; hidden on own
   posts via the /me chain; the backend's 400-self guard is the
@@ -88,11 +143,20 @@ session cookie.
 ## Rules
 
 - Never commit secrets: `.env*` is gitignored; `.env.example` holds placeholders only; real dev values live in local `.env.local`; production values live only in Railway service variables.
-- Backend for live verification: the Railway production service
-  https://app-java-v3-production.up.railway.app (service `app-java-v3`).
-  Local `.env.local` and the deployed service both point `BACKEND_URL` at
-  it. Full login/consent/session flows additionally need a real backend
-  user account.
+- Dev backend (since 2026-09-22): the backend team's shared **staging** service
+  https://app-java-v3-staging-staging.up.railway.app (their runbook:
+  `docs/frontend-dev-oauth-setup.md` @ `6b19a73` in app-java-v3 — never a
+  local backend checkout, never production). Local `.env.local` points
+  `BACKEND_URL` there with the dev client `marketplace-web-staging` (shareable
+  staging secret — dev-only, never in production; the production secret
+  never leaves Railway). The OAuth chain is measured live to the backend
+  login page; completing a login additionally needs a backend account's
+  credentials (the seeded `admin` password is not a known constant —
+  README).
+- Production verification of pushes still measures the Railway production
+  service https://app-java-v3-production.up.railway.app (service
+  `app-java-v3`) — the deployed `web-marketplace` service keeps pointing
+  `BACKEND_URL` at it.
 - This repo deploys as Railway service `web-marketplace` (GitHub-connected,
   branch `main`, auto-deploy): https://web-marketplace-production-5cc1.up.railway.app.
 - Add no dependency unless measured-needed against the pinned stack; Next.js builds must stay green (`npm run build`).

@@ -23,6 +23,7 @@ import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
+import { replyToReview } from "@/lib/api/reputation";
 import {
   activateListing,
   archiveListing,
@@ -659,4 +660,48 @@ export async function deleteMediaAction(
 
   await refresh();
   return { status: "success", message: "حُذفت الصورة." };
+}
+
+/**
+ * Reply to a review — POST /reviews/{id}/reply (roadmap stage 5,
+ * السمعة: L21 two-way reviews — one public reply per review, owned by
+ * the reviewed provider). The backend's own gates teach the caller:
+ * 404 unknown review, 403 not-the-reviewed-provider, the entity's own
+ * second-reply rejection — their words surface verbatim. The client
+ * mirror is the blank gate alone (ReplyRequest is @NotBlank, no
+ * authored maximum); the backend remains the authority.
+ */
+export async function replyToReviewAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) {
+    return { status: "error", message: "سجّل الدخول أولاً للرد على المراجعات." };
+  }
+
+  const reviewId = text(formData, "reviewId");
+  if (!isUuid(reviewId)) {
+    return { status: "error", message: "معرّف المراجعة غير صالح." };
+  }
+
+  const reply = text(formData, "reply");
+  if (reply.length === 0) {
+    return { status: "error", message: "نص الرد مطلوب — لا يمكن إرسال رد فارغ." };
+  }
+
+  const result = await replyToReview(reviewId, reply);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر إرسال الرد (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  await refresh();
+  return { status: "success", message: "نُشر ردّك على المراجعة." };
 }

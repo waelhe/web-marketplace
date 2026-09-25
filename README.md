@@ -20,11 +20,14 @@ cp .env.example .env.local   # then fill in (dev values: backend runbook)
 npm run dev                  # http://localhost:3000
 ```
 
-Backend: the marketplace backend runs as the Railway production service
-`app-java-v3` (https://app-java-v3-production.up.railway.app) — local dev
-and the deployed service both point `BACKEND_URL` at it. Full login-flow
-verification additionally needs a real backend user account (the seeded
-admin password is not a known constant).
+Backend: local dev runs against the backend team's shared **staging**
+service (https://app-java-v3-staging-staging.up.railway.app) per their
+runbook (`docs/frontend-dev-oauth-setup.md` in app-java-v3) — `.env.local`
+points `BACKEND_URL` there with the dev client `marketplace-web-staging`
+(the shareable staging secret comes from the backend team; never commit it).
+The deployed production service keeps pointing at the production backend.
+Completing a full login flow additionally needs a backend account's
+credentials (the seeded admin password is not a known constant).
 
 ## Routes
 
@@ -48,7 +51,14 @@ admin password is not a known constant).
   Nextdoor Business): anonymous → sign-in gate; no provider profile (the
   me-surfaces' 404 house answer) → the L36 onboarding form; provider →
   dashboard (L40 view analytics, L25 stats, the public ACTIVE inventory,
-  the create entry)
+  the create entry, and the stage-5 reviews section — reviews about me
+  via `GET /reviews/provider/{userId}` on the session's backend user id,
+  plus the L21 reply form `POST /reviews/{id}/reply`)
+- `/providers/[id]` — PUBLIC provider page (roadmap stage 5, السمعة —
+  the second SEO surface, L36): one anonymous read carries the profile +
+  status badge + aggregate rating block + the VERIFIED-gated ACTIVE
+  listings page (paginated); full metadata (canonical + OG); unknown ids
+  → not-found boundary + noindex — `src/lib/api/reputation.ts`
 - `/provider/listings/new` — AUTHENTICATED create-listing form (born
   DRAFT; the backend's VERIFIED gate surfaces its own words on submit)
 - `/provider/listings/[id]` — AUTHENTICATED listing manage: L38
@@ -66,10 +76,40 @@ admin password is not a known constant).
   direct + booking threads): messages oldest-first, composer,
   view-marks-read; own-message marking via the measured `/users/me`
   identity chain
+- `/bookings` — AUTHENTICATED consumer bookings home (roadmap stage 6,
+  الحجز والدفع): the caller's own bookings self-scoped through the
+  ME chain (`GET /bookings/consumer/{me.id}`); anonymous → sign-in
+  gate — `src/lib/api/booking.ts`
+- `/bookings/[id]` — AUTHENTICATED participant-scoped booking detail
+  (stage 6): the backend refuses non-participants (its own words,
+  rendered verbatim); the caller's role joins through their own
+  consumer/provider first pages (BookingResponse carries no
+  participant ids — measured); role sections: consumer
+  cancel/payment/review, provider confirm/complete/cancel/reverse
+  review; the payment block resolves the intent via the deterministic
+  idempotency key (read-or-create; no "intent by booking" read
+  exists) with the honest PROCESSING/no-Stripe state; the disputes
+  section (L24 — النزاعات): the booking's disputes (participant or
+  ADMIN — the backend's own gate) + the open form for known roles on
+  the measured query-string contract (`POST
+  /bookings/{id}/disputes?reason`); the resolve outcome renders when
+  present — the decision itself is the administration's (ADMIN-only,
+  undiscoverable from /me) — `src/lib/api/disputes.ts`
+- `/listings/[id]/book` — AUTHENTICATED booking request (stage 6):
+  gate-before-any-listing-read; UTC-instant stay window
+  ([startsAt, endsAt) half-open); server-derived pricing; the
+  exact-slot gate's words surface verbatim; success redirects to the
+  new booking
+- `/provider/bookings` — AUTHENTICATED provider bookings +
+  availability (stage 6): incoming bookings via the ME chain + the
+  published slots (the exact-slot gate's source) + the slot publish
+  form on the measured query-string contract (`@RequestParam`
+  startsAt/endsAt — never a JSON body)
 - `/listings/[id]` — PUBLIC detail (generateMetadata + verbatim
   JSON-LD) now also carries the L34 public lead form (name/phone/
   message — no account required; the app's first public write via
-  `backendSendPublic`)
+  `backendSendPublic`) and the stage-6 booking entry LINK «احجز هذا
+  المكان» (a link — the page's form count stays exactly 1)
 - `/neighborhood` — feed posts carry «راسل الجار» (L44 direct
   conversation entry, idempotent open per pair)
 - `/profile` — DAL session + DIRECT backend `/me` fetch (server data layer)
