@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 
 export function ShareButton({ title }: { title: string }) {
   const [status, setStatus] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function ShareButton({ title }: { title: string }) {
   return (
     <>
       <Button variant="secondary" size="sm" type="button" onClick={onShare}>
-        مشاركة
+        <Icon name="share" /> مشاركة
       </Button>
       {status ? (
         <p className="page-note" role="status">
