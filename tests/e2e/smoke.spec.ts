@@ -65,3 +65,12 @@ test("social sign-in initiation is POST-only", async ({ request }) => {
   const res = await request.get("/api/auth/sign-in/social");
   expect(res.status()).toBe(404);
 });
+
+test("no horizontal overflow at 375px (RTL shell)", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto("/");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});
