@@ -27,9 +27,11 @@ import {
   type BookingStatus,
 } from "@/lib/api/booking-contract";
 import {
+  BookingConversationButton,
   BookingLifecycleForm,
   BookingReviewForm,
   DisputeOpenForm,
+  PaymentCancelForm,
   PaymentProcessForm,
 } from "../forms";
 
@@ -165,6 +167,10 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
         <p className="listing-meta">
           <Link href={`/listings/${booking.listingId}`}>الإعلان المحجوز</Link>
         </p>
+        {/* The booking's chat thread entry (batch-2 spec §4): the single
+            conversation per booking, opened (or reused) from either
+            participant's side — the backend's own gates scope it. */}
+        <BookingConversationButton bookingId={booking.id} />
         <p className="page-note">
           {/* The measured seam, stated honestly: the booking response
               carries no participant ids and no price — the role joins
@@ -312,7 +318,10 @@ async function PaymentSection({ bookingId }: { bookingId: string }) {
             </p>
           ) : null}
           {intent.data.status === "CREATED" ? (
-            <PaymentProcessForm intentId={intent.data.id} />
+            <div className="action-row">
+              <PaymentProcessForm intentId={intent.data.id} />
+              <PaymentCancelForm intentId={intent.data.id} />
+            </div>
           ) : null}
         </>
       ) : (

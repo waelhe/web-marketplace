@@ -27,11 +27,13 @@ import { problemMessage } from "@/lib/problem";
 import { isUuid } from "@/lib/api/geo";
 import {
   cancelBooking,
+  cancelPaymentIntent,
   confirmBooking,
   completeBooking,
   createBooking,
   processPaymentIntent,
 } from "@/lib/api/booking";
+import { openBookingConversation } from "@/lib/api/inbox";
 import { openDispute } from "@/lib/api/disputes";
 import { DISPUTE_REASON_MAX_LENGTH } from "@/lib/api/disputes-contract";
 import { createReview, createReverseReview } from "@/lib/api/reputation";
@@ -245,6 +247,65 @@ export async function processPaymentIntentAction(
         ? "قصد الدفع قيد المعالجة — اكتماله عبر قناة الدفع الخلفية (بوابة المالك)."
         : "قصد الدفع قيد المعالجة — أكمل الدفع لدى مزوّد الدفع.",
   };
+}
+
+/**
+ * Cancel the payment intent — POST /api/v1/payments/intents/{id}/cancel
+ * (batch-2 spec §2; CONSUMER only — the backend's own gate). The intent
+ * state machine allows the transition from CREATED alone; anything
+ * else answers 409 with the backend's own ConflictException words —
+ * surfaced verbatim, never pre-validated away.
+ */
+export async function cancelPaymentIntentAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const intentId = text(formData, "intentId");
+  if (!isUuid(intentId)) return { status: "error", message: "معرّف قصد الدفع غير صالح." };
+
+  const result = await cancelPaymentIntent(intentId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر إلغاء قصد الدفع (رمز ${result.status}).`),
+    };
+  }
+
+  refresh();
+  return { status: "success", message: "أُلغي قصد الدفع." };
+}
+
+/**
+ * Open (or reuse) the BOOKING's conversation thread —
+ * POST /api/v1/messages/conversations {bookingId} (batch-2 spec §4).
+ * The single chat thread per booking; participant-scoped by the
+ * backend's own gates. Redirects to the conversation page (the same
+ * landing as «راسل الجار» — a new surface, not a re-render).
+ */
+export async function openBookingConversationAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const bookingId = text(formData, "bookingId");
+  if (!isUuid(bookingId)) return { status: "error", message: "معرّف الحجز غير صالح." };
+
+  const result = await openBookingConversation(bookingId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر فتح محادثة الحجز (رمز ${result.status}).`),
+    };
+  }
+
+  redirect(`/inbox/conversations/${result.data.id}`);
 }
 
 /** Parse + bound-check the shared review form fields (the request's own @Min/@Max mirror). */

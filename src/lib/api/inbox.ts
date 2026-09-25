@@ -176,3 +176,38 @@ export async function openDirectConversation(
     recipientId,
   });
 }
+
+/**
+ * Open (or reuse) the BOOKING's conversation thread —
+ * `POST /api/v1/messages/conversations {bookingId}`. The single chat
+ * thread per booking (the backend's own words): 201 when this call
+ * opened it, and the existing thread returns exactly like the direct
+ * channel's idempotent reuse. Participant-scoped by the backend's own
+ * gates — the action only carries the session's token.
+ */
+export async function openBookingConversation(
+  bookingId: string,
+): Promise<ReturnType<typeof backendSend<ConversationInfo>>> {
+  return backendSend<ConversationInfo>("POST", "/api/v1/messages/conversations", {
+    bookingId,
+  });
+}
+
+/**
+ * The caller's unread count in ONE conversation —
+ * `GET /api/v1/messages/conversations/{id}/unread` (the backend's own
+ * badge endpoint). Participant-scoped (404 otherwise); the count
+ * clears through the mark-read effect on the conversation view.
+ */
+export async function getUnreadCount(
+  conversationId: string,
+): Promise<ReturnType<typeof backendGet<UnreadCount>>> {
+  return backendGet<UnreadCount>(
+    `/api/v1/messages/conversations/${encodeURIComponent(conversationId)}/unread`,
+  );
+}
+
+/** UnreadCountResponse — the badge read model (MessagingController). */
+export interface UnreadCount {
+  unreadCount: number;
+}

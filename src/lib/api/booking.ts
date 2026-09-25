@@ -56,9 +56,11 @@ import {
   AVAILABILITY_WINDOW_DAYS,
   BOOKINGS_PAGE_SIZE,
   paymentIntentKey,
+  type AvailabilityRuleView,
   type AvailabilitySlotView,
   type BookingView,
   type PaymentIntentView,
+  type ProviderTimeOffView,
 } from "./booking-contract";
 
 /** Run a backend call with the caller's own /me-resolved users.id. */
@@ -217,6 +219,24 @@ export function processPaymentIntent(
 }
 
 /**
+ * Cancel the payment intent —
+ * `POST /api/v1/payments/intents/{id}/cancel` (CONSUMER only — the
+ * backend's own @PreAuthorize). The intent state machine allows the
+ * transition from CREATED alone (PaymentIntentStatus.TRANSITIONS:
+ * CREATED → {PROCESSING, CANCELLED}); a cancel from any other state
+ * answers 409 with the backend's own ConflictException words —
+ * surfaced verbatim, never pre-validated away.
+ */
+export function cancelPaymentIntent(
+  intentId: string,
+): Promise<BackendResult<PaymentIntentView>> {
+  return backendSend<PaymentIntentView>(
+    "POST",
+    `/api/v1/payments/intents/${encodeURIComponent(intentId)}/cancel`,
+  );
+}
+
+/**
  * My published availability slots —
  * `GET /api/v1/providers/{me.id}/availability?from&to` (authenticated;
  * NOT permitAll — the measured 401 to anonymous callers). The display
@@ -253,6 +273,54 @@ export function publishAvailabilitySlot(
     return backendSend<AvailabilitySlotView>(
       "POST",
       `/api/v1/providers/${encodeURIComponent(id)}/availability/slots?${params}`,
+    );
+  });
+}
+
+/**
+ * Create a WEEKLY availability rule —
+ * `POST /api/v1/providers/{me.id}/availability/rules?dayOfWeek&startTime&endTime`.
+ * MEASURED CONTRACT: the query string again (@RequestParam
+ * dayOfWeek/startTime/endTime — LocalTime binds "HH:mm"). A recurring
+ * weekly window the slot generator expands into concrete slots — the
+ * effect is visible in the slots read (getMyAvailability), never
+ * recomputed here. Same ownsProvider gate as the slot publish (the
+ * me chain supplies the id). The contract exposes NO read/delete for
+ * rules (measured, 108 paths) — the created entity echoes back and
+ * that is the whole surface.
+ */
+export function createAvailabilityRule(
+  dayOfWeek: string,
+  startTime: string,
+  endTime: string,
+): Promise<BackendResult<AvailabilityRuleView>> {
+  return withMyId((id) => {
+    const params = new URLSearchParams({ dayOfWeek, startTime, endTime });
+    return backendSend<AvailabilityRuleView>(
+      "POST",
+      `/api/v1/providers/${encodeURIComponent(id)}/availability/rules?${params}`,
+    );
+  });
+}
+
+/**
+ * Block a time-off window —
+ * `POST /api/v1/providers/{me.id}/time-off?startsAt&endsAt` (ISO
+ * instants on the query string — @RequestParam @DateTimeFormat, the
+ * slot publish's own convention). Marks the window unavailable
+ * (conflicts with booking and search availability — the backend's own
+ * words). No read/delete in the contract (measured) — the created
+ * entity echoes back.
+ */
+export function createTimeOff(
+  startsAt: string,
+  endsAt: string,
+): Promise<BackendResult<ProviderTimeOffView>> {
+  return withMyId((id) => {
+    const params = new URLSearchParams({ startsAt, endsAt });
+    return backendSend<ProviderTimeOffView>(
+      "POST",
+      `/api/v1/providers/${encodeURIComponent(id)}/time-off?${params}`,
     );
   });
 }

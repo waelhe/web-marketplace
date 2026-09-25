@@ -51,7 +51,15 @@ session cookie.
   anonymous → sign-in gate (`noindex`; nothing community is public);
   member → membership card + feed + composer — data via
   `src/lib/api/community.ts` (the authenticated RSC channel), writes via
-  Server Actions in `src/app/neighborhood/actions.ts` (`backendSend`)
+  Server Actions in `src/app/neighborhood/actions.ts` (`backendSend`);
+  the batch-2 §1 conversational layer: a per-post comments disclosure
+  (`comments.tsx` — an ON-DEMAND client read through the BFF relay
+  `apiGet`, the documented client channel for client-side data needs;
+  comment writes ride the Server Action) + the author's own-post
+  delete (`DELETE /posts/{id}`) + L45 report affordances on posts and
+  comments (`POST /reports` — POST|COMMENT targets, the backend's own
+  four-value reason vocabulary; own-content/duplicate 409 and unknown
+  404 surface verbatim)
 - `/provider` — AUTHENTICATED provider home (roadmap stage 3,
   Nextdoor Business): anonymous → sign-in gate (`noindex`); no provider
   profile (the me-surfaces' 404 house answer) → the L36 onboarding
@@ -102,7 +110,10 @@ session cookie.
 - `/inbox/conversations/[id]` — AUTHENTICATED conversation view (L44
   direct + booking threads): messages oldest-first, composer, and the
   view-marks-read effect; message ownership rides the measured
-  `GET /users/me` identity chain (senderId === me.id)
+  `GET /users/me` identity chain (senderId === me.id); the batch-2 §4
+  unread badge (`GET /messages/conversations/{id}/unread` — the
+  backend's own badge endpoint, read at render; the mark-read effect
+  clears it server-side)
 - `/bookings` — AUTHENTICATED consumer bookings home (roadmap stage 6,
   الحجز والدفع): anonymous → sign-in gate (`noindex`); the caller's
   own bookings self-scoped through the ME chain (`GET
@@ -119,7 +130,12 @@ session cookie.
   deterministic idempotency key (read-or-create — no "intent by
   booking" read exists) and renders amountCents (the booking's only
   readable total) with the honest PROCESSING/no-Stripe state; the
-  disputes section (L24 — النزاعات): the booking's disputes via
+  batch-2 §2 consumer cancel (`POST /payments/intents/{id}/cancel` —
+  CREATED-only per the backend's state machine; the transition 409
+  words surface verbatim) joins the process form, and the batch-2 §4
+  booking-thread entry («محادثة هذا الحجز» — `POST
+  /messages/conversations {bookingId}`) lands participants on the
+  conversation; the disputes section (L24 — النزاعات): the booking's disputes via
   `GET /bookings/{id}/disputes` (participant or ADMIN — the backend's
   own gate; its refusal words rendered verbatim) + the open form for
   KNOWN roles on the measured query-string contract (`POST
@@ -141,7 +157,13 @@ session cookie.
   /bookings/provider/{me.id}`) + the provider's published slots (the
   exact-slot gate's source; authenticated read, window computed inside
   the channel) + the slot publish form on the MEASURED query-string
-  contract (`@RequestParam startsAt/endsAt` — never a JSON body)
+  contract (`@RequestParam startsAt/endsAt` — never a JSON body) + the
+  batch-2 §5 pair on the same query-string discipline: the weekly
+  availability rule (`POST …/availability/rules?dayOfWeek&startTime&endTime`
+  — expanded by the backend's DAILY DayHasPassed generator, never
+  client-side) and the time-off block (`POST …/time-off?startsAt&endsAt`);
+  the contract exposes NO read/delete for rules/time-off (measured) —
+  the created entity's echo is the whole surface, stated honestly
 - `/listings/[id]` now also carries the L34 PUBLIC lead form (the
   mediated-contact model — name/phone/message, no account required;
   the app's first public write via `backendSendPublic`, attribution
@@ -153,8 +175,21 @@ session cookie.
   posts via the /me chain; the backend's 400-self guard is the
   authority)
 - `/profile` — DAL session + direct backend `/me` fetch (server data layer,
-  NOT a self-fetch through the BFF route — packaged BFF guide forbids it)
+  NOT a self-fetch through the BFF route — packaged BFF guide forbids it);
+  the batch-2 §3 surfaces: «مراجعاتي» (reviews the caller WROTE — `GET
+  /reviews/reviewer/{me.id}` — with the per-review edit form `PUT
+  /reviews/{id}`, the backend's original-reviewer gate surfacing its own
+  403 words) + «ما قاله المزوّدون عني» (`GET /reviews/consumer/{me.id}`
+  — the I8 trust view; both keyed by the /me-resolved user id, never
+  client-sent) + «صدّر بياناتي» — the GDPR Art. 20 export download link
+  (the `/api/account/export` route below)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
+- `/api/account/export` — AUTHENTICATED download route (batch-2 spec §3,
+  GDPR Art. 20): resolves the session Bearer with the relay's own
+  `getAccessToken({useAccountCookie})` discipline, fetches
+  `GET /users/me/export` directly, and returns the backend's document
+  verbatim with `Content-Disposition: attachment` — a native browser
+  download, no data recomposed or stored
 - `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth;
   client-side use ONLY — server components use `src/lib/api/server.ts`
   for authenticated data, `src/lib/api/public.ts` for public data)

@@ -20,12 +20,21 @@ import { refresh } from "next/cache";
 import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
 import {
+  createContentReport,
   createNeighborhoodPost,
+  createPostComment,
+  deleteNeighborhoodPost,
   joinNeighborhood,
   leaveNeighborhood,
 } from "@/lib/api/community";
 import { openDirectConversation } from "@/lib/api/inbox";
-import { POST_CATEGORIES, type PostCategory } from "@/lib/api/community-contract";
+import {
+  MAX_REPORT_NOTE_LENGTH,
+  POST_CATEGORIES,
+  REPORT_REASONS,
+  type PostCategory,
+  type ReportReason,
+} from "@/lib/api/community-contract";
 import { isUuid } from "@/lib/api/geo";
 
 /**
@@ -201,4 +210,124 @@ export async function messageNeighborAction(
   // re-render of the feed — the router streams its RSC payload in the
   // same action response.
   redirect(`/inbox/conversations/${result.data.id}`);
+}
+
+/**
+ * Comment on a feed post (batch-2 spec §1). The client-managed
+ * comments disclosure refetches its own list on success — no refresh()
+ * here: the server render of the feed is NOT the comment list's
+ * source of truth (the on-demand read is the client's own; the
+ * backend's POST_COMMENTED notification rides the commit).
+ */
+export async function commentAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const postId = text(formData, "postId");
+  const body = text(formData, "body");
+  if (!isUuid(postId)) {
+    return { status: "error", message: "معرّف المنشور غير صالح." };
+  }
+  if (body.length === 0 || body.length > MAX_BODY_LENGTH) {
+    return { status: "error", message: "نص التعليق مطلوب (٢٠٠٠ حرف كحد أقصى)." };
+  }
+
+  const result = await createPostComment(postId, body);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر نشر التعليق (رمز ${result.status}).`),
+    };
+  }
+
+  return { status: "success", message: "نُشر تعليقك." };
+}
+
+/**
+ * Delete MY post (batch-2 spec §1) — the author's own soft delete.
+ * Only the author's own posts render the button (the me chain), but
+ * the backend's 403 remains the authority for anyone else. Success
+ * redirects to the feed — a fresh navigation re-renders without the
+ * post (its comments follow in the read path, by the backend's own
+ * contract).
+ */
+export async function deletePostAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const postId = text(formData, "postId");
+  if (!isUuid(postId)) {
+    return { status: "error", message: "معرّف المنشور غير صالح." };
+  }
+
+  const result = await deleteNeighborhoodPost(postId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر حذف المنشور (رمز ${result.status}).`),
+    };
+  }
+
+  redirect("/neighborhood");
+}
+
+/**
+ * Report a post or a comment (batch-2 spec §1, L45). The backend's
+ * own type gates are the vocabulary: targetType POST|COMMENT, reason
+ * SPAM|HARASSMENT|INAPPROPRIATE|OTHER (anything else answers the
+ * house 400 BEFORE any service call). Reporting your own content
+ * answers 409, a duplicate live report answers 409, an unknown or
+ * hidden target answers 404 — the backend's words, verbatim.
+ */
+export async function reportAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const targetType = text(formData, "targetType");
+  const targetId = text(formData, "targetId");
+  const reason = text(formData, "reason");
+  const note = text(formData, "note");
+
+  if (targetType !== "POST" && targetType !== "COMMENT") {
+    return { status: "error", message: "نوع المحتوى المُبلَّغ عنه غير صالح." };
+  }
+  if (!isUuid(targetId)) {
+    return { status: "error", message: "معرّف المحتوى غير صالح." };
+  }
+  if (!REPORT_REASONS.includes(reason as ReportReason)) {
+    return { status: "error", message: "اختر سبباً صحيحاً للإبلاغ." };
+  }
+  if (note.length > MAX_REPORT_NOTE_LENGTH) {
+    return { status: "error", message: "الملاحظة طويلة (٢٠٠٠ حرف كحد أقصى)." };
+  }
+
+  const result = await createContentReport({
+    targetType,
+    targetId,
+    reason: reason as ReportReason,
+    ...(note.length > 0 ? { note } : {}),
+  });
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر إرسال الإبلاغ (رمز ${result.status}).`),
+    };
+  }
+
+  return {
+    status: "success",
+    message: "وصل الإبلاغ — يفتحه فريق الإشراف.",
+  };
 }

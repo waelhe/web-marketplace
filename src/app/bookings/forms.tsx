@@ -18,11 +18,13 @@
 import { useActionState } from "react";
 import {
   cancelBookingAction,
+  cancelPaymentIntentAction,
   completeBookingAction,
   confirmBookingAction,
   createBookingAction,
   createReviewAction,
   createReverseReviewAction,
+  openBookingConversationAction,
   openDisputeAction,
   processPaymentIntentAction,
   type ActionState,
@@ -168,6 +170,53 @@ export function PaymentProcessForm({ intentId }: { intentId: string }) {
       <input type="hidden" name="intentId" value={intentId} />
       <button type="submit" className="button" data-variant="primary" disabled={pending}>
         {pending ? "جارٍ بدء المعالجة…" : "ابدأ معالجة الدفع"}
+      </button>
+      <StateMessage state={state} />
+    </form>
+  );
+}
+
+/**
+ * The payment CANCEL form (batch-2 spec §2) — the consumer's other
+ * action on a CREATED intent. The backend's state machine allows the
+ * cancel from CREATED alone; an already-moved intent answers 409
+ * with the backend's own words (surfaced verbatim — never
+ * pre-validated away).
+ */
+export function PaymentCancelForm({ intentId }: { intentId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    cancelPaymentIntentAction,
+    IDLE,
+  );
+
+  return (
+    <form action={action} className="inline-form">
+      <input type="hidden" name="intentId" value={intentId} />
+      <button type="submit" className="button" data-variant="danger" disabled={pending}>
+        {pending ? "جارٍ الإلغاء…" : "ألغِ قصد الدفع"}
+      </button>
+      <StateMessage state={state} />
+    </form>
+  );
+}
+
+/**
+ * «محادثة هذا الحجز» — the booking thread's entry (batch-2 spec §4):
+ * opens (or reuses) the single chat thread per booking and lands the
+ * caller on the conversation page. Participant-scoped by the
+ * backend's own gates — the action only carries the session's token.
+ */
+export function BookingConversationButton({ bookingId }: { bookingId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    openBookingConversationAction,
+    IDLE,
+  );
+
+  return (
+    <form action={action} className="inline-form">
+      <input type="hidden" name="bookingId" value={bookingId} />
+      <button type="submit" className="button" disabled={pending}>
+        {pending ? "جارٍ الفتح…" : "محادثة هذا الحجز"}
       </button>
       <StateMessage state={state} />
     </form>

@@ -16,7 +16,8 @@ import {
   type PostCategory,
 } from "@/lib/api/community-contract";
 import { findGeoNodeById } from "@/lib/api/geo";
-import { CreatePostForm, LeaveForm, MessageNeighborButton } from "./forms";
+import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton } from "./forms";
+import { CommentsSection, ReportContentForm } from "./comments";
 
 /**
  * حارتي — the authenticated neighborhood home (roadmap stage 2's
@@ -212,12 +213,23 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                           projection contract — no invented identity display. */}
                     </p>
                     <p className="post-body">{post.body}</p>
-                    {/* L44 entry: message the author (hidden on my own
-                        posts via the measured /me identity chain — the
-                        backend's 400-self guard remains the authority). */}
-                    {myBackendId === null || post.authorId !== myBackendId ? (
-                      <MessageNeighborButton authorId={post.authorId} />
-                    ) : null}
+                    {/* L42's conversational layer (batch-2 spec §1): the
+                        comments disclosure — an on-demand read, so a closed
+                        post costs the feed render nothing. */}
+                    <CommentsSection postId={post.id} />
+                    <div className="post-actions">
+                      {/* L44 entry: message the author (hidden on my own
+                          posts via the measured /me identity chain — the
+                          backend's 400-self guard remains the authority). */}
+                      {myBackendId === null || post.authorId !== myBackendId ? (
+                        <MessageNeighborButton authorId={post.authorId} />
+                      ) : (
+                        <DeletePostButton postId={post.id} />
+                      )}
+                      {/* L45 entry: report this content (authenticated; no
+                          membership condition — the backend's own gate). */}
+                      <ReportContentForm targetType="POST" targetId={post.id} />
+                    </div>
                   </li>
                 ))}
               </ul>

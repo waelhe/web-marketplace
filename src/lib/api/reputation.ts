@@ -124,3 +124,56 @@ export function createReverseReview(
 ): Promise<BackendResult<ReviewView>> {
   return backendSend("POST", "/api/v1/reviews/reverse", { bookingId, rating, comment });
 }
+
+/**
+ * Reviews WRITTEN by one user — `GET /api/v1/reviews/reviewer/{id}`
+ * (measured live 200; the controller's own docs call it "the public
+ * profile surface — both directions"). Newest first, paged. The path
+ * id is the caller's backend USER id — the /profile page joins it
+ * from the /me projection (getMyBackendUser), never from the client.
+ */
+export const getReviewsByReviewer = cache(
+  async (
+    reviewerUserId: string,
+    page: number,
+    size: number,
+  ): Promise<BackendResult<PagedResponse<ReviewView>>> =>
+    publicGet(
+      `/api/v1/reviews/reviewer/${encodeURIComponent(reviewerUserId)}?page=${page}&size=${size}`,
+    ),
+);
+
+/**
+ * Reviews written ABOUT one consumer — `GET /api/v1/reviews/consumer/{id}`
+ * (I8 reverse direction — the consumer's trust surface: what providers
+ * said about them after completed bookings; measured live 200). Newest
+ * first, paged. Same ME-chain id discipline as getReviewsByReviewer.
+ */
+export const getReviewsOfConsumer = cache(
+  async (
+    consumerUserId: string,
+    page: number,
+    size: number,
+  ): Promise<BackendResult<PagedResponse<ReviewView>>> =>
+    publicGet(
+      `/api/v1/reviews/consumer/${encodeURIComponent(consumerUserId)}?page=${page}&size=${size}`,
+    ),
+);
+
+/**
+ * Edit my review — `PUT /api/v1/reviews/{id}` `{rating, comment}`.
+ * The ORIGINAL REVIEWER only: the backend's ReviewsService.update
+ * owns the check (403 for anyone else, 404 unknown); the provider
+ * rating average recomputes server-side. The rating bounds mirror
+ * the request's own @Min(1)/@Max(5).
+ */
+export function updateReview(
+  reviewId: string,
+  rating: number,
+  comment: string | null,
+): Promise<BackendResult<ReviewView>> {
+  return backendSend("PUT", `/api/v1/reviews/${encodeURIComponent(reviewId)}`, {
+    rating,
+    comment,
+  });
+}

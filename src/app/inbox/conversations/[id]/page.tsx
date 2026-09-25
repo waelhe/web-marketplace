@@ -10,6 +10,7 @@ import {
   getConversation,
   getMessages,
   getMyBackendUser,
+  getUnreadCount,
 } from "@/lib/api/inbox";
 import { MESSAGES_PAGE_SIZE } from "@/lib/api/inbox-contract";
 import { MarkReadOnView, SendMessageForm } from "../forms";
@@ -105,9 +106,10 @@ export default async function ConversationPage({
     );
   }
 
-  const [messages, me] = await Promise.all([
+  const [messages, me, unread] = await Promise.all([
     getMessages(id, page),
     getMyBackendUser(),
+    getUnreadCount(id),
   ]);
 
   const myBackendId = me.ok ? me.id : null;
@@ -125,6 +127,17 @@ export default async function ConversationPage({
         <span>بدأت {formatDateTime(conversation.data.createdAt)}</span>
         <span>·</span>
         <span>آخر نشاط {formatDateTime(conversation.data.updatedAt)}</span>
+        {/* The caller's unread badge (batch-2 spec §4) — the backend's own
+            badge endpoint read at render time; the view-marks-read effect
+            below clears it server-side. */}
+        {unread.ok && unread.data.unreadCount > 0 ? (
+          <>
+            <span>·</span>
+            <span className="unread-badge">
+              {new Intl.NumberFormat("ar").format(unread.data.unreadCount)} غير مقروءة
+            </span>
+          </>
+        ) : null}
       </p>
 
       <section aria-labelledby="messages-heading">
