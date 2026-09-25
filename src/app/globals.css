@@ -1564,3 +1564,11 @@ textarea {
   .skeleton-line { animation: none; }
   .btn, .listing-card, a, input, select, textarea { transition: none; }
 }
+
+.featured-ribbon {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}

@@ -138,7 +138,7 @@ export default async function Home() {
         </section>
 
         {/* Featured — L37 shading order from the same browse point. */}
-        <section aria-labelledby="featured-heading" className="home-section">
+        <section aria-labelledby="featured-heading" className="home-section featured-ribbon">
           <div className="home-section-head">
             <h2 id="featured-heading">إعلانات مميزة</h2>
             <Link href="/listings">عرض كل الإعلانات</Link>
