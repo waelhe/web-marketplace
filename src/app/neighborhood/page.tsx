@@ -195,7 +195,7 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                   </p>
                 ) : (
                   <p className="page-note" role="status">
-                    لا منشورات في حارتك بعد — كن أول من يكتب لجيرانه من النموذج بالأعلى.
+                    لا منشورات في حارتك بعد — كن أول من يكتب لجيرانه من نموذج النشر.
                   </p>
                 )
               ) : (

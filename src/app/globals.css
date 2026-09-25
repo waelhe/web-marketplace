@@ -1617,3 +1617,7 @@ textarea {
 .hood-cat-classified { border-inline-start-color: var(--primary); }
 .hood-cat-lost_found { border-inline-start-color: var(--danger); }
 .hood-cat-recommendation { border-inline-start-color: var(--ink-2); }
+
+@media (min-width: 900px) {
+  .hood-side { max-block-size: calc(100dvh - 2 * var(--space-4)); overflow-block: auto; }
+}
