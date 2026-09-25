@@ -183,6 +183,27 @@ session cookie.
   — the I8 trust view; both keyed by the /me-resolved user id, never
   client-sent) + «صدّر بياناتي» — the GDPR Art. 20 export download link
   (the `/api/account/export` route below)
+- `/admin` — AUTHENTICATED administration console (batch-3 spec): the
+  moderation report queue (L45's administrative counterpart — `GET
+  /admin/reports?status=` FIFO on the complete sort key with the
+  OPEN/RESOLVED/DISMISSED axis + per-open-report resolve `POST
+  /admin/reports/{id}/resolve {action: DISMISS|HIDE_CONTENT, note?}`,
+  a second resolve answering 409 in the backend's own words), the
+  pricing-rules manager (the ×5 admin ops: list/create/activate/
+  deactivate/delete on `PricingRuleController`'s class-level ADMIN
+  gate) and the payments administration (`GET /admin/payments` intent
+  summaries whose id IS the intent id + confirm
+  `POST /payments/intents/{id}/confirm {externalId}` + full refund
+  `POST /payments/{paymentId}/refund` — the payment-row id appears in
+  no contract read, stated honestly on the form) — data via
+  `src/lib/api/admin.ts`, writes via Server Actions in
+  `src/app/admin/actions.ts`. The whole surface sits behind the
+  backend's three-layer hasRole('ADMIN') gates and `/me` carries no
+  roles (measured) — a non-admin caller sees the backend's own 403
+  AUTHZ-001 words rendered verbatim (the honest-failure pattern; the
+  admin happy paths are unverifiable with the test account — no ADMIN
+  credentials exist on our side, declared in the spec); `noindex`,
+  no public nav link (the administration knows the address)
 - `/api/auth/[...all]` — Better Auth handler (OAuth callback included)
 - `/api/account/export` — AUTHENTICATED download route (batch-2 spec §3,
   GDPR Art. 20): resolves the session Bearer with the relay's own
