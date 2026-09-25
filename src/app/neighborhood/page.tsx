@@ -136,51 +136,54 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
 
   return (
     <main>
-      <h1>حارتي{neighborhoodName ? ` — ${neighborhoodName}` : ""}</h1>
+      <h1 className="hood-title">حارتي{neighborhoodName ? ` — ${neighborhoodName}` : ""}</h1>
 
-      <section className="card member-card">
-        <h2>عضويتك</h2>
-        <p className="listing-meta">
-          <span className="listing-category">{neighborhoodName ?? "حارة غير معروفة"}</span>
-          <span>·</span>
-          <span>عضو منذ {formatDate(membership.data.memberSince)}</span>
-        </p>
-        <p className="page-note">
-          {/* SELF_DECLARED is the measured verificationState — the
-              verification method itself is a pending backend product gate. */}
-          {membership.data.verificationState === "SELF_DECLARED"
-            ? "عضوية معلَنة ذاتياً — التحقق من السكان بوابة منتج لاحقة."
-            : `حالة التحقق: ${membership.data.verificationState}`}
-        </p>
-        <LeaveForm />
-      </section>
+      <div className="hood-layout">
+        <aside className="hood-side">
+          <section className="card member-card">
+            <h2>عضويتك</h2>
+            <p className="listing-meta">
+              <span className="listing-category">{neighborhoodName ?? "حارة غير معروفة"}</span>
+              <span>·</span>
+              <span>عضو منذ {formatDate(membership.data.memberSince)}</span>
+            </p>
+            <p className="page-note">
+              {/* SELF_DECLARED is the measured verificationState — the
+                  verification method itself is a pending backend product gate. */}
+              {membership.data.verificationState === "SELF_DECLARED"
+                ? "عضوية معلَنة ذاتياً — التحقق من السكان بوابة منتج لاحقة."
+                : `حالة التحقق: ${membership.data.verificationState}`}
+            </p>
+            <LeaveForm />
+          </section>
 
-      <nav className="category-filter" aria-label="تصفية الفئات">
-        <Link
-          href="/neighborhood"
-          className={category === null ? "button" : "button"}
-          data-variant={category === null ? "primary" : undefined}
-        >
-          الكل
-        </Link>
-        {POST_CATEGORIES.map((value) => (
-          <Link
-            key={value}
-            href={`/neighborhood?category=${value}`}
-            className="button"
-            data-variant={category === value ? "primary" : undefined}
-          >
-            {CATEGORY_LABELS[value]}
-          </Link>
-        ))}
-      </nav>
+          <nav className="category-filter" aria-label="تصفية الفئات">
+            <Link
+              href="/neighborhood"
+              className={category === null ? "button" : "button"}
+              data-variant={category === null ? "primary" : undefined}
+            >
+              الكل
+            </Link>
+            {POST_CATEGORIES.map((value) => (
+              <Link
+                key={value}
+                href={`/neighborhood?category=${value}`}
+                className="button"
+                data-variant={category === value ? "primary" : undefined}
+              >
+                {CATEGORY_LABELS[value]}
+              </Link>
+            ))}
+          </nav>
 
-      <section className="post-composer-section">
-        <h2>انشر في حارتك</h2>
-        <CreatePostForm locationId={membership.data.locationId} />
-      </section>
+          <section className="post-composer-section">
+            <h2>انشر في حارتك</h2>
+            <CreatePostForm locationId={membership.data.locationId} />
+          </section>
+        </aside>
 
-      <section>
+      <section className="hood-main">
         <h2>تغذية الحارة</h2>
         {feed.ok ? (
           feed.data.content.length === 0 ? (
@@ -265,6 +268,7 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
           </p>
         )}
       </section>
+      </div>
 
       <p>
         <Link href="/">الرئيسية</Link>

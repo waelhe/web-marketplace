@@ -1595,3 +1595,11 @@ textarea {
     scroll-snap-align: start;
   }
 }
+
+.hood-layout { display: grid; gap: var(--space-6); grid-template-columns: 1fr; }
+.hood-title { font-size: var(--text-2xl); font-weight: 800; color: var(--ink); margin: 0 0 var(--space-4); }
+.hood-title::first-line { color: var(--ink); }
+@media (min-width: 900px) {
+  .hood-layout { grid-template-columns: 20rem 1fr; align-items: start; }
+  .hood-side { position: sticky; top: var(--space-4); }
+}
