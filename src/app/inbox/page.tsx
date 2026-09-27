@@ -4,7 +4,7 @@ import { SignInButton } from "@/app/auth-buttons";
 import { getSession } from "@/lib/dal";
 import { formatDate } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
-import { getMyLeads, getMyNotifications, getMyPreferences } from "@/lib/api/inbox";
+import { getMyLeads, getMyNotifications, getMyPreferences, getMyUnreadNotificationCount } from "@/lib/api/inbox";
 import {
   LEAD_STATUS_LABELS,
   LEAD_STATUSES,
@@ -51,6 +51,11 @@ function parsePage(raw: string | string[] | undefined): number {
   return parsed - 1;
 }
 
+/** Parse ?feedPage= (the notifications pager — same 1-based convention). */
+function parseFeedPage(raw: string | string[] | undefined): number {
+  return parsePage(raw);
+}
+
 /** The one-way move set the inbox offers per current lead status. */
 function leadMoveTargets(status: LeadStatus): LeadStatus[] {
   if (status === "NEW") return ["READ", "ARCHIVED"];
@@ -62,6 +67,30 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
   const sp = await searchParams;
   const status = parseStatus(sp?.status);
   const page = parsePage(sp?.page);
+  const feedPage = parseFeedPage(sp?.feedPage);
+
+  /**
+   * One /inbox href that preserves every section's state — the two
+   * pagers (leads ?page=, notifications ?feedPage=) and the status
+   * filter must never silently drop each other. `over` replaces
+   * exactly the pieces a link intends to change; pages are human
+   * 1-based here, omitted when 1 (canonical hrefs stay clean).
+   */
+  const inboxHref = (over: {
+    status?: LeadStatus | null;
+    page?: number;
+    feedPage?: number;
+  }): string => {
+    const s = over.status !== undefined ? over.status : status;
+    const p = over.page !== undefined ? over.page : page + 1;
+    const f = over.feedPage !== undefined ? over.feedPage : feedPage + 1;
+    const params = new URLSearchParams();
+    if (s) params.set("status", s);
+    if (p > 1) params.set("page", String(p));
+    if (f > 1) params.set("feedPage", String(f));
+    const qs = params.toString();
+    return qs ? `/inbox?${qs}` : "/inbox";
+  };
 
   const session = await getSession();
   if (!session) {
@@ -79,36 +108,43 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
     );
   }
 
-  const [notifications, preferences, leads] = await Promise.all([
-    getMyNotifications(),
+  const [notifications, unread, preferences, leads] = await Promise.all([
+    getMyNotifications(feedPage),
+    getMyUnreadNotificationCount(),
     getMyPreferences(),
     getMyLeads(page, status),
   ]);
 
-  const unreadCount = notifications.ok
-    ? notifications.data.filter((n) => !n.read).length
-    : 0;
+  /* The badge rides the backend's own count — honest when the feed
+   * spans pages (a client-side filter over one page would undercount). */
+  const unreadCount = unread.ok ? unread.data.unreadCount : 0;
 
   return (
     <main>
       <h1>الصندوق</h1>
 
-      {/* ---- Notifications: the in-app feed (measured: full list, newest first) ---- */}
+      {/* ---- Notifications: the in-app feed (measured: paged, newest first — plan 2.6) ---- */}
       <section className="card inbox-section" aria-labelledby="notifications-heading">
         <h2 id="notifications-heading">
           الإشعارات
-          {notifications.ok ? (
-            unreadCount > 0 ? ` — ${new Intl.NumberFormat("ar").format(unreadCount)} غير مقروء` : ""
-          ) : null}
+          {unread.ok && unreadCount > 0
+            ? ` — ${new Intl.NumberFormat("ar").format(unreadCount)} غير مقروء`
+            : ""}
         </h2>
         {notifications.ok ? (
-          notifications.data.length === 0 ? (
+          notifications.data.content.length === 0 ? (
             <p className="page-note" role="status">
               لا إشعارات بعد — ستظهر هنا لحظة وصولها (حجز، طلب تواصل، تعليق…).
             </p>
           ) : (
-            <ul className="notification-list">
-              {notifications.data.map((notification) => (
+            <>
+              <p className="page-note">
+                {new Intl.NumberFormat("ar").format(notifications.data.totalElements)} إشعاراً — الصفحة{" "}
+                {new Intl.NumberFormat("ar").format(notifications.data.pageNumber + 1)} من{" "}
+                {new Intl.NumberFormat("ar").format(Math.max(notifications.data.totalPages, 1))}
+              </p>
+              <ul className="notification-list">
+                {notifications.data.content.map((notification) => (
                 <li
                   key={notification.id}
                   className={notification.read ? "notification-row" : "notification-row unread"}
@@ -128,7 +164,26 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
                   ) : null}
                 </li>
               ))}
-            </ul>
+              </ul>
+              <nav className="listing-pager" aria-label="تصفّح الإشعارات">
+                {notifications.data.pageNumber > 0 ? (
+                  <Link
+                    className="button"
+                    href={inboxHref({ feedPage: notifications.data.pageNumber })}
+                  >
+                    الصفحة السابقة
+                  </Link>
+                ) : null}
+                {!notifications.data.last ? (
+                  <Link
+                    className="button"
+                    href={inboxHref({ feedPage: notifications.data.pageNumber + 2 })}
+                  >
+                    الصفحة التالية
+                  </Link>
+                ) : null}
+              </nav>
+            </>
           )
         ) : (
           <p className="page-note" role="status">
@@ -172,7 +227,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
         </p>
         <nav className="category-filter" aria-label="تصفية حالة طلبات التواصل">
           <Link
-            href="/inbox"
+            href={inboxHref({ status: null, page: 1 })}
             className="button"
             data-variant={status === null ? "primary" : undefined}
           >
@@ -181,7 +236,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
           {LEAD_STATUSES.map((value) => (
             <Link
               key={value}
-              href={`/inbox?status=${value}`}
+              href={inboxHref({ status: value, page: 1 })}
               className="button"
               data-variant={status === value ? "primary" : undefined}
             >
@@ -232,18 +287,12 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
               </ul>
               <nav className="listing-pager" aria-label="تصفّح الصفحات">
                 {leads.data.pageNumber > 0 ? (
-                  <Link
-                    className="button"
-                    href={`/inbox?${status ? `status=${status}&` : ""}page=${leads.data.pageNumber}`}
-                  >
+                  <Link className="button" href={inboxHref({ page: leads.data.pageNumber })}>
                     الصفحة السابقة
                   </Link>
                 ) : null}
                 {!leads.data.last ? (
-                  <Link
-                    className="button"
-                    href={`/inbox?${status ? `status=${status}&` : ""}page=${leads.data.pageNumber + 2}`}
-                  >
+                  <Link className="button" href={inboxHref({ page: leads.data.pageNumber + 2 })}>
                     الصفحة التالية
                   </Link>
                 ) : null}
