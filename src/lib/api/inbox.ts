@@ -5,8 +5,9 @@
  * backendGet/backendSend discipline as community.ts/provider.ts.
  *
  * Every path below was measured against the live production OpenAPI
- * (2026-09-22) and the backend source before this file was written:
- * - GET  /api/v1/notifications                (full list, newest first)
+ * (2026-09-28) and the backend source before this file was written:
+ * - GET  /api/v1/notifications?page&size        (paged, newest first — plan 2.6)
+ * - GET  /api/v1/notifications/unread-count     (the badge's single number)
  * - POST /api/v1/notifications/{id}/read      (owner or admin — 403/404 otherwise)
  * - GET  /api/v1/notifications/preferences    (effective matrix)
  * - PUT  /api/v1/notifications/preferences    (upsert switches, DB opt-out → 400)
@@ -37,7 +38,7 @@ import type {
   PreferenceUpdate,
   PreferenceView,
 } from "./inbox-contract";
-import { LEADS_PAGE_SIZE, MESSAGES_PAGE_SIZE } from "./inbox-contract";
+import { LEADS_PAGE_SIZE, MESSAGES_PAGE_SIZE, NOTIFICATIONS_PAGE_SIZE } from "./inbox-contract";
 
 /** The backend's UserResponse (identity module) — the fields this surface uses. */
 interface BackendUserMe {
@@ -58,11 +59,35 @@ export const getMyBackendUser = cache(
   },
 );
 
-/** The caller's in-app notification feed — newest first, full list. */
-export async function getMyNotifications(): Promise<
-  ReturnType<typeof backendGet<NotificationItem[]>>
+/**
+ * The caller's in-app notification feed — paged, newest first. The
+ * feed moved onto the shared paged envelope with backend plan 2.6
+ * (#403; measured live 2026-09-28 on staging and production): standard
+ * page/size/sort query params answered with PagedResponseNotification.
+ * Explicit params ride the same discipline as the leads inbox.
+ */
+export async function getMyNotifications(
+  page: number,
+): Promise<ReturnType<typeof backendGet<PagedResponse<NotificationItem>>>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(NOTIFICATIONS_PAGE_SIZE),
+  });
+  return backendGet<PagedResponse<NotificationItem>>(
+    `/api/v1/notifications?${params}`,
+  );
+}
+
+/**
+ * The caller's unread badge count — the backend's own single number
+ * (GET /notifications/unread-count, the plan 2.6 badge polling
+ * endpoint). Honest across pages: never a client-side filter over the
+ * current page's rows.
+ */
+export async function getMyUnreadNotificationCount(): Promise<
+  ReturnType<typeof backendGet<UnreadCount>>
 > {
-  return backendGet<NotificationItem[]>("/api/v1/notifications");
+  return backendGet<UnreadCount>("/api/v1/notifications/unread-count");
 }
 
 /** Mark one notification read (owner or admin; 403/404 as measured). */
@@ -207,7 +232,11 @@ export async function getUnreadCount(
   );
 }
 
-/** UnreadCountResponse — the badge read model (MessagingController). */
+/**
+ * UnreadCountResponse — the badge read model. MessagingController and
+ * NotificationController publish the same record shape on the wire
+ * (measured): one field, unreadCount.
+ */
 export interface UnreadCount {
   unreadCount: number;
 }

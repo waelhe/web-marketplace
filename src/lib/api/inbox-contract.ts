@@ -52,9 +52,13 @@ export const NOTIFICATION_CHANNEL_LABELS: Record<NotificationChannel, string> = 
 };
 
 /**
- * The in-app notification row (GET /notifications, newest first —
- * the backend returns the caller's full list, no paging: the measured
- * contract this surface renders as-is).
+ * The in-app notification row (GET /notifications — paged, newest
+ * first). The feed moved onto the shared paged envelope with backend
+ * plan 2.6 (#403): the live OpenAPI (measured 2026-09-28, staging and
+ * production) answers standard page/size/sort params with
+ * PagedResponseNotification; the unread badge rides the backend's own
+ * /notifications/unread-count single number — never a client-side
+ * filter over one page.
  */
 export interface NotificationItem {
   id: string;
@@ -123,3 +127,6 @@ export const MESSAGES_PAGE_SIZE = 50;
 
 /** The leads inbox page size. */
 export const LEADS_PAGE_SIZE = 20;
+
+/** The notifications feed page size (the backend's own default). */
+export const NOTIFICATIONS_PAGE_SIZE = 20;
