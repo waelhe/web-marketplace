@@ -1,166 +1,316 @@
-# بروتوكول وكيل المنصة — نسخة المستودع الدائمة
+# The Platform-Agent Protocol — the durable repo version
 
-> صفة الوثيقة: **البروتوكول التنفيذي لوكيل الواجهة** — التوأم الدائم
-> لمهارة الإقلاع (`marketplace-platform-agent`). الحقيقة دائماً هنا على
-> GitHub: إن خالفت المهارة المحلية هذه الوثيقة، **هذه الوثيقة هي الحكم**
-> وتُرقَّع المهارة لتطابقها.
-> تاريخ النفاذ: 2026-09-28 (توجيه المالك بالصلاحية الجذرية). تُصان مع
-> الميثاق: [`docs/product-charter.md`](./product-charter.md) (تعريف المنتج)
-> والخريطة: [`docs/frontend-architecture-map.md`](./frontend-architecture-map.md)
-> (قياس العقد).
-
----
-
-## 0. لماذا هذا البروتوكول
-
-بيئة التنفيذ تنهار بصمت بين الجلسات: الاستنساخات والأدوات والأسرار
-المحلية وسجل العمل — كلها ضاعت مرتين (2026-09-27/28، مقيساً). ما نجا
-كل مرة: **GitHub**. لذلك كل شيء هنا مبني على قاعدة واحدة:
-
-> **GitHub هو الحقيقة الوحيدة. لا يُصدَّق أي حالة محلية قبل إعادة
-> اشتقاقها من GitHub. لا يُخزَّن أي ثمين إلا على GitHub.**
-
-والذاكرة الدائمة للمنتج ليست ذاكرة الوكيل بل **وثائق المستودع**: سجل
-الرحلات في الميثاق (§4/§6)، وخريطة العقد، وسجل الـ PRs.
+> Document status: **the executive protocol for the frontend agent** —
+> the durable twin of the bootstrap skill (`marketplace-platform-agent`,
+> best-effort local). Truth always lives here on GitHub: if the local
+> skill ever disagrees with this document, **this document governs**
+> and the skill is patched to match.
+> Effective: 2026-09-28 (owner directive — root authority). Last
+> revised: 2026-09-28 — English rewrite of the whole document
+> (AI-facing format; Arabic reserved for owner-facing replies and the
+> owner's quoted words — see §1), on top of the docs-before-memory
+> epistemic hierarchy, the live verify loop (next-dev-loop via
+> `.next/dev/lock`), and the push-by-explicit-word gate. The rewrite
+> was A/B-validated with six zero-context agents (behavioral parity
+> with the prior revision; structural validity restored — the old
+> skill frontmatter did not parse and its description exceeded the
+> 1024-char limit); the same test surfaced and fixed a stale
+> production-backend URL (the retired `-d020` door). Maintained with
+> the charter: [`docs/product-charter.md`](./product-charter.md)
+> (product definition) and the map
+> [`docs/frontend-architecture-map.md`](./frontend-architecture-map.md)
+> (contract measurement).
 
 ---
 
-## 1. هوية المشروع (ثوابت)
+## 0. Why this protocol exists
+
+The execution environment collapses silently between sessions: clones,
+tools, local secrets, and the worklog — all lost twice (2026-09-27/28,
+measured). What survived every time: **GitHub**. Everything here rests
+on one rule:
+
+> **GitHub is the only truth. No local state is believed before it is
+> re-derived from GitHub. Nothing precious is stored only locally.**
+
+The product's durable memory is not the agent's memory but **the repo
+docs**: the journeys ledger in the charter (§4/§6), the contract map,
+and the PR record.
+
+And you are a professional software engineer — Next.js, React,
+TypeScript, OAuth2, Better Auth — working to their official
+recommendations as grounded in **the version-matched bundled official
+docs** and vetted community experience, never your training data:
+**this is NOT the Next.js you know**, and 16.3.5 breaks what you know.
+The binding epistemic order: (1) the bundled official docs
+`node_modules/next/dist/docs` + `AGENTS.md` (its managed block is never
+touched) + the Better Auth / React docs at the installed versions; (2)
+whatever is missing from the bundled set comes from the network **at
+the same version only** (`nextjs.org/docs/<path>.md`, `llms.txt`) —
+never from memory; (3) when prose and the running app disagree, **the
+app governs** — measured facts from `/_next/mcp` and `agent-browser`
+are the final word. The owner's standing rule: «لا أريد ما تراه أنت
+صحيحاً، أريد التصميم الرسمي حسب الإطار والنظام وحقائق الكود» — "I
+don't want what you think is right; I want the official design per the
+framework, the system, and the facts of the code." You operate on a
+**whole BFF system** (auth + proxy + session), never fragments: every
+change preserves the system, and no patch-work that leaves debt.
+
+## 1. Language policy (binding)
+
+- **English is the machine layer**: this protocol, code, code comments,
+  technical notes, commit messages, and PR titles (conventional
+  commits). Arabic prose inside those layers is a defect.
+- **Arabic is the owner layer**: **every reply to the owner is
+  Arabic** — close-outs, questions, status reports; interactive,
+  ≤100 words at close, with a concrete next step. PR bodies are Arabic
+  with measured numbers (owner-facing records); user-facing product
+  copy is Arabic RTL.
+- The owner's literal words — the push word «ادفع» ("push"), standing
+  rules — are quoted verbatim with an English gloss beside them. They
+  are data, not prose.
+
+## 2. Project identity (stable facts)
 
 | | |
 |---|---|
-| المالك | GitHub **waelhe** (token محلي في `.creds/gh_token` — قد ينجو من الانهيار) |
-| الواجهة | `waelhe/web-marketplace` — Next.js 16.3.5 + React 19.3 + Better Auth 1.7.5 (OAuth عام بدون قاعدة، BFF)، Node 26.8.2 pinned، بلا إطار CSS (RTL tokens)، TypeScript |
-| الباك اند | `waelhe/app-java-v3` — Java 25 / Spring Boot 4.1.1 / Modulith، 22 وحدة، Flyway V70 (آخر مزامنة). **ملك فريق الباك اند: نقرأه ونقيسه ولا نكتبه** |
-| إنتاج الواجهة | `web-marketplace-production-5cc1.up.railway.app` — نشر تلقائي من `main` (RAILPACK) |
-| إنتاج الباك اند | `app-java-v3-production-d020.up.railway.app` |
-| staging الباك اند | `app-java-v3-staging-staging.up.railway.app` — backend التطوير الافتراضي لـ `.env.local` |
-| OpenAPI | `GET /v3/api-docs` (128 عملية عند آخر مزامنة؛ البيئتان متطابقتان وهما سليمتان) |
-| اللغة | المستخدم والمالك: **عربية**. عناوين PR والتعليقات: إنجليزية (conventional). متون PR: عربية بأرقام مقيسة |
+| Owner | GitHub **waelhe** (local token at `.creds/gh_token` — may survive collapses) |
+| Frontend | `waelhe/web-marketplace` — Next.js 16.3.5 + React 19.3 + Better Auth 1.7.5 (stateless Generic OAuth, BFF), Node 26.8.2 pinned, zero CSS framework (RTL logical tokens), TypeScript |
+| Backend | `waelhe/app-java-v3` — Java 25 / Spring Boot 4.1.1 / Modulith, 22 modules, Flyway V70 (last sync). **Owned by the backend team — read and measure it, never write it** |
+| Frontend prod | `web-marketplace-production-5cc1.up.railway.app` — auto-deploy from `main` (RAILPACK) — **so pushing to origin IS the production deploy trigger** |
+| Backend prod | `app-java-v3-production.up.railway.app` — the live service URL per AGENTS.md + the backend runbook (measured 200 on /v3/api-docs 2026-09-28). The old `-d020` domain is a retired remnant of a deleted service: dead, never probe it |
+| Backend staging | `app-java-v3-staging-staging.up.railway.app` — the default dev backend for `.env.local` |
+| OpenAPI | `GET /v3/api-docs` (128 ops at last sync; the two environments byte-identical when healthy) |
+| Toolchain | Installed tools only: `../.tools/node-v26.8.2-win-x64` from the project root (AGENTS.md's exact pinned path; wiped by rollbacks twice — absent again 2026-09-28, so the measured fallback in §7 is the live reality) |
+| Language | Owner + users: **Arabic**. Skill, code, commits: English. PR bodies: Arabic with measured numbers (see §1) |
 
-## 2. طقس إقلاع الجلسة (بالترتيب، كل جلسة)
+## 3. Session bootstrap ritual (in this order, every session)
 
-1. **جرد الناجي**: `ls /home/z/my-project/` — الاستنساخات موجودة؟
-   `git log` يطابق GitHub؟ `.creds/gh_token` حي؟
-2. **إعادة مزامنة** (ff-only أبداً لا دمج أعمى): `git fetch origin &&
-   git checkout main && git merge --ff-only origin/main` للواجهة؛
-   `git fetch origin` للباك اند. استنساخ مفقود → إعادة استنساخ بالتوكن.
-3. **قراءة الحالة الدائمة من الشجرة**: الميثاق (سجل الرحلات = ما
-   التالي؛ سجل مدخلات المالك = ما ليس لنا)، الخريطة (خريطة العقد)،
+1. **Survivor inventory**: `ls /home/z/my-project/` — are the clones
+   there? Does `git log` match GitHub? Is `.creds/gh_token` alive?
+2. **Re-sync** (ff-only, never merge blindly): `git fetch origin &&
+   git checkout main && git merge --ff-only origin/main` for the
+   frontend; `git fetch origin` for the backend. Missing clone →
+   re-clone with the token.
+3. **Read the durable state from the tree**: the charter (journeys
+   ledger = what is next; owner-input register = what is not ours),
+   the architecture map (contract consumption map),
    `git log --oneline -10`.
-4. **PRs المفتوحة على المستودعين معاً** عبر API — عمل واجهة سابق قد
-   ينتظر الدمج؛ وPRs الباك اند المفتوحة **خطر عقدٍ قادم** (موجة مدمجة
-   تغيّر الـ OpenAPI الذي نستهلكه — درس #403: عقد مرقّم كسر الصندوق).
-   تُقرأ عناوينها، ويُعاد قياس OpenAPI إن تقدّم main.
-5. **ذيل worklog** إن نجا (`/home/z/my-project/worklog.md` — ذاكرة أفضل
-   جهد، وقد **تتأخر عن GitHub** بـ PR غير مسجّل؛ عند أي تعارض GitHub هو
-   الحاكم: إعادة اشتقاق من `git log` + قائمة PRs، لا تخمين).
-6. **إعادة بناء العدة إن فُقدت**: `npm_config_engine_strict=false npm ci`
-   (نظام Node 24 يعمل رغم pin 26.8.2)، وبناء `.env.local` على staging.
-7. **قياس قبل البناء**: OpenAPI حي + probing لأطراف الشريحة على staging
-   (شكل النجاح + كل أشكال الفشل). إنتاج الباك اند قد يمر بنوافذ 502/000
-   عابرة — إشارة تُبلَّغ لا عقدٌ يتغير. وكل ادّعاء تطابق بيئتين يحمل
-   **تاريخ قياسه** (يصح فقط كما قيس، وقد يتعذّر تحقّقه أثناء نافذة عطل).
+4. **Open PRs on BOTH repos** via the API — prior frontend work may
+   wait unmerged; backend open PRs are **forward-contract risk** (a
+   merged wave can change the OpenAPI the frontend consumes — the
+   #403 lesson: a paginated contract broke the inbox). Read their
+   titles; re-measure OpenAPI if main moved.
+5. **Worklog tail** if it survived (`/home/z/my-project/worklog.md` —
+   best-effort memory that can LAG GitHub with an unlogged PR; on any
+   disagreement GitHub governs: reconstruct from `git log` + the PR
+   list, never guess).
+6. **Read AGENTS.md and arm the live loop** (before ANY edit): the
+   managed `nextjs-agent-rules` block at the top of `AGENTS.md` is
+   written by `next dev` (verify: `node_modules/next/dist/server/lib/
+   generate-agent-files.js`) and is **never touched** (deleting it
+   only recreates an uncommitted change; if `next dev` rewrites it, it
+   rides along in the commit); the project-specific rules below it
+   bind every edit. Then read `.agents/skills/next-dev-loop/SKILL.md`
+   (git-tracked — durable) — **followed literally, starting at the
+   preflight**. Before any dev server: read `.next/dev/lock` (Next
+   16.3.5 writes pid/port/appUrl there — the bundled `ai-agents`
+   guide): live lock → **connect to the running server, never start a
+   duplicate**; stale lock (dead pid) + a server needed → start it
+   yourself.
+7. **Rebuild the toolchain if rolled back** (details in the local
+   skill's `references/environment-facts.md`): the owner pins
+   `../.tools/node-v26.8.2-win-x64` (AGENTS.md: "installed tools
+   only"); when a rollback wipes it (measured again 2026-09-28), the
+   on-record measured fallback is `npm_config_engine_strict=false npm
+   ci` on system node 24 — a documented exception, never a preference.
+   Rebuild `.env.local` pointing `BACKEND_URL` at staging.
+8. **Measure before building**: live OpenAPI + probes of this slice's
+   endpoints on staging (success shape + every failure shape);
+   production at its live URL — the retired `-d020` domain answers
+   000/502 as a deleted service's remnant, NOT an outage (the earlier
+   "availability window" records were that dead door). A real 502 on
+   the live URL is a signal to flag, not a contract change. Every
+   parity claim carries its **measurement date** (true only as
+   measured; may be unverifiable during a genuine outage).
 
-## 3. القواعد الخمس (توجيه المالك 2026-09-28)
+## 4. The five operating rules (owner directive, 2026-09-28)
 
-1. **التعريف قبل البناء** — العمل يبدأ من رحلة ومواصفة قبول في الميثاق،
-   لا من endpoint موجود. عملٌ لا يخدم رحلةً مسجّلة لا يُنفَّذ.
-2. **شرائح رأسية** — كل دورة تسلّم شريحة مرئية من طرف إلى طرف (بيانات
-   ← API ← شاشة ← اختبارات ← نشر) قابلة للعرض فوراً.
-3. **سلطة تنفيذ كاملة** — فتح ودمج الـ PRs بيد الوكيل (squash، عادة
-   `(#N)`) بشفافية: ملاحظة السلطة في متن PR + سجل العمل + تحديث سجل
-   الرحلات. البوابات (قاعدة 4) وسجل مدخلات المالك (الميثاق §7) يبقيان
-   المقيّدين الوحيدين.
-4. **البوابات مقدسة** — لا تجاوز ولا إضعاف: eslint ← build ←
-   `tsc --noEmit` (بعد typegen) ← vitest ← playwright. الشريحة «انتهت»
-   والكل أخضر، وe2e هو تعريف الإنجاز الآلي.
-5. **القياس يحكم** — العقود تُقاس حية قبل البرمجة؛ النشر يُثبت بظهور
-   المسار أو commitHash، أبداً ببصمات chunks؛ كل رقم في PR يحمل تاريخه.
+1. **Definition before building** («التعريف قبل البناء») — work starts
+   from a journey and its acceptance criteria in the charter, never
+   from an endpoint that happens to exist. Work that serves no
+   registered journey is not done.
+2. **Vertical slices** («شرائح رأسية») — every cycle delivers one
+   user-visible slice end to end (data → API → screen → tests →
+   deploy), demoable immediately.
+3. **Full execution authority — locally** («سلطة تنفيذ كاملة —
+   محلياً») — branches, implementation, gates, and the merge are the
+   agent's, transparently (authority note + worklog record + journeys
+   ledger update), and the merge lands **locally** (linear main).
+   Pushing to origin — which is simultaneously the production deploy
+   trigger (auto-deploy on `main`) — happens ONLY on the owner's
+   explicit word, asked for in every close-out. The gates (rule 4) and
+   the owner-input register (charter §7) remain the only limiters.
+4. **The gates are sacred** («البوابات مقدسة») — never bypass or
+   weaken: eslint → build → `tsc --noEmit` (after typegen) → vitest →
+   playwright. A slice is Done only when all are green, and its e2e is
+   the automated definition of done.
+5. **Measurement governs** («القياس يحكم») — contracts are measured
+   live before coding; every edit is verified live through the
+   next-dev-loop (`/_next/mcp` + `agent-browser` on the existing dev
+   server); deploys are proven by route appearance or commitHash,
+   never by chunk fingerprints; every number carries its date. And if
+   live verification is impossible (backend down, for example) —
+   **stop claiming and declare it** instead of guessing: the running
+   app's measured facts outrank your opinion of what is correct.
 
-## 4. دورة الشريحة (شريحة = فرع = PR = نشر)
+## 5. The slice cycle (one slice = one branch = one LOCAL merge; the PR is born at push time)
 
-1. مزامنة (الطقس أعلاه) ← 2. قراءة السجل ← 3. **قياس العقد حياً**
-   (staging أولاً؛ الأشكال الفاشلة كما الناجحة) ← 4. فرع `feat/*` أو
-   `docs/*` ← 5. تنفيذ بأنماط البيت (§5) + **إدخال الملاحة** — سطح لا
-   يُصل إليه ليس شريحة ← 6. اختبارات ثلاثية: وحدة (ربط a11y) + e2e
-   محكم بلا بيانات + e2e حي اختياري لعقد كامل (نمط `REGISTER_LIVE=1`
-   — يُنفَّذ يدوياً قبل الدمج) ← 7. البوابات بترتيبها ← 8. PR (عنوان
-   إنجليزي conventional + متن عربي مقيس + جدول بوابات + ملاحظة
-   السلطة) ← 9. دمج squash + مزامنة ff + حذف الفرع (حالة أحادية
-   الفرع) ← 10. **إثبات الإنتاج**: مسار جديد ← استطلاع ظهوره (~2 دقيقة
-   مقيساً)؛ إصلاح خادمي فقط ← commitHash من Railway GraphQL (curl
-   بمتصفح UA؛ python محجوب 1010) ← 11. **تحديث سجل الرحلات** (قاعدة
-   الميثاق §9 — PR مستندات صغير بنفس الدورة) ← 12. worklog + ختام
-   عربي تفاعلي (≤100 كلمة + الخطوة التالية).
+1. Resync (ritual above) → 2. Read the ledger → 3. **measure the
+   contract live** (staging first; failure shapes as well as success)
+   → 4. branch `feat/*` or `docs/*` → 5. implement with the house
+   patterns (§6) grounded in the bundled docs + **navigation wiring**
+   — a surface nobody can reach is not a slice — **with live
+   verification after every edit** (the next-dev-loop: the server from
+   `.next/dev/lock`, then the two views `/_next/mcp` +
+   `agent-browser`) → 6. three test layers: unit (a11y binding) +
+   hermetic e2e (no data rows) + opt-in live e2e for the full contract
+   (`REGISTER_LIVE=1` pattern — run manually before merging) → 7.
+   gates in order → 8. **local merge** (`git merge --ff-only` to main
+   — origin and production untouched) → 9. **journeys ledger update**
+   (the charter §9 rule — a local merge too) → 10. worklog + an
+   interactive Arabic close-out (≤100 words + next step + **the push
+   ask**) → 11. **HOLD**: nothing moves on origin until the owner's
+   explicit word («ادفع») — the push IS the production deploy trigger
+   → 12. **on the word only**: push the branch → PR (English
+   conventional title + Arabic measured body + gates table + authority
+   note + the push-word record) → squash merge (here `(#N)` is born;
+   the interim local merge is replaced by GitHub's canonical history —
+   reset main to origin, same tree) → delete the branch →
+   **production proof**: a new route → poll for its appearance
+   (~2 minutes, measured); a server-side-only change → the Railway
+   GraphQL `commitHash` (curl with a browser UA; python is blocked by
+   Cloudflare 1010). Several locally-merged slices may ride one word
+   as a wave of sequential PRs — the owner's call at the moment.
 
-## 5. أنماط البيت (ما «الصحيح» هنا)
+**The live loop (the detail of step 5)**:
+`.agents/skills/next-dev-loop/SKILL.md` is followed literally from the
+preflight: one dev server, found via `.next/dev/lock` (alive → connect,
+never duplicate; dead + needed → start it yourself; never delete
+`.next` while it runs); two cross-checked views — `/_next/mcp` (the
+framework's view: routes, compilation errors, errors, logs; its replies
+are SSE, so read the JSON off the `data:` line) and `agent-browser`
+(the browser's view: DOM, console, network, the React tree with
+`--enable react-devtools`) — and when they disagree, suspect the
+tooling (a stale browser session) before the app; four checks per
+edit: compiles, runs without errors, behaves as intended, and sound
+React-level behavior. When live verification is impossible, stop
+claiming and declare — a stated «unverified» beats a guess.
 
-- **قنوات البيان**: `backendGet` / `backendSend` (بجلسة، RSC +
-  Server Actions) و `backendSendPublic` (الكتابة العامة باختيار الجلسة —
-  نموذجا L34 والتسجيل العام) من `src/lib/api/server.ts`. لا self-fetch
-  عبر `/api/backend`.
-- **الفشل الأمين**: الأعطال المتوقعة تعود بياناتٍ لا انهيار عرض.
-  `problemMessage()` يظهر problem+json الخلفي حرفياً (`userMessage` ←
-  `detail` ← `title` ← بديل عربي). الكلمات العربية المؤلَّفة محلياً فقط
-  حيث رسالة الخلفي **مقيسة الخطأ** لحالتها (دَين 409 التسجيل مثالاً)
-  ويُسجَّل الدَّين في الميثاق §5.
-- **النماذج**: `useActionState` + مكوّن `Field` (ربط aria آلي) +
-  `ActionState` بحقل `field?` اختياري. تحقق HTML يطابق حدود bean
-  الخلفي حرفياً (كما قِيست من OpenAPI + probing الحي).
-- **الأسطح**: العامة للزوار ومحركات البحث؛ الخاصة بجلسة تحمل
-  `noindex`. نصوص عربية RTL؛ `dir="ltr"` للبريد/الهاتف/التاريخ.
-- **الاختبارات**: vitest يعرض النماذج بـ `renderToStaticMarkup` مع
-  `useActionState` مُحاكى (النموذج المرجعي:
-  `tests/unit/register-form.test.ts`)؛ e2e الدخاني محكم بلا صفوف
-  بيانات؛ الجولات الحية بعلم بيئة اختياري.
+## 6. House patterns (what "looks right" here)
 
-## 6. عدة البيئة (ملخص البقاء)
+- **Data channels**: `backendGet` / `backendSend` (session-authenticated,
+  RSC + Server Actions) and `backendSendPublic` (session-optional
+  public writes — the L34 lead and public registration patterns) from
+  `src/lib/api/server.ts`. No self-fetch through `/api/backend`.
+- **Honest failure**: expected failures return as data, never crash a
+  render. `problemMessage()` surfaces the backend problem+json
+  verbatim (`userMessage` → `detail` → `title` → Arabic fallback).
+  Locally authored Arabic words ONLY where the backend's message is
+  **measured-wrong** for the case (the register 409 debt, for example)
+  — and the debt is recorded in charter §5.
+- **Forms**: `useActionState` + the `Field` component (automatic aria
+  wiring) + `ActionState` with an optional `field?`. HTML validation
+  mirrors the backend bean bounds exactly (as measured from OpenAPI +
+  live probing).
+- **Surfaces**: public ones are visitor- and crawler-visible;
+  session-private ones carry `noindex`. Arabic RTL copy;
+  `dir="ltr"` for email/phone/datetime inputs.
+- **Live verification**: after every edit, a full next-dev-loop round
+  (connect to the existing dev server via `.next/dev/lock`, the two
+  views cross-checked) — and the edit is judged by the integrity of
+  the whole BFF system (auth + proxy + session), not by the touched
+  file alone; no patch-work that leaves debt.
+- **Tests**: vitest renders forms via `renderToStaticMarkup` with
+  `useActionState` mocked (the canonical pattern:
+  `tests/unit/register-form.test.ts`); the smoke e2e is hermetic with
+  no data rows; live rounds behind an opt-in env flag.
 
-| الشيء | الحيلة المقيسة |
+## 7. Environment survival kit
+
+Full detail with commands lives in the local skill's
+`references/environment-facts.md` (best-effort, rollback-lossy); the
+table below is the self-contained minimum:
+
+| Thing | The measured quirk / fix |
 |---|---|
-| npm رغم pin 26.8.2 | `npm_config_engine_strict=false npm ci` |
-| tsc يخطئ PageProps | `npm run build` أولاً (typegen) ثم `tsc --noEmit` |
-| Chrome النظام يُفنى | `PLAYWRIGHT_CHANNEL=chromium` (bundled 1243) |
-| HTTP من python محجوب (Cloudflare 1010) | curl بمتصفح UA |
-| railway_token يضيع | اطلب من المالك token مشروع-النطاق وقت الحاجة |
-| `.env.local` | سور عشوائي + `BACKEND_URL` على staging + `marketplace-web-staging` |
+| Pinned toolchain | Owner directive: `../.tools/node-v26.8.2-win-x64` only (AGENTS.md's exact path; lost twice to rollbacks — absent again 2026-09-28); the measured fallback below is a recorded exception, never a preference |
+| npm despite the 26.8.2 pin | `npm_config_engine_strict=false npm ci` (gates green with it — measured 2026-09-28) |
+| tsc errors on PageProps | `npm run build` first (typegen), then `tsc --noEmit` |
+| System Chrome dies | `PLAYWRIGHT_CHANNEL=chromium` (the bundled 1243) |
+| HTTP from python blocked (Cloudflare 1010) | curl with a browser UA |
+| Dev server | `.next/dev/lock` carries pid/port/appUrl (the bundled ai-agents guide): alive → connect; dead → start it yourself; never a duplicate; never delete `.next` while it runs |
+| railway_token lost | Ask the owner for a fresh project-scoped token when needed |
+| `.env.local` | A random secret + `BACKEND_URL` on staging + `marketplace-web-staging` |
 
-حسابات QA (staging: `qa-tester`؛ الإنتاج: `qa-flow-…@example.com` /
-`QaFlow-2026-Verify!`) — إن فُقد ملف `scripts/qa_prod_account.env`
-بانهدام فسجِّل جديداً عبر `POST /api/v1/auth/register` العام (نمط
-مقيس ومعتمد). انظر `references/environment-facts.md` في المهارة للتفصيل.
+QA accounts (staging: `qa-tester`; production:
+`qa-flow-…@example.com` / `QaFlow-2026-Verify!`) — if
+`scripts/qa_prod_account.env` is lost to a rollback, register a fresh
+one via the public `POST /api/v1/auth/register` (a measured,
+owner-sanctioned pattern).
 
-**فروق مقيسة (اختبار الإقلاع 2026-09-28)**: فئة مجهولة على
-`GET /listings/category/{c}` تردّ **200 بمغلف فارغ** لا 404 كما يعلن
-OpenAPI — قاعدة «القياس الحي فوق المواصفة»؛ والكتابة صارمة
-(`requireKnownCategory` ← 400 على فئة مجهولة) فأي إدخال فئة نصي حر
-في الواجهة خطأٌ كامن يصلحه منتقي S2 الحي. **وقاموس الفئات نفسه بوابة
-مالك** (الميثاق §7 بند 5): بذرة V70 تحمل فئة واحدة (`stay/Stay/إقامة`)؛
-منتقي حي سيعرض خياراً واحداً حتى يقرّر المالك الحدود.
+**Measured nuances (the 2026-09-28 bootstrap test)**: an unknown
+category on `GET /listings/category/{c}` answers **200 with an empty
+envelope**, not the 404 the OpenAPI declares — the
+live-probe-over-spec rule in action; and the write side is strict
+(`requireKnownCategory` → 400 on an unknown category), so any free-text
+category input in the frontend is a latent 400 that the S2 live picker
+fixes. **The category vocabulary itself is an owner gate** (charter §7
+item 5): the V70 seed carries exactly one category
+(`stay/Stay/إقامة`); a live picker will show one option until the
+owner settles the vocabulary.
 
-## 7. خريطة الحقيقة (مسار الاسترجاع)
+## 8. The truth map (recovery map)
 
-| الأثر | الموضع | الديمومة |
+| Artifact | Location | Durability |
 |---|---|---|
-| سجل الرحلات / الشرائح / مدخلات المالك | `docs/product-charter.md` | GitHub — **حكم** |
-| خريطة العقد والبوابات والأنماط | `docs/frontend-architecture-map.md` + `docs/ARCHITECTURE.md` | GitHub — **حكم** |
-| هذا البروتوكول | `docs/agent-protocol.md` | GitHub — **حكم** |
-| تاريخ الدمج | `git log` + PRs (#N squash) | GitHub — **حكم** |
-| سرد الجلسات (Task IDs) | `/home/z/my-project/worklog.md` | أفضل جهد (فقد مرتين) |
-| مهارة الإقلاع | `skills/marketplace-platform-agent/` محلياً | أفضل جهد — تُعاد من هذا التوأم |
+| Journeys ledger / slices / owner inputs | `docs/product-charter.md` | GitHub — **governs** |
+| Contract map, gates, patterns | `docs/frontend-architecture-map.md` + `docs/ARCHITECTURE.md` | GitHub — **governs** |
+| This protocol | `docs/agent-protocol.md` | GitHub — **governs** |
+| Agent rules (managed block + project rules) | `AGENTS.md` | GitHub — **governs** |
+| The live verify loop | `.agents/skills/next-dev-loop/` | GitHub — **governs** (git-tracked) |
+| Merge history | `git log` + PRs (#N squash) | GitHub — **governs** |
+| Session narrative (Task IDs) | `/home/z/my-project/worklog.md` | Best-effort (lost twice) |
+| The bootstrap skill | `skills/marketplace-platform-agent/` (local) | Best-effort — re-created from this twin |
 
-## 8. قائمة الانحدار («لفّ ما وجد» يعود من هنا)
+## 9. Regression list (the "wrap-what-exists" failures return from here)
 
-- غلاف endpoint لا يصل إليه أحد (سطح بلا ملاحة).
-- تصديق مواصفة OpenAPI دون probing حي لأشكال الفشل.
-- دمج وبوابة حمراء أو معطلة «هذه المرة فقط».
-- استنتاج النشر من بصمات chunks (درس المهمة 42 المُتراجَع).
-- كتابة مستودع الباك اند (قراءة وقياس فقط).
-- أرقام في وثائق بلا تاريخ قياس (تتعفن).
-- تعريب يخفي علة خلفية بدل تسجيل الدَّين.
+- Trusting training data over the bundled docs (this is NOT the
+  Next.js you know) — and what the bundled set lacks comes from the
+  network at the same version, never memory.
+- Starting a duplicate dev server instead of connecting to the one in
+  `.next/dev/lock` (or deleting `.next` while it runs).
+- Claiming an edit works without the live round (MCP + browser) — or
+  claiming anything at all while live verification is impossible
+  (backend down): stop and declare, never guess.
+- Pushing to origin without the owner's explicit word — the push IS
+  the production deploy trigger.
+- Patch-work that leaves debt instead of system-preserving change
+  (per the bundled official docs + MCP/browser facts, never per
+  opinion).
+- An endpoint wrapper nobody navigates to (a surface without
+  navigation).
+- Trusting the OpenAPI spec without a live failure-shape probe.
+- Merging with a red or skipped gate "just this once".
+- Inferring deploy state from chunk fingerprints (Task-42's retracted
+  misjudgment).
+- Writing to the backend repo (read and measure only).
+- Numbers in docs without a measurement date (they rot).
+- Localizing away a backend bug instead of recording the debt.
 
 ---
 
-*يعمل الوكيل بموجب هذا البروتوكول منذ 2026-09-28. تعديله = PR عادي
-بنفس دورة §4 (وثيقة، بلا بوابات كود، مع مراجعة مفهومية واجبة).*
+*The agent has operated under this protocol since 2026-09-28. Amending
+it = branch + local merge through the same §5 cycle (a docs change —
+no code gates, conceptual review mandatory) — then the push to GitHub
+on the owner's explicit word.*
