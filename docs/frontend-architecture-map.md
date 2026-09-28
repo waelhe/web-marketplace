@@ -11,7 +11,8 @@
 > source tree at `main @ 5972dbd`. Measurement date: **2026-09-28**.
 > Backend reference: **app-java-v3 @ 1710501** (Flyway V70, 22 modules).
 > This file pairs with `docs/ARCHITECTURE.md` (the deep Arabic narrative);
-> it does not replace it.
+> it does not replace it. The **product definition** it serves lives in
+> `docs/product-charter.md` (the journeys, their acceptance, the slice plan).
 
 ---
 
