@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getActiveListings, searchListings } from "@/lib/api/public";
+import { getActiveListings, getListingCategories, searchListings } from "@/lib/api/public";
 import { problemMessage } from "@/lib/problem";
 import type { BackendResult } from "@/lib/api/server";
 import type { ListingSummary, PagedResponse } from "@/lib/api/types";
@@ -9,6 +9,7 @@ import { ListingCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { CategoryDatalist } from "@/components/ui/category-select";
 import { SignInButton, SignOutButton } from "./auth-buttons";
 
 /** Featured strip size — top-N of the default browse read (R22, no flags). */
@@ -40,6 +41,11 @@ export default async function Home() {
   //    re-measured today: valid PagedResponse) — still one anonymous public
   //    GET, wired through the existing sanitized searchListings layer.
   const latest = await searchListings({}, 0, HOME_LATEST_SIZE, "newest");
+  // 3) The category vocabulary — S2 (charter J2): the hero's suggestions
+  //    come from the backend's live registry read, never a hard list. A
+  //    failed read degrades to zero suggestions (the input keeps working;
+  //    nothing invented) — the honest-failure pattern.
+  const categories = await getListingCategories();
 
   return (
     <>
@@ -115,6 +121,11 @@ export default async function Home() {
               />
             </Field>
             <Field label="الفئة">
+              {/* S2: live registry suggestions — VALUES are the codes (the
+                  only valid wire value; the Arabic name alone answers a
+                  silent 200 empty envelope — measured). The hero stays a
+                  light text input + datalist per the landing spec (no
+                  select — the smoke e2e pins that). */}
               <input
                 type="text"
                 name="category"
@@ -122,12 +133,10 @@ export default async function Home() {
                 list="hero-category-examples"
                 placeholder="مثال: إقامة"
               />
-              <datalist id="hero-category-examples">
-                <option value="stay" />
-                <option value="إقامة" />
-                <option value="خدمة" />
-                <option value="عقار" />
-              </datalist>
+              <CategoryDatalist
+                id="hero-category-examples"
+                categories={categories.ok ? categories.data : []}
+              />
             </Field>
             <Field label="الموقع" hint="اسم المنطقة — يُحلّ تلقائيًا في نتائج البحث">
               <input

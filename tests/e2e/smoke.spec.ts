@@ -135,3 +135,29 @@ test("home carries the anonymous signup entry (charter J1)", async ({ page }) =>
   await expect(registerLink).toBeVisible();
   await expect(registerLink).toHaveAttribute("href", "/register");
 });
+
+test("the hero's category suggestions are wired to a live datalist (charter J2, S2)", async ({
+  page,
+}) => {
+  // Structure only (hermetic — holds with a dead backend too): the input
+  // references the datalist; the OPTIONS themselves are live data and are
+  // asserted only in categories-live.spec.ts (opt-in).
+  await page.goto("/");
+  const input = page.locator('input[name="category"]');
+  await expect(input).toBeVisible();
+  await expect(input).toHaveAttribute("list", "hero-category-examples");
+  await expect(page.locator("#hero-category-examples")).toHaveCount(1);
+});
+
+test("browse carries a visible category picker with the no-filter option (charter J2, S2)", async ({
+  page,
+}) => {
+  // The visible live-registry picker replaced the hidden input (R8's
+  // premise dissolved with the backend's V70 registry read). The «الكل»
+  // option exists in every mode — live vocabulary or honest degraded.
+  const res = await page.goto("/listings");
+  expect(res?.status()).toBe(200);
+  const select = page.locator('select[name="category"]');
+  await expect(select).toBeVisible();
+  await expect(select.locator('option[value=""]')).toHaveCount(1);
+});

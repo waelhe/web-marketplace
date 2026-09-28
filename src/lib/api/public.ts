@@ -22,7 +22,7 @@
 import { cache } from "react";
 import { decodeProblem, type ProblemDetail } from "@/lib/problem";
 import type { BackendResult } from "./server";
-import type { ListingDetail, ListingSummary, PagedResponse, PropertyPurpose, PropertyType } from "./types";
+import type { ListingCategory, ListingDetail, ListingSummary, PagedResponse, PropertyPurpose, PropertyType } from "./types";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
 
@@ -59,6 +59,21 @@ async function decodeBody(res: Response): Promise<ProblemDetail | null> {
 
 /** The listing browse page size — one measured page shape, no invention. */
 export const LISTINGS_PAGE_SIZE = 12;
+
+/**
+ * The live category vocabulary: `GET /api/v1/listings/categories` — the
+ * backend's own registry read (V70), ordered by the registry's display
+ * position, designed as "the storefront's category picker" (the
+ * backend's words on listCategories). This is the ONLY category list the
+ * UI may ever offer (charter J2/S2: no hard-coded vocabulary; charter
+ * §7 item 5: the vocabulary itself is an owner gate — one seeded
+ * category today, stay/Stay/إقامة, measured 2026-09-29 on staging and
+ * production). Memoized per render pass like every sibling read.
+ */
+export const getListingCategories = cache(
+  async (): Promise<BackendResult<ListingCategory[]>> =>
+    publicGet("/api/v1/listings/categories"),
+);
 
 /**
  * The public browse surface: `GET /api/v1/listings?page&size` — paginated

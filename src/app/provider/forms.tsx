@@ -42,7 +42,8 @@ import {
   MEDIA_ALLOWED_CONTENT_TYPES,
   type ProviderActorType,
 } from "@/lib/api/provider-contract";
-import type { PropertyBlock } from "@/lib/api/types";
+import type { ListingCategory, PropertyBlock } from "@/lib/api/types";
+import { CategorySelect } from "@/components/ui/category-select";
 
 function StateMessage({ state }: { state: ActionState }) {
   if (state.status === "error") {
@@ -128,8 +129,17 @@ export function BecomeProviderForm() {
  * Create a listing — the core fields the backend requires (title,
  * category, price in MAJOR units — the backend takes minor units and the
  * action converts; currency optional, blank = the house default SAR).
+ *
+ * S2 (charter J2): the category picks from the LIVE registry
+ * (`categories` — fetched by the page via getListingCategories; null =
+ * the read failed). The backend's write side is registry-governed since
+ * V70 — `CatalogService.requireKnownCategory` answers 400 on any
+ * unknown code — so the picker is the honest control: it offers exactly
+ * what the backend will accept. The degraded branch (read failed or
+ * live-empty vocabulary) falls back to free text: the journey is not
+ * blocked, the backend's own 400 words surface verbatim on a bad code.
  */
-export function CreateListingForm() {
+export function CreateListingForm({ categories }: { categories: ListingCategory[] | null }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     createListingAction,
     { status: "idle" },
@@ -154,23 +164,24 @@ export function CreateListingForm() {
         placeholder="ضيفان، سرير كينغ، خمس دقائق من الكورنيش…"
       />
       <label htmlFor="listing-category">الفئة</label>
-      <input
-        id="listing-category"
-        name="category"
-        type="text"
-        required
-        maxLength={100}
-        list="listing-category-examples"
-        placeholder="مثال: stay / إقامة"
-      />
-      <datalist id="listing-category-examples">
-        {/* Hints only — the backend's category is measured free-form
-            (varchar(100), no taxonomy); displayed as-is everywhere. */}
-        <option value="stay" />
-        <option value="إقامة" />
-        <option value="خدمة" />
-        <option value="عقار" />
-      </datalist>
+      {categories !== null && categories.length > 0 ? (
+        <CategorySelect id="listing-category" required categories={categories} />
+      ) : (
+        <>
+          <input
+            id="listing-category"
+            name="category"
+            type="text"
+            required
+            maxLength={100}
+            placeholder="مثال: stay"
+          />
+          <p className="field-hint">
+            تعذّر جلب قائمة الفئات الحية — أدخل رمز فئة صالحاً؛ القيم غير
+            المسجلة يرفضها الخادم بكلماته.
+          </p>
+        </>
+      )}
       <label htmlFor="listing-price">السعر الأساسي (وحدات كاملة، لكل ليلة)</label>
       <input
         id="listing-price"
@@ -215,9 +226,18 @@ export function CreateListingForm() {
  * listings, which is why the manage page renders this form only when
  * the listing is publicly visible). Blank currency keeps the stored one
  * (the backend's own update contract).
+ *
+ * S2: the category picker takes the live registry when the page could
+ * read it; the CURRENT value is preserved as a selectable option even
+ * when outside the vocabulary — the backend's own unless-unchanged gate
+ * (requireKnownCategoryUnlessUnchanged) lets a legacy category ride an
+ * update untouched, and the form must not silently drop it. Degraded
+ * read → free text prefilled with the stored value (same honest 400
+ * surface on a bad change).
  */
 export function EditListingForm({
   listing,
+  categories,
 }: {
   listing: {
     id: string;
@@ -228,6 +248,7 @@ export function EditListingForm({
     currency: string;
     maxGuests: number | null;
   };
+  categories: ListingCategory[] | null;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     updateListingAction,
@@ -254,14 +275,29 @@ export function EditListingForm({
         defaultValue={listing.description ?? ""}
       />
       <label htmlFor="edit-category">الفئة</label>
-      <input
-        id="edit-category"
-        name="category"
-        type="text"
-        required
-        maxLength={100}
-        defaultValue={listing.category}
-      />
+      {categories !== null && categories.length > 0 ? (
+        <CategorySelect
+          id="edit-category"
+          required
+          categories={categories}
+          defaultValue={listing.category}
+        />
+      ) : (
+        <>
+          <input
+            id="edit-category"
+            name="category"
+            type="text"
+            required
+            maxLength={100}
+            defaultValue={listing.category}
+          />
+          <p className="field-hint">
+            تعذّر جلب قائمة الفئات الحية — غيّر الرمز بحذر؛ القيم غير المسجلة
+            يرفضها الخادم بكلماته.
+          </p>
+        </>
+      )}
       <label htmlFor="edit-price">السعر الأساسي (وحدات كاملة)</label>
       <input
         id="edit-price"

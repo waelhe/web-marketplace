@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SignInButton } from "@/app/auth-buttons";
 import { getSession } from "@/lib/dal";
 import { getMyListingViews } from "@/lib/api/provider";
+import { getListingCategories } from "@/lib/api/public";
 import { CreateListingForm } from "../../forms";
 
 /**
@@ -41,6 +42,9 @@ export default async function NewListingPage(_props: NewListingPageProps) {
   // The profile probe (the me-surface 404 house answer) — one GET that
   // decides which honest state this page renders.
   const views = await getMyListingViews();
+  // S2: the live category vocabulary for the create form's picker (a
+  // failed read → null → the form's honest free-text fallback).
+  const categories = await getListingCategories();
   if (!views.ok && views.status === 404) {
     return (
       <main>
@@ -75,7 +79,7 @@ export default async function NewListingPage(_props: NewListingPageProps) {
       </p>
       <section className="card">
         <h2>بيانات الإعلان</h2>
-        <CreateListingForm />
+        <CreateListingForm categories={categories.ok ? categories.data : null} />
       </section>
       <p>
         <Link href="/provider">لوحة المزوّد</Link>

@@ -279,7 +279,7 @@ table below is the self-contained minimum:
 | agent-browser 0.38.1 | plain `react tree` prints only "✓ Done" (no `react` skill exists — the react commands live in `skills get core`) → use `react tree --json`; suspense / inspect / vitals / console / snapshot work plain |
 | MCP surface | live `tools/list` = 9 tools vs 8 in the bundled `mcp.md` (`get_request_insights` live-only so far) → the live `tools/list` is the session's authority |
 | railway_token lost | Ask the owner for a fresh project-scoped token when needed |
-| `.env.local` | A random secret + `BACKEND_URL` on staging + `marketplace-web-staging` |
+| `.env.local` | A random secret + `BACKEND_URL` on staging + the dev client `marketplace-bff` (the LIVE row — the orphan `marketplace-web-staging` name issues codes but 401s the exchange: the backend runbook's battery-33 BE-07 measurement, re-hit live 2026-09-29 during S2; the staging secret itself is an owner input — ask when the exchange 401s with a stale value) |
 
 QA accounts (staging: `qa-tester`; production:
 `qa-flow-…@example.com` / `QaFlow-2026-Verify!`) — if

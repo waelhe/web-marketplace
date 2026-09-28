@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   getActiveListings,
+  getListingCategories,
   searchListings,
   LISTINGS_PAGE_SIZE,
   type SearchCriteria,
@@ -23,6 +24,7 @@ import { ListingCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { CategorySelect } from "@/components/ui/category-select";
 import { Pagination } from "@/components/ui/pagination";
 import type { PropertyPurpose, PropertyType } from "@/lib/api/types";
 
@@ -340,6 +342,13 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     ? await searchListings(criteria, page, LISTINGS_PAGE_SIZE, sort)
     : await getActiveListings(page, LISTINGS_PAGE_SIZE);
 
+  // ---- S2 (charter J2): the live category vocabulary ----
+  // The visible picker's ONLY source (never a hard list). A failed read
+  // degrades honestly: the select renders with just «الكل» (plus the
+  // arriving value preserved below) — no invented options, and the
+  // results area carries the loud failure state.
+  const categories = await getListingCategories();
+
   // ---- L35 (spec §2): the session-aware saved-searches strip ----
   // Anonymous visitors (and crawlers) get the exact page they got
   // before — the strip is personal state rendered only for a session;
@@ -412,13 +421,27 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
       {/* Filter sidebar — native GET to /listings (no client JS). Control
           names are the Task-0-verified /api/v1/search contract; no `page`
-          control, so every submit restarts at the first page. `category`
-          and `lat`/`lng` ride hidden inputs (R8: no invented category
-          vocabulary; no lat/lng sidebar controls in the spec) so a submit
-          never silently drops arriving state. */}
+          control, so every submit restarts at the first page. S2 (charter
+          J2): `category` is now a VISIBLE live-registry picker — R8's
+          "no invented category vocabulary" premise dissolved when the
+          backend shipped the registry read (V70, 2026-09-29); an arriving
+          value outside the vocabulary stays selectable (lossless
+          round-trip). lat/lng still ride hidden inputs (no sidebar
+          controls for them in the spec). */}
       <form method="get" action="/listings" role="search" aria-label="تصفية الإعلانات">
         <Field label="البحث">
           <input type="search" name="q" defaultValue={link.q ?? ""} autoComplete="off" />
+        </Field>
+        <Field label="الفئة">
+          {/* S2: the live registry picker (value = the CODE — the only
+              valid wire value, measured). «الكل» submits the empty value,
+              which the parse boundary drops — the homepage "الكل"
+              discipline (readUrlState drops empty strings). */}
+          <CategorySelect
+            categories={categories.ok ? categories.data : []}
+            emptyLabel="الكل"
+            defaultValue={link.category ?? ""}
+          />
         </Field>
         <Field label="الغرض">
           <select name="purpose" defaultValue={link.purpose ?? ""}>
@@ -493,9 +516,6 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
             <option value="price,desc">{SORT_LABELS["price,desc"]}</option>
           </select>
         </Field>
-        {category !== undefined ? (
-          <input type="hidden" name="category" value={category} />
-        ) : null}
         {lat !== undefined ? <input type="hidden" name="lat" value={link.lat} /> : null}
         {lng !== undefined ? <input type="hidden" name="lng" value={link.lng} /> : null}
         <Button variant="primary" size="md" type="submit">
