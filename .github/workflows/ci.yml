@@ -40,6 +40,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Full history (the app-java-v3 ci.yml shape): gitleaks on
+          # pull_request resolves the head^..head range, which a
+          # depth-1 clone cannot serve — measured on this repo's very
+          # first PR run (36445171843): 'git <command> [<revision>...]'
+          # revision error -> action exit 1 with zero findings.
+          fetch-depth: 0
 
       - name: Gitleaks secret scan
         uses: gitleaks/gitleaks-action@v3
