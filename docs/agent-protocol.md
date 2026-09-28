@@ -6,16 +6,25 @@
 > skill ever disagrees with this document, **this document governs**
 > and the skill is patched to match.
 > Effective: 2026-09-28 (owner directive — root authority). Last
-> revised: 2026-09-28 — English rewrite of the whole document
-> (AI-facing format; Arabic reserved for owner-facing replies and the
-> owner's quoted words — see §1), on top of the docs-before-memory
-> epistemic hierarchy, the live verify loop (next-dev-loop via
-> `.next/dev/lock`), and the push-by-explicit-word gate. The rewrite
-> was A/B-validated with six zero-context agents (behavioral parity
-> with the prior revision; structural validity restored — the old
-> skill frontmatter did not parse and its description exceeded the
-> 1024-char limit); the same test surfaced and fixed a stale
-> production-backend URL (the retired `-d020` door). Maintained with
+> revised: 2026-09-28 — a practical audit against the bundled
+> `ai-agents` guide verified every guide step LIVE (AGENTS.md +
+> CLAUDE.md + managed block; the dev-lock discipline; the MCP surface
+> at `/_next/mcp` — 9 tools measured; agent-browser with
+> react-devtools; `browserToTerminal` proven end-to-end from the
+> browser into the dev terminal; the network docs channel reachable)
+> and folded the measured sandbox lifecycle (backgrounds reaped
+> between tool calls → one bash invocation per live round) plus the
+> tool quirks into §5/§7/§9 — on top of the English rewrite of the
+> whole document (AI-facing format; Arabic reserved for owner-facing
+> replies and the owner's quoted words — see §1), the
+> docs-before-memory epistemic hierarchy, the live verify loop
+> (next-dev-loop via `.next/dev/lock`), and the push-by-explicit-word
+> gate. The rewrite was A/B-validated with six zero-context agents
+> (behavioral parity with the prior revision; structural validity
+> restored — the old skill frontmatter did not parse and its
+> description exceeded the 1024-char limit); the same test surfaced
+> and fixed a stale production-backend URL (the retired `-d020`
+> door). Maintained with
 > the charter: [`docs/product-charter.md`](./product-charter.md)
 > (product definition) and the map
 > [`docs/frontend-architecture-map.md`](./frontend-architecture-map.md)
@@ -197,11 +206,18 @@ change preserves the system, and no patch-work that leaves debt.
 `.agents/skills/next-dev-loop/SKILL.md` is followed literally from the
 preflight: one dev server, found via `.next/dev/lock` (alive → connect,
 never duplicate; dead + needed → start it yourself; never delete
-`.next` while it runs); two cross-checked views — `/_next/mcp` (the
-framework's view: routes, compilation errors, errors, logs; its replies
-are SSE, so read the JSON off the `data:` line) and `agent-browser`
-(the browser's view: DOM, console, network, the React tree with
-`--enable react-devtools`) — and when they disagree, suspect the
+`.next` while it runs; in this sandbox the whole round runs inside ONE
+bash invocation — background processes are reaped between tool calls,
+measured 2026-09-28, and the lock outlives the server, so pid liveness
+is the only proof a server is up); two cross-checked views — `/_next/mcp`
+(the framework's view: routes, compilation errors, errors, logs; its replies
+are SSE, so read the JSON off the `data:` line; the live `tools/list` is
+the session's authority — 9 tools measured on 16.3.5 against 8 in the
+bundled `mcp.md`) and `agent-browser` (the browser's view: DOM, console,
+network, the React tree with `--enable react-devtools`; measured on
+0.38.1: plain `react tree` prints only "✓ Done" — use `react tree
+--json`; `react suspense` / `react inspect` / `vitals` / `console` /
+`snapshot -i` work plain) — and when they disagree, suspect the
 tooling (a stale browser session) before the app; four checks per
 edit: compiles, runs without errors, behaves as intended, and sound
 React-level behavior. When live verification is impossible, stop
@@ -249,7 +265,10 @@ table below is the self-contained minimum:
 | tsc errors on PageProps | `npm run build` first (typegen), then `tsc --noEmit` |
 | System Chrome dies | `PLAYWRIGHT_CHANNEL=chromium` (the bundled 1243) |
 | HTTP from python blocked (Cloudflare 1010) | curl with a browser UA |
-| Dev server | `.next/dev/lock` carries pid/port/appUrl (the bundled ai-agents guide): alive → connect; dead → start it yourself; never a duplicate; never delete `.next` while it runs |
+| Dev server | `.next/dev/lock` carries pid/port/appUrl (the bundled ai-agents guide): alive → connect; dead → start it yourself; never a duplicate; never delete `.next` while it runs. Measured: the lock OUTLIVES the server — pid liveness is the only proof |
+| Sandbox live loop | backgrounds (even `nohup`/`setsid`) are reaped between tool calls (measured 2026-09-28) → run the entire live round — server, MCP probes, agent-browser, teardown — inside ONE bash invocation |
+| agent-browser 0.38.1 | plain `react tree` prints only "✓ Done" (no `react` skill exists — the react commands live in `skills get core`) → use `react tree --json`; suspense / inspect / vitals / console / snapshot work plain |
+| MCP surface | live `tools/list` = 9 tools vs 8 in the bundled `mcp.md` (`get_request_insights` live-only so far) → the live `tools/list` is the session's authority |
 | railway_token lost | Ask the owner for a fresh project-scoped token when needed |
 | `.env.local` | A random secret + `BACKEND_URL` on staging + `marketplace-web-staging` |
 
@@ -301,6 +320,12 @@ owner settles the vocabulary.
 - An endpoint wrapper nobody navigates to (a surface without
   navigation).
 - Trusting the OpenAPI spec without a live failure-shape probe.
+- Expecting a backgrounded dev server to survive between tool calls
+  (this sandbox reaps backgrounds — one bash invocation per live
+  round), or trusting a present `.next/dev/lock` without a
+  pid-liveness check.
+- Reading agent-browser 0.38.1's plain `react tree` "✓ Done" as an
+  empty component tree instead of re-running it with `--json`.
 - Merging with a red or skipped gate "just this once".
 - Inferring deploy state from chunk fingerprints (Task-42's retracted
   misjudgment).
