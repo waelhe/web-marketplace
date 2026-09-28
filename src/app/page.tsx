@@ -58,6 +58,7 @@ export default async function Home() {
             السوق
           </Link>
           <nav className="site-header-nav" aria-label="التنقل الرئيس">
+            <Link href="/search">البحث</Link>
             <Link href="/listings">تصفّح الإعلانات</Link>
             <Link href="/neighborhoods">المناطق والأحياء</Link>
           </nav>

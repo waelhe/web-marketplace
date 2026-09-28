@@ -26,8 +26,21 @@ session cookie.
 ## Routes
 
 - `/` — sign in/out, session state + the public browse entry link (Arabic RTL UI)
+- `/search` — PUBLIC flat text search (slice S4, charter J2): ONE text
+  field + the live category rail (S2's registry read; codes as the link
+  values), native GET, no client JS — URL is the state. The wire routing
+  mirrors the backend's MEASURED flat-search dispatch: text present →
+  `GET /search?q` ALONE (a non-blank q silently drops every other flat
+  criterion backend-side — the composition gap recorded in the charter);
+  category only → the dedicated `GET /search/category/{c}`; idle → no
+  backend read. Unknown categories answer 200 empty envelopes (reads
+  never 400) — data via `src/lib/api/public.ts`
 - `/listings` — PUBLIC active-listing browse (paginated; anonymous GETs —
-  the SEO-indexable surface, data via `src/lib/api/public.ts`) + the
+  the SEO-indexable surface, data via `src/lib/api/public.ts`; the
+  category-ONLY state — no other criterion, no sort — rides the
+  backend's dedicated `GET /listings/category/{c}` op: measured
+  byte-identical to the criteria op's category branch, and the category
+  path ops answer 500 INT-001 on sort — a sort keeps the criteria op) + the
   L35 session-aware saved-searches strip (batch-1 spec §2): chips that
   restore the stored criteria through the URL (the measured name map
   query/latitude/longitude ↔ q/lat/lng; the stay window rides ISO

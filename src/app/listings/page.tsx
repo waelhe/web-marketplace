@@ -4,6 +4,7 @@ import {
   getActiveListings,
   getListingCategories,
   searchListings,
+  browseListingsByCategory,
   LISTINGS_PAGE_SIZE,
   type SearchCriteria,
 } from "@/lib/api/public";
@@ -338,9 +339,21 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   // الإعلانات" form, but saving nothing is not an affordance worth
   // rendering; the spec pins the button on non-default FILTERS.
   const hasCriteria = Object.keys(criteria).length > 0;
-  const result = filtered
-    ? await searchListings(criteria, page, LISTINGS_PAGE_SIZE, sort)
-    : await getActiveListings(page, LISTINGS_PAGE_SIZE);
+  // S4 (charter J2): the category-ONLY state — exactly one criterion,
+  // the category, and no sort — rides the backend's own dedicated
+  // browse op `GET /listings/category/{c}` (measured 2026-09-29: same
+  // envelope, byte-identical content — both funnel to the same cached
+  // port query). Any OTHER criterion, or a sort present, keeps the
+  // criteria op: the category path ops answer 500 INT-001 on sort
+  // (measured, traceIds 0d7295c8…/e1a7b064… — no normalize gate there),
+  // so the sort-capable channel `GET /search` stays the carrier.
+  const singleCategory = Object.keys(criteria).length === 1 ? criteria.category : undefined;
+  const categoryOnlyBrowse = singleCategory !== undefined && sort === undefined;
+  const result = categoryOnlyBrowse
+    ? await browseListingsByCategory(singleCategory, page, LISTINGS_PAGE_SIZE)
+    : filtered
+      ? await searchListings(criteria, page, LISTINGS_PAGE_SIZE, sort)
+      : await getActiveListings(page, LISTINGS_PAGE_SIZE);
 
   // ---- S2 (charter J2): the live category vocabulary ----
   // The visible picker's ONLY source (never a hard list). A failed read

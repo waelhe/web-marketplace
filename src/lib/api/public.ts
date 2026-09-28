@@ -150,6 +150,56 @@ export const searchListings = cache(
 );
 
 /**
+ * Category-only browse: `GET /api/v1/listings/category/{c}` — the
+ * backend's own dedicated ACTIVE-browse-by-category op
+ * (CatalogController "Browse active listings by category"). S4 (charter
+ * J2): the /listings category-ONLY state rides it. Measured live
+ * 2026-09-29 on staging: the same PagedResponse envelope and
+ * byte-identical content as the criteria op's category branch (both
+ * funnel to the same cached port query, `catalog-by-category-v2`); an
+ * unknown category answers 200 with an EMPTY envelope (the reads'
+ * measured semantics — the 400 unknown-category gate is write-only);
+ * `sort` is NOT accepted here (500 INT-001, traceId 0d7295c8… — the
+ * same defect family as the measured `/listings?sort` 500s), so a sort
+ * present keeps the caller on the criteria op. Memoized per render pass.
+ */
+export const browseListingsByCategory = cache(
+  async (
+    category: string,
+    page: number,
+    size: number,
+  ): Promise<BackendResult<PagedResponse<ListingSummary>>> =>
+    publicGet(
+      `/api/v1/listings/category/${encodeURIComponent(category)}?page=${page}&size=${size}`,
+    ),
+);
+
+/**
+ * Category-scoped search: `GET /api/v1/search/category/{c}` — the
+ * search surface's own category op (SearchController "Search listings
+ * by category"). S4 (charter J2): the flat /search page's
+ * category-only mode rides it. Measured live 2026-09-29 on staging:
+ * same envelope/content as the sibling category reads, unknown category
+ * → 200 empty envelope, `sort` → 500 INT-001 (traceId e1a7b064… — no
+ * SearchSorts.normalize gate on this path, unlike the criteria op).
+ * The controller javadoc promises "the same typo tolerance as the main
+ * search surface" but the service delegates straight to the catalog's
+ * exact-match port (typo `stya` → empty, measured) — recorded as
+ * backend documentation debt, not trusted here. Memoized per render
+ * pass.
+ */
+export const searchListingsByCategory = cache(
+  async (
+    category: string,
+    page: number,
+    size: number,
+  ): Promise<BackendResult<PagedResponse<ListingSummary>>> =>
+    publicGet(
+      `/api/v1/search/category/${encodeURIComponent(category)}?page=${page}&size=${size}`,
+    ),
+);
+
+/**
  * The public listing detail: `GET /api/v1/listings/{id}` — 404 on
  * INACTIVE/ARCHIVED/unknown ids (problem+json), property + JSON-LD
  * embeds when present. Memoized per render pass so generateMetadata and
