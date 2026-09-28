@@ -25,7 +25,11 @@ session cookie.
 
 ## Routes
 
-- `/` — sign in/out, session state + the public browse entry link (Arabic RTL UI)
+- `/` — sign in/out, session state + the public browse entry link (Arabic
+  RTL UI); the two listing strips (featured + latest) carry the **بيانات
+  عرض** showcase below the storefront floor (the same engagement rule as
+  `/listings` — the strip's own SUCCESS read only; honest failure
+  branches untouched)
 - `/search` — PUBLIC flat text search (slice S4, charter J2): ONE text
   field + the live category rail (S2's registry read; codes as the link
   values), native GET, no client JS — URL is the state. S5 SEO decision:
@@ -44,7 +48,20 @@ session cookie.
   category-ONLY state — no other criterion, no sort — rides the
   backend's dedicated `GET /listings/category/{c}` op: measured
   byte-identical to the criteria op's category branch, and the category
-  path ops answer 500 INT-001 on sort — a sort keeps the criteria op) + the
+  path ops answer 500 INT-001 on sort — a sort keeps the criteria op);
+  the **بيانات عرض showcase** (the seed-content decision,
+  `src/lib/demo-listings.ts`, 2026-09-29): when the unfiltered
+  first-page browse read answers 200 with fewer real ACTIVE listings
+  than the storefront floor (4), a clearly-labeled demo grid (8 stay
+  rows, `demo-`-prefixed ids that never parse as UUIDs, ZERO detail
+  links — the public detail read would 404 and faking detail pages
+  would poison the S5 SEO layer) renders ABOVE the honest real-results
+  section (nothing real hidden); it rides the SUCCESS path only (an
+  outage keeps its honest failure — display data never masks it), never
+  engages on any filtered/sorted/later page (the search/filter contract
+  is real data only), self-retires the moment real content reaches the
+  floor, and `DEMO_LISTINGS=0|false` kills the whole layer (unset = ON —
+  the owner's directive is the default) + the
   L35 session-aware saved-searches strip (batch-1 spec §2): chips that
   restore the stored criteria through the URL (the measured name map
   query/latitude/longitude ↔ q/lat/lng; the stay window rides ISO
@@ -302,6 +319,13 @@ session cookie.
 ## Rules
 
 - Never commit secrets: `.env*` is gitignored; `.env.example` holds placeholders only; real dev values live in local `.env.local`; production values live only in Railway service variables.
+- Display-data layer (`DEMO_LISTINGS`, the seed-content decision 2026-09-29):
+  unset or any value other than `0|false` keeps the بيانات عرض showcase ON
+  (the owner's directive is the default — production ships with it without
+  a Railway console change); `DEMO_LISTINGS=0` kills it permanently. The
+  layer ALSO retires by itself when real ACTIVE listings reach the
+  storefront floor (4). See the `/listings` route entry for the full
+  engagement discipline.
 - Dev backend (since 2026-09-22): the backend team's shared **staging** service
   https://app-java-v3-staging-staging.up.railway.app (their runbook:
   `docs/frontend-dev-oauth-setup.md` @ `ccf599a` in app-java-v3 — never a
