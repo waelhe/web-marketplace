@@ -116,9 +116,9 @@ storms as a rotation signal, never a code bug.
 
 | Route | State | What it renders (backend source) |
 |---|---|---|
-| `/` | public, session-aware | landing + state of entry points |
+| `/` | public, session-aware | landing + state of entry points + the بيانات عرض strips below the storefront floor |
 | `/search` | public, noindex+follow | flat text search + category rail (S4; S5 SEO decision: result pages stay out of the index) |
-| `/listings` | public | paged active listings (`GET /listings`) |
+| `/listings` | public | paged active listings (`GET /listings`) + the بيانات عرض showcase below the storefront floor (unfiltered first page only, labeled, zero links, self-retiring) |
 | `/listings/{id}` | public | detail + L31 property embed + L39 JSON-LD + lead form |
 | `/listings/{id}/book` | session | booking start (availability-driven) |
 | `/neighborhoods` | public | geo tree navigation (`/geo/{id}/children`, `/geo/suggest`) |
@@ -138,6 +138,18 @@ launch artifacts: `robots.txt` + `sitemap.xml` (build-time static file
 conventions — the crawl policy and the 4 public hubs) and
 `api/health` (the uptime probe: 200 `{"status":"ok"}`, no-store, no
 backend fan-out).
+
+> **The display-data layer (بيانات عرض, 2026-09-29 — the seed-content
+> decision):** `src/lib/demo-listings.ts` + `src/components/ui/
+> demo-card.tsx`. A pure FRONTEND showcase (no backend rows, no fake
+> contract reads): 8 labeled stay rows that render on the unfiltered
+> storefront (`/` strips + `/listings` first page) when the backend's own
+> 200 read serves fewer real ACTIVE listings than the floor (4). The
+> engagement discipline: success-path only (never masks an outage),
+> never on filtered/sorted/searched surfaces (real data only — the
+> user's trust), every card badged + linkless (demo ids are not UUIDs;
+> the detail read would 404), self-retiring at the floor, one env
+> off-switch (`DEMO_LISTINGS=0`).
 
 > **لماذا يهم فريق الباك اند:** كل صفحة مرتبطة بوحدة باك اند مسماة —
 > انظر الجدول التالي للمقابلة العكسية (أي وحدة تُعرض وأيها ما زالت

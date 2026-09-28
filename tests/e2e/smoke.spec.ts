@@ -210,3 +210,41 @@ test("search results stay out of the index while following links (S5)", async ({
   expect(robots).toContain("noindex");
   expect(robots).toContain("follow");
 });
+
+test("the display-data showcase is a labeled, bounded contract (بيانات عرض)", async ({
+  page,
+}) => {
+  // The seed-content layer (2026-09-29) as STRUCTURAL contracts — zero
+  // data dependence, both backend states valid:
+  // Rule 2 (deterministic in every environment): a FILTERED browse and
+  // the idle /search NEVER carry display data — the search/filter
+  // contract is real data only, whatever the backend serves or refuses.
+  const filtered = await page.goto("/listings?minPrice=1");
+  expect(filtered?.status()).toBe(200);
+  await expect(page.locator(".demo-listing-card")).toHaveCount(0);
+
+  await page.goto("/search");
+  await expect(page.locator(".demo-listing-card")).toHaveCount(0);
+
+  // The UNFILTERED browse: either the honest real-data/failure branches
+  // own it (no demo cards — the CI shape, backend unreachable: rule 1,
+  // display data never masks an outage), or the demo showcase is ENGAGED
+  // (this local shape: the staging read answered 200 below the storefront
+  // floor) — in which case the notice exists and EVERY card is labeled
+  // with the «بيانات عرض» badge. An unlabeled display row fails both
+  // arms — that is the point.
+  const res = await page.goto("/listings");
+  expect(res?.status()).toBe(200);
+  const demoCards = await page.locator(".demo-listing-card").count();
+  if (demoCards > 0) {
+    const notice = await page.locator(".demo-note").textContent();
+    expect(notice).toContain("بيانات عرض توضيحية");
+    expect(
+      await page.locator(".demo-listing-card .badge-new").count(),
+    ).toBe(demoCards);
+    // Rule 4 as live markup: a display card is never a link.
+    expect(
+      await page.locator(".demo-listing-card a").count(),
+    ).toBe(0);
+  }
+});

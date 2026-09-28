@@ -2,10 +2,12 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getActiveListings, getListingCategories, searchListings } from "@/lib/api/public";
+import { DEMO_LISTINGS, isDemoStorefront } from "@/lib/demo-listings";
 import { problemMessage } from "@/lib/problem";
 import type { BackendResult } from "@/lib/api/server";
-import type { ListingSummary, PagedResponse } from "@/lib/api/types";
+import type { ListingCategory, ListingSummary, PagedResponse } from "@/lib/api/types";
 import { ListingCard } from "@/components/ui/card";
+import { DemoShowcase } from "@/components/ui/demo-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,23 @@ export default async function Home() {
   //    failed read degrades to zero suggestions (the input keeps working;
   //    nothing invented) — the honest-failure pattern.
   const categories = await getListingCategories();
+
+  // ---- The display-data showcase (بيانات عرض — the owner's seed-content
+  // decision, 2026-09-29) ----
+  // Below the storefront floor (fewer real ACTIVE listings than
+  // DEMO_STOREFRONT_FLOOR, measured on production today: ONE e2e
+  // verification artifact) each strip shows the labeled demo showcase
+  // instead of the sparse real row — the homepage is the storefront
+  // window. The demo rides the strip's own SUCCESS read only (a backend
+  // outage keeps the honest failure note), honors DEMO_LISTINGS=0, and
+  // self-retires the moment real content reaches the floor. The real
+  // listings themselves remain fully visible on /listings (their own
+  // section, with the count) and through every search surface.
+  const demoFeatured =
+    featured.ok && isDemoStorefront(featured.data.totalElements);
+  const demoLatest =
+    latest.ok && isDemoStorefront(latest.data.totalElements);
+  const registryCategories = categories.ok ? categories.data : null;
 
   return (
     <>
@@ -154,7 +173,7 @@ export default async function Home() {
         </section>
 
         {/* Featured — L37 shading order from the same browse point. */}
-        <section aria-labelledby="featured-heading" className={`home-section${featured.ok && featured.data.content.length !== 0 ? " featured-ribbon" : ""}`}>
+        <section aria-labelledby="featured-heading" className={`home-section${(featured.ok && featured.data.content.length !== 0) || demoFeatured ? " featured-ribbon" : ""}`}>
           <div className="home-section-head">
             <h2 id="featured-heading">إعلانات مميزة</h2>
             <Link href="/listings">عرض كل الإعلانات</Link>
@@ -163,6 +182,15 @@ export default async function Home() {
             result={featured}
             emptyTitle="لا توجد إعلانات مميزة حالياً"
             emptyHint="جرّب تصفّح كل الإعلانات"
+            demo={
+              demoFeatured
+                ? {
+                    listings: DEMO_LISTINGS.slice(0, HOME_FEATURED_SIZE),
+                    realCount: featured.ok ? featured.data.totalElements : 0,
+                    categories: registryCategories,
+                  }
+                : null
+            }
           />
         </section>
 
@@ -176,6 +204,15 @@ export default async function Home() {
             result={latest}
             emptyTitle="لا توجد إعلانات بعد"
             emptyHint="أول إعلان يُنشأ سيظهر هنا"
+            demo={
+              demoLatest
+                ? {
+                    listings: DEMO_LISTINGS.slice(HOME_LATEST_SIZE).reverse(),
+                    realCount: latest.ok ? latest.data.totalElements : 0,
+                    categories: registryCategories,
+                  }
+                : null
+            }
           />
         </section>
 
@@ -231,16 +268,35 @@ export default async function Home() {
 
 /** One listings strip: the shared render for the featured + latest rows
  *  (grid of ListingCard; honest failure branches as data, like every
- *  public surface in this app — never a crashed render). */
+ *  public surface in this app — never a crashed render). The demo prop
+ *  (بيانات عرض) engages only when the strip's own read SUCCEEDED and the
+ *  real total sits below the storefront floor: the labeled demo grid
+ *  replaces the sparse real row (rule 1 — the demo never masks a failure
+ *  the strip would otherwise own). */
 function ListingStrip({
   result,
   emptyTitle,
   emptyHint,
+  demo,
 }: {
   result: BackendResult<PagedResponse<ListingSummary>>;
   emptyTitle: string;
   emptyHint: string;
+  demo?: {
+    listings: readonly ListingSummary[];
+    realCount: number;
+    categories: readonly ListingCategory[] | null;
+  } | null;
 }) {
+  if (result.ok && demo) {
+    return (
+      <DemoShowcase
+        listings={demo.listings}
+        categories={demo.categories}
+        realCount={demo.realCount}
+      />
+    );
+  }
   if (result.ok) {
     if (result.data.content.length === 0) {
       return (
