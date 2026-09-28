@@ -50,6 +50,8 @@ import {
   DISPUTE_RESOLUTION_LABELS,
   type DisputeResolution,
 } from "@/lib/api/disputes-contract";
+import type { ListingCategory } from "@/lib/api/types";
+import { CategorySelect } from "@/components/ui/category-select";
 
 function StateMessage({ state }: { state: ActionState }) {
   if (state.status === "error") {
@@ -106,8 +108,20 @@ export function ResolveReportForm({ reportId }: { reportId: string }) {
   );
 }
 
-/** Create one pricing rule — the backend's own Bean Validation bounds. */
-export function PricingRuleCreateForm() {
+/**
+ * Create one pricing rule — the backend's own Bean Validation bounds.
+ *
+ * S2 (charter J2): the category picks from the LIVE listing registry
+ * when the page could read it. The backend's contract stays free-form
+ * (category ≤100 nullable — no registry gate on rules), but the rule's
+ * SEMANTICS are registry-bound: PricingService matches
+ * `findByCategoryAndActiveTrue(listing.category)` — a rule whose
+ * category is not a registry code can never match a listing. The empty
+ * option is the measured general-rule path (no category-specific match
+ * → the most-recent ACTIVE rule applies). Degraded read → free text
+ * (the contract's own shape; nothing invented).
+ */
+export function PricingRuleCreateForm({ categories }: { categories: ListingCategory[] | null }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     createPricingRuleAction,
     { status: "idle" },
@@ -124,12 +138,20 @@ export function PricingRuleCreateForm() {
         maxLength={RULE_NAME_MAX_LENGTH}
       />
       <label htmlFor="rule-category">الفئة (اختياري)</label>
-      <input
-        id="rule-category"
-        name="category"
-        type="text"
-        maxLength={RULE_CATEGORY_MAX_LENGTH}
-      />
+      {categories !== null && categories.length > 0 ? (
+        <CategorySelect
+          id="rule-category"
+          categories={categories}
+          emptyLabel="بدون فئة — قاعدة عامة"
+        />
+      ) : (
+        <input
+          id="rule-category"
+          name="category"
+          type="text"
+          maxLength={RULE_CATEGORY_MAX_LENGTH}
+        />
+      )}
       <label htmlFor="rule-tax-rate">نسبة الضريبة (اختياري — 0 إلى 1)</label>
       <input
         id="rule-tax-rate"

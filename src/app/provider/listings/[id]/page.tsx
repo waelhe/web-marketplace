@@ -5,7 +5,7 @@ import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
 import { formatDate, formatPrice } from "@/lib/format";
 import { getListingCompleteness } from "@/lib/api/provider";
-import { getListingDetail } from "@/lib/api/public";
+import { getListingCategories, getListingDetail } from "@/lib/api/public";
 import { GEO_ROOT_ID, getGeoChildren, isUuid } from "@/lib/api/geo";
 import { listListingMedia } from "@/lib/api/media";
 import type { MediaAssetView } from "@/lib/api/provider-contract";
@@ -178,6 +178,10 @@ export default async function ManageListingPage({ params }: ManagePageProps) {
   // — this read is itself the L40 view signal, the backend's own
   // contract); 404 = not publicly visible (the honest limited view).
   const detail = await getListingDetail(id);
+  // S2: the live category vocabulary for the edit form's picker (a failed
+  // read → null → the form's honest free-text fallback). Fetched for the
+  // published view only — the non-public state renders no edit form.
+  const categories = await getListingCategories();
   const published = detail.ok;
 
   if (!published) {
@@ -303,6 +307,7 @@ export default async function ManageListingPage({ params }: ManagePageProps) {
             currency: listing.currency,
             maxGuests: listing.maxGuests,
           }}
+          categories={categories.ok ? categories.data : null}
         />
       </section>
 

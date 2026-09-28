@@ -16,6 +16,7 @@ import {
   getRevisions,
   getUsers,
 } from "@/lib/api/admin";
+import { getListingCategories } from "@/lib/api/public";
 import {
   ADMIN_BOOKINGS_PAGE_SIZE,
   ADMIN_LISTINGS_PAGE_SIZE,
@@ -146,8 +147,10 @@ export default async function AdminConsolePage({
   }
 
   // The seven section reads fire together — each is an expected-failure
-  // channel (the 403 words are data, not exceptions).
-  const [queue, rules, payments, users, bookings, listings, entities] =
+  // channel (the 403 words are data, not exceptions). The eighth is the
+  // S2 category vocabulary — a PUBLIC registry read (no admin gate;
+  // feeds the pricing-rule form's live picker).
+  const [queue, rules, payments, users, bookings, listings, entities, categories] =
     await Promise.all([
       getModerationQueue(undefined, 0, MODERATION_QUEUE_PAGE_SIZE),
       getPricingRules(),
@@ -156,6 +159,7 @@ export default async function AdminConsolePage({
       getAllBookings(bookingStatus === "" ? null : bookingStatus, 0, ADMIN_BOOKINGS_PAGE_SIZE),
       getAllListings(0, ADMIN_LISTINGS_PAGE_SIZE),
       getAuditedEntities(),
+      getListingCategories(),
     ]);
 
   // The three input-driven reads fire only when their URL state is
@@ -281,7 +285,7 @@ export default async function AdminConsolePage({
         ) : (
           <ReadFailure problem={rules.problem} status={rules.status} what="القواعد" />
         )}
-        <PricingRuleCreateForm />
+        <PricingRuleCreateForm categories={categories.ok ? categories.data : null} />
       </section>
 
       {/* -- §3 the payments administration ------------------------------ */}
