@@ -241,14 +241,18 @@ session cookie.
 - Never commit secrets: `.env*` is gitignored; `.env.example` holds placeholders only; real dev values live in local `.env.local`; production values live only in Railway service variables.
 - Dev backend (since 2026-09-22): the backend team's shared **staging** service
   https://app-java-v3-staging-staging.up.railway.app (their runbook:
-  `docs/frontend-dev-oauth-setup.md` @ `6b19a73` in app-java-v3 — never a
+  `docs/frontend-dev-oauth-setup.md` @ `ccf599a` in app-java-v3 — never a
   local backend checkout, never production). Local `.env.local` points
-  `BACKEND_URL` there with the dev client `marketplace-web-staging` (shareable
-  staging secret — dev-only, never in production; the production secret
-  never leaves Railway). The OAuth chain is measured live to the backend
-  login page; completing a login additionally needs a backend account's
-  credentials (the seeded `admin` password is not a known constant —
-  README).
+  `BACKEND_URL` there with the dev client **`marketplace-bff`** (the LIVE
+  confidential row — measured 2026-09-29 during S2's live round: authorize
+  with the ORPHAN `marketplace-web-staging` row issues a code but the token
+  exchange answers 401 `invalid_client`, exactly the runbook's battery-33
+  BE-07 finding; the row name in older docs here predates that measurement).
+  The shareable staging secret is dev-only, never in production; the
+  production secret never leaves Railway. The OAuth chain is measured live
+  to the backend login page; completing a login additionally needs a backend
+  account's credentials (self-register via `/register`, the runbook §5
+  pattern — the staging secret itself is an owner input per the runbook).
 - Production verification of pushes still measures the Railway production
   service https://app-java-v3-production.up.railway.app (service
   `app-java-v3`) — the deployed `web-marketplace` service keeps pointing

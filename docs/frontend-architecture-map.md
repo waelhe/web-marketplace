@@ -10,6 +10,9 @@
 > deployment records, the live OpenAPI (`/v3/api-docs`, 128 ops), and the
 > source tree at `main @ 5972dbd`. Measurement date: **2026-09-28**.
 > Backend reference: **app-java-v3 @ 1710501** (Flyway V70, 22 modules).
+> Delta 2026-09-29 (S2, local merge 1ae100d): `GET /listings/categories`
+> and `POST /auth/register` (S1) left the gap table — consumption
+> 115/128 ops; gate counts refreshed below.
 > This file pairs with `docs/ARCHITECTURE.md` (the deep Arabic narrative);
 > it does not replace it. The **product definition** it serves lives in
 > `docs/product-charter.md` (the journeys, their acceptance, the slice plan).
@@ -149,18 +152,21 @@ contract. Consumption: **96/111 paths = 113/128 ops (88%)**.
 | Correctly not frontend (4) | `webhooks/stripe`, `webhooks/{provider}`, `/robots.txt`, `/sitemap.xml` | server-to-server / infra files |
 | Broken backend surface (1) | `GET /geo/tree` | 409 CONFLICT-001 ×3 measured — declared defect, not avoided by accident |
 | Deliberate cut (1) | `GET /pricing/convert` | auth-gated by design (doc'd decision) |
-| **Genuine surface gaps (8)** | `POST /auth/register`, `GET /listings/categories`, `GET /listings/category/{c}`, `GET /search/category/{c}`, `GET /payments/intents/{id}`, `GET /providers/me/ledger/balance`, `GET /providers/me/ledger/statement`, `GET/PUT /providers/{id}` | the next frontend batches |
+| **Genuine surface gaps (6)** | `GET /listings/category/{c}`, `GET /search/category/{c}`, `GET /payments/intents/{id}`, `GET /providers/me/ledger/balance`, `GET /providers/me/ledger/statement`, `GET/PUT /providers/{id}` | the next frontend batches — register closed by S1 (PR #4, 2026-09-28), the categories read by S2 (2026-09-29, `getListingCategories()` feeding every picker) |
 
-> **لماذا يهم فريق الباك اند:** الثمانية الأخيرة هي طلبات الميزة
-> القادمة من جهتنا بالترتيب الذي نقترحه: التسجيل العام (مُتحقَّق حيًّا
-> عبر API في 2026-09-28)، ثم التصنيفات ثنائية اللغة (لإحلال القوائم
-> الصلبة)، ثم دفتر المزوّد وقراءة حالة الدفع وتحرير ملف المزوّد.
+> **لماذا يهم فريق الباك اند:** الستة الأخيرة هي طلبات الميزة القادمة
+> من جهتنا بالترتيب الذي نقترحه — وقد أُغلقت اثنتان هذا الأسبوع: التسجيل
+> العام (S1، مُتحقَّق حيًّا عبر API في 2026-09-28)، ثم التصنيفات ثنائية
+> اللغة (S2، 2026-09-29 — قراءة السجل الحي تغذّي كل المنتقين وإحلال
+> القوائم الصلبة). يليها دفتر المزوّد وقراءة حالة الدفع وتحرير ملف
+> المزوّد.
 
 ## 6. Quality gates (what runs before any push)
 
 ```
-eslint ─▶ tsc --noEmit (after build typegen) ─▶ vitest (13/13, 4 files)
-      ─▶ next build (RAILPACK parity: Node 26.8.2) ─▶ playwright smoke 8/8
+eslint ─▶ tsc --noEmit (after build typegen) ─▶ vitest (29/29, 6 files)
+      ─▶ next build (RAILPACK parity: Node 26.8.2) ─▶ playwright smoke 12/12
+          + opt-in live rounds (REGISTER_LIVE=1, CATEGORIES_LIVE=1)
       ─▶ live browser pass (agent-browser; hermetic net needs no secrets,
           the signed-in pass needs an env with the staging secret)
 ```
