@@ -4,7 +4,7 @@ import { SignInButton } from "@/app/auth-buttons";
 import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
 import { formatDate, formatDateTime, formatPrice } from "@/lib/format";
-import { getMyListingViews, getMyStats } from "@/lib/api/provider";
+import { getMyListingViews, getMyStats, getProviderProfileById } from "@/lib/api/provider";
 import { getProviderReviews } from "@/lib/api/reputation";
 import { PROVIDER_REVIEWS_PAGE_SIZE } from "@/lib/api/reputation-contract";
 import {
@@ -12,6 +12,13 @@ import {
   type ViewsWindowDays,
 } from "@/lib/api/provider-contract";
 import { getProviderListings } from "@/lib/api/public";
+import { isUuid } from "@/lib/api/geo";
+import {
+  ACTOR_TYPE_LABELS,
+  PROVIDER_STATUS_LABELS,
+  type ProviderActorType,
+  type ProviderStatus,
+} from "@/lib/api/provider-contract";
 import { BecomeProviderForm, ReviewReplyForm } from "./forms";
 
 /**
@@ -47,9 +54,20 @@ function parseDays(raw: string | string[] | undefined): ViewsWindowDays {
     : 30;
 }
 
+/**
+ * Parse ?profile= — the onboarding redirect's carried profile PK (the
+ * J5 edit seam). A non-UUID value is dropped (never a probe); the id is
+ * a POINTER ONLY — the backend re-verifies ownership on every write.
+ */
+function parseProfileId(raw: string | string[] | undefined): string | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return typeof value === "string" && isUuid(value) ? value : null;
+}
+
 export default async function ProviderPage({ searchParams }: ProviderPageProps) {
   const sp = await searchParams;
   const days = parseDays(sp?.days);
+  const profileId = parseProfileId(sp?.profile);
 
   const session = await getSession();
   if (!session) {
@@ -111,11 +129,14 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
   }
 
   // A profile exists → the dashboard. The aggregates ride parallel reads
-  // (Server Components fetch in parallel — the packaged guide's model).
-  const [stats, listings, reviews] = await Promise.all([
+  // (Server Components fetch in parallel — the packaged guide's model);
+  // the profile card joins ONLY when the onboarding redirect carried the
+  // PK (?profile= — the measured PROFILE-ID-GAP's only seam).
+  const [stats, listings, reviews, profile] = await Promise.all([
     getMyStats(),
     getProviderListings(session.userId, 0, 20),
     getProviderReviews(session.userId, 0, PROVIDER_REVIEWS_PAGE_SIZE),
+    profileId ? getProviderProfileById(profileId) : Promise.resolve(null),
   ]);
 
   return (
@@ -124,12 +145,54 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
 
       <p className="page-note" role="status">
         {/* The measured gap, stated honestly: there is no "read my own
-            profile" surface — the profile fields rode the creation POST,
-            and the aggregates (views/stats) are what the backend exposes
-            to "me". The VERIFIED gate teaches itself on first create. */}
-        ملفك قائم. الباك اند لا يعرض قراءة «ملفي» لمزوّد بعد — حالة التوثيق
-        تظهر عند أول محاولة إنشاء إعلان (بوابة الباك اند نفسها).
+            profile" surface — the profile PK is returned by the
+            creation POST alone, so the card + the J5 edit entry ride the
+            onboarding redirect's carried id (a pointer; every write
+            re-verifies ownership server-side). */}
+        ملفك قائم — بطاقة الملف ورابط تعديله يظهران هنا بعد إنشاء الملف
+        مباشرة (حين يحمل الرابط معرّفه)؛ الباك اند لا يعرض قراءة «ملفي»
+        لمزوّد عائد بعد (فجوة مسجّلة لديه).
       </p>
+
+      {profile && profile.ok ? (
+        <section className="card" aria-labelledby="profile-card-heading">
+          <h2 id="profile-card-heading">ملف المزوّد</h2>
+          <ul className="stat-list">
+            <li className="stat-row">
+              <span>الاسم العلني</span>
+              <span className="stat-value">{profile.data.displayName}</span>
+            </li>
+            <li className="stat-row">
+              <span>الحالة</span>
+              <span className="stat-value">
+                {PROVIDER_STATUS_LABELS[profile.data.status as ProviderStatus] ??
+                  profile.data.status}
+              </span>
+            </li>
+            <li className="stat-row">
+              <span>الصفة</span>
+              <span className="stat-value">
+                {ACTOR_TYPE_LABELS[profile.data.actorType as ProviderActorType] ??
+                  profile.data.actorType}
+              </span>
+            </li>
+          </ul>
+          {profile.data.agencyName ? (
+            <p className="listing-meta">المكتب: {profile.data.agencyName}</p>
+          ) : null}
+          <p className="listing-meta">
+            <Link href={`/provider/profile?id=${profile.data.id}`}>
+              عدّل ملفك
+            </Link>
+            <span>·</span>
+            {/* The PK finally reaches the L36 public page too — its join
+                key was undiscoverable until the redirect seam existed. */}
+            <Link href={`/providers/${profile.data.id}`}>
+              صفحتك العامة كما يراها الزوّار
+            </Link>
+          </p>
+        </section>
+      ) : null}
 
       <section className="card">
         <h2>مشاهدات إعلاناتك (L40)</h2>
@@ -171,6 +234,11 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
 
       <section className="card">
         <h2>إحصاءاتك (L25)</h2>
+        <p className="listing-meta">
+          {/* Slice S3 (charter J5): the provider's money reads — the L20
+              ledger balance + statement surface. */}
+          <Link href="/provider/ledger">دفتر رصيدك وكشف حسابك</Link>
+        </p>
         {stats.ok ? (
           <ul className="stat-list">
             <li className="stat-row">

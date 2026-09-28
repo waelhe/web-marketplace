@@ -74,6 +74,75 @@ export interface ProviderProfileView {
 }
 
 /**
+ * The profile-edit input (ProviderRequest) — the measured PUT semantics
+ * (ProviderController.update, live OpenAPI 2026-09-29): omitted
+ * agencyName/licenseNumber CLEAR the stored values (the bio contract),
+ * while an omitted actorType KEEPS the stored classification (a required
+ * classification is never silently reset). The edit form mirrors both
+ * honestly: empty optional fields send null (clear), the actor select
+ * always sends its value.
+ */
+export interface ProviderProfileMutateInput {
+  displayName: string;
+  bio: string | null;
+  actorType: string | null;
+  agencyName: string | null;
+  licenseNumber: string | null;
+}
+
+/**
+ * The L20 ledger movement vocabulary (marketplace-ledger
+ * LedgerEntryType, measured from the live OpenAPI 2026-09-29):
+ * PAYMENT_CREDIT is the provider's credit from a completed payment,
+ * COMMISSION_DEBIT the platform's commission, REFUND_DEBIT the
+ * full-refund mirror (L24). The wire amount is always non-negative
+ * (the backend's own B2 contract) — the TYPE carries the direction.
+ */
+export type LedgerEntryType = "PAYMENT_CREDIT" | "COMMISSION_DEBIT" | "REFUND_DEBIT";
+
+export const LEDGER_ENTRY_TYPE_LABELS: Record<LedgerEntryType, string> = {
+  PAYMENT_CREDIT: "دائن — دفعة مكتملة",
+  COMMISSION_DEBIT: "مدين — عمولة المنصة",
+  REFUND_DEBIT: "مدين — استرداد كامل",
+};
+
+/** The statement page size — the house paged-envelope read contract. */
+export const LEDGER_STATEMENT_PAGE_SIZE = 20;
+
+/**
+ * ProviderBalance (L20) — the current balance in MINOR units. Measured:
+ * a provider nothing has been credited yet answers an EMPTY balance
+ * (availableCents 0, null audit fields) — never a 404 (LedgerService
+ * .getBalance's orElseGet(ProviderBalance.empty) — read in the backend
+ * source 2026-09-29).
+ */
+export interface ProviderBalanceView {
+  id: string | null;
+  availableCents: number;
+  updatedAt: string | null;
+}
+
+/** LedgerEntryResponse — one statement movement row (sourceId: the originating payment intent). */
+export interface LedgerEntryView {
+  id: string;
+  sourceId: string | null;
+  entryType: LedgerEntryType;
+  amountCents: number;
+  createdAt: string;
+}
+
+/** The house PagedResponse envelope the statement read answers. */
+export interface ProviderLedgerStatementView {
+  content: LedgerEntryView[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  empty: boolean;
+}
+
+/**
  * The L38 completeness score (ListingCompletenessResponse) — a pure
  * recomputed-on-read function: four equal quarters (core fields, at least
  * one UPLOADED photo, the L31 property block, the L30 administrative

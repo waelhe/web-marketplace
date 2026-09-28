@@ -7,11 +7,13 @@ import { formatDateTime, formatPrice } from "@/lib/format";
 import {
   classifyBookingRole,
   getBooking,
+  getPaymentIntent,
   resolvePaymentIntent,
   type BookingRole,
 } from "@/lib/api/booking";
 import { getMyBackendUser } from "@/lib/api/inbox";
 import { getBookingDisputes } from "@/lib/api/disputes";
+import { isUuid } from "@/lib/api/geo";
 import {
   DISPUTE_RESOLUTION_LABELS,
   DISPUTE_STATUS_LABELS,
@@ -79,8 +81,20 @@ export const metadata: Metadata = {
 
 type BookingDetailPageProps = PageProps<"/bookings/[id]">;
 
-export default async function BookingDetailPage({ params }: BookingDetailPageProps) {
+export default async function BookingDetailPage({
+  params,
+  searchParams,
+}: BookingDetailPageProps) {
   const { id } = await params;
+  const sp = await searchParams;
+  // Slice S3 (charter J5): the pure intent read's URL state — the
+  // process/cancel redirects land here with the intent id in hand, so
+  // the payment block re-reads THE intent (GET) instead of re-running
+  // the read-or-create POST. A non-UUID value is dropped (never a
+  // probe); an unknown/foreign id surfaces the backend's own refusal
+  // words verbatim (the honest-failure pattern).
+  const rawIntent = Array.isArray(sp?.intent) ? sp?.intent[0] : sp?.intent;
+  const intentParam = typeof rawIntent === "string" && isUuid(rawIntent) ? rawIntent : null;
 
   const session = await getSession();
   if (!session) {
@@ -189,7 +203,11 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
       ) : null}
 
       {role === "consumer" ? (
-        <ConsumerSections bookingId={booking.id} status={status} />
+        <ConsumerSections
+          bookingId={booking.id}
+          status={status}
+          intentParam={intentParam}
+        />
       ) : null}
 
       {role === "provider" ? (
@@ -209,9 +227,11 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
 async function ConsumerSections({
   bookingId,
   status,
+  intentParam,
 }: {
   bookingId: string;
   status: BookingStatus;
+  intentParam: string | null;
 }) {
   return (
     <>
@@ -224,7 +244,9 @@ async function ConsumerSections({
         </section>
       ) : null}
 
-      {status === "CONFIRMED" ? <PaymentSection bookingId={bookingId} /> : null}
+      {status === "CONFIRMED" ? (
+        <PaymentSection bookingId={bookingId} intentParam={intentParam} />
+      ) : null}
 
       {REVIEWABLE.includes(status) ? (
         <section className="card" aria-labelledby="review-heading">
@@ -279,14 +301,27 @@ function ProviderSections({
 }
 
 /**
- * The payment block — resolved through the deterministic idempotency
- * key (read-or-create; the backend's own contract). amountCents is
- * the booking's only readable total; the PROCESSING state is the
- * honest surface of the measured no-Stripe backend (clientSecret
- * null), and completion is the backend's webhook/admin path.
+ * The payment block. The FIRST resolution rides the deterministic
+ * idempotency key (read-or-create POST — the backend's own contract,
+ * measured: no "intent by booking" read exists); every LATER render
+ * that already holds the intent id (`?intent=` — where the
+ * process/cancel redirects land, slice S3) rides the PURE GET
+ * (GET /payments/intents/{id}, the J5 gap op) with no create
+ * side-effect. amountCents is the booking's only readable total; the
+ * PROCESSING state is the honest surface of the measured no-Stripe
+ * backend (clientSecret null), and completion is the backend's
+ * webhook/admin path.
  */
-async function PaymentSection({ bookingId }: { bookingId: string }) {
-  const intent = await resolvePaymentIntent(bookingId);
+async function PaymentSection({
+  bookingId,
+  intentParam,
+}: {
+  bookingId: string;
+  intentParam: string | null;
+}) {
+  const intent = intentParam
+    ? await getPaymentIntent(intentParam)
+    : await resolvePaymentIntent(bookingId);
 
   return (
     <section className="card" aria-labelledby="payment-heading">
@@ -319,8 +354,8 @@ async function PaymentSection({ bookingId }: { bookingId: string }) {
           ) : null}
           {intent.data.status === "CREATED" ? (
             <div className="action-row">
-              <PaymentProcessForm intentId={intent.data.id} />
-              <PaymentCancelForm intentId={intent.data.id} />
+              <PaymentProcessForm intentId={intent.data.id} bookingId={bookingId} />
+              <PaymentCancelForm intentId={intent.data.id} bookingId={bookingId} />
             </div>
           ) : null}
         </>

@@ -202,6 +202,24 @@ export function resolvePaymentIntent(
 }
 
 /**
+ * Read one's own payment intent — `GET /api/v1/payments/intents/{id}`
+ * (slice S3, the J5 gap op). Ownership is the backend's own gate: the
+ * CONSUMER who created the intent (measured in the controller — a
+ * foreign id answers its refusal words, surfaced verbatim). This is the
+ * PURE read with no create side-effect: the booking detail's payment
+ * block uses it whenever the intent id is already in hand (`?intent=` —
+ * where the process/cancel redirects land), keeping the read-or-create
+ * POST for the FIRST resolution alone.
+ */
+export function getPaymentIntent(
+  intentId: string,
+): Promise<BackendResult<PaymentIntentView>> {
+  return backendGet<PaymentIntentView>(
+    `/api/v1/payments/intents/${encodeURIComponent(intentId)}`,
+  );
+}
+
+/**
  * Process the payment intent — `POST /api/v1/payments/intents/{id}/process`
  * (CONSUMER). clientSecret returns ONLY when a real PSP channel is
  * bound on the backend (null in the inert path — the honest no-Stripe

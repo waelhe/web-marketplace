@@ -162,9 +162,17 @@ export function BookingLifecycleForm({
  * CONFIRMED booking. The honest no-Stripe state is the surface's own
  * contract: the backend answers clientSecret only when a real PSP
  * channel is bound (null measured in the inert path); completion is
- * the backend's webhook/admin path, never claimed here.
+ * the backend's webhook/admin path, never claimed here. Slice S3: the
+ * success redirect lands on the booking carrying the intent id
+ * (?intent=) so the re-render rides the PURE intent read.
  */
-export function PaymentProcessForm({ intentId }: { intentId: string }) {
+export function PaymentProcessForm({
+  intentId,
+  bookingId,
+}: {
+  intentId: string;
+  bookingId: string;
+}) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     processPaymentIntentAction,
     IDLE,
@@ -173,6 +181,7 @@ export function PaymentProcessForm({ intentId }: { intentId: string }) {
   return (
     <form action={action} className="inline-form">
       <input type="hidden" name="intentId" value={intentId} />
+      <input type="hidden" name="bookingId" value={bookingId} />
       <button type="submit" className="button" data-variant="primary" disabled={pending}>
         {pending ? "جارٍ بدء المعالجة…" : "ابدأ معالجة الدفع"}
       </button>
@@ -186,9 +195,16 @@ export function PaymentProcessForm({ intentId }: { intentId: string }) {
  * action on a CREATED intent. The backend's state machine allows the
  * cancel from CREATED alone; an already-moved intent answers 409
  * with the backend's own words (surfaced verbatim — never
- * pre-validated away).
+ * pre-validated away). Slice S3: the success redirect lands on the
+ * booking carrying the intent id (?intent=).
  */
-export function PaymentCancelForm({ intentId }: { intentId: string }) {
+export function PaymentCancelForm({
+  intentId,
+  bookingId,
+}: {
+  intentId: string;
+  bookingId: string;
+}) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     cancelPaymentIntentAction,
     IDLE,
@@ -197,6 +213,7 @@ export function PaymentCancelForm({ intentId }: { intentId: string }) {
   return (
     <form action={action} className="inline-form">
       <input type="hidden" name="intentId" value={intentId} />
+      <input type="hidden" name="bookingId" value={bookingId} />
       <button type="submit" className="button" data-variant="danger" disabled={pending}>
         {pending ? "جارٍ الإلغاء…" : "ألغِ قصد الدفع"}
       </button>

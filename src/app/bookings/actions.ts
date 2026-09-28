@@ -233,6 +233,10 @@ export async function processPaymentIntentAction(
 
   const intentId = text(formData, "intentId");
   if (!isUuid(intentId)) return { status: "error", message: "معرّف قصد الدفع غير صالح." };
+  const bookingId = text(formData, "bookingId");
+  if (!isUuid(bookingId)) {
+    return { status: "error", message: "معرّف الحجز غير صالح." };
+  }
 
   const result = await processPaymentIntent(intentId);
   if (!result.ok) {
@@ -243,14 +247,11 @@ export async function processPaymentIntentAction(
     };
   }
 
-  refresh();
-  return {
-    status: "success",
-    message:
-      result.data.clientSecret === null
-        ? "قصد الدفع قيد المعالجة — اكتماله عبر قناة الدفع الخلفية (بوابة المالك)."
-        : "قصد الدفع قيد المعالجة — أكمل الدفع لدى مزوّد الدفع.",
-  };
+  // Slice S3 (charter J5): land on the booking carrying the intent id —
+  // the re-render rides the PURE intent read (GET /payments/intents/{id})
+  // instead of re-running the read-or-create POST; the intent's own
+  // state (PROCESSING) is the honest landing message.
+  redirect(`/bookings/${bookingId}?intent=${result.data.id}`);
 }
 
 /**
@@ -269,6 +270,10 @@ export async function cancelPaymentIntentAction(
 
   const intentId = text(formData, "intentId");
   if (!isUuid(intentId)) return { status: "error", message: "معرّف قصد الدفع غير صالح." };
+  const bookingId = text(formData, "bookingId");
+  if (!isUuid(bookingId)) {
+    return { status: "error", message: "معرّف الحجز غير صالح." };
+  }
 
   const result = await cancelPaymentIntent(intentId);
   if (!result.ok) {
@@ -279,8 +284,9 @@ export async function cancelPaymentIntentAction(
     };
   }
 
-  refresh();
-  return { status: "success", message: "أُلغي قصد الدفع." };
+  // Slice S3: same landing as process — the CANCELLED state itself is
+  // the message the pure intent read renders.
+  redirect(`/bookings/${bookingId}?intent=${result.data.id}`);
 }
 
 /**
