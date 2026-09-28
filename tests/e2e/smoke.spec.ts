@@ -161,3 +161,52 @@ test("browse carries a visible category picker with the no-filter option (charte
   await expect(select).toBeVisible();
   await expect(select.locator('option[value=""]')).toHaveCount(1);
 });
+
+test("robots.txt declares the crawl policy (S5 launch readiness)", async ({ request }) => {
+  const res = await request.get("/robots.txt");
+  expect(res.status()).toBe(200);
+  const body = await res.text();
+  expect(body).toContain("Sitemap: ");
+  // The private surfaces and the API relay are out of every crawl budget.
+  expect(body).toContain("Disallow: /admin");
+  expect(body).toContain("Disallow: /neighborhood");
+  // THE /neighborhood prefix trap: the PUBLIC geo picker stays allowed
+  // (the longer Allow rule beats the Disallow prefix — the standard's
+  // longest-match resolution, one character apart, opposite policies).
+  expect(body).toContain("Allow: /neighborhoods");
+  // /search is never disallowed: its noindex meta must stay crawler-visible.
+  expect(body).not.toContain("Disallow: /search");
+});
+
+test("sitemap.xml lists the public hubs — never private or noindexed URLs (S5)", async ({ request }) => {
+  const res = await request.get("/sitemap.xml");
+  expect(res.status()).toBe(200);
+  const body = await res.text();
+  expect(body).toContain("<loc>");
+  expect(body).toContain("/listings</loc>");
+  expect(body).toContain("/neighborhoods</loc>");
+  // A sitemap is a list of indexable URLs only.
+  expect(body).not.toContain("/search");
+  expect(body).not.toContain("/admin");
+  expect(body).not.toContain("/provider");
+  expect(body).not.toContain("/api");
+});
+
+test("/api/health answers the uptime probe contract (S5)", async ({ request }) => {
+  const res = await request.get("/api/health");
+  expect(res.status()).toBe(200);
+  expect(await res.json()).toEqual({ status: "ok" });
+});
+
+test("search results stay out of the index while following links (S5)", async ({ page }) => {
+  // Plain /search = the idle mode = ZERO backend reads (the measured
+  // dispatch) — hermetic by construction.
+  const res = await page.goto("/search");
+  expect(res?.status()).toBe(200);
+  const robots = await page
+    .locator('meta[name="robots"]')
+    .first()
+    .getAttribute("content");
+  expect(robots).toContain("noindex");
+  expect(robots).toContain("follow");
+});
