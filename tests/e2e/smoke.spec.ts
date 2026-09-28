@@ -101,3 +101,37 @@ test("neighborhood renders the anonymous gate without a feed fetch", async ({ pa
   const robots = await page.locator('meta[name="robots"]').first().getAttribute("content");
   expect(robots).toContain("noindex");
 });
+
+test("register renders as a public surface — no gate, the J1 form contract", async ({
+  page,
+}) => {
+  // Charter J1 (slice S1): registration is a PUBLIC conversion surface —
+  // anonymous visitors (and crawlers) see the full form, never a sign-in
+  // gate. Structure/contract only; the live 201/409 round-trip lives in
+  // register-live.spec.ts (opt-in).
+  const res = await page.goto("/register");
+  expect(res?.status()).toBe(200);
+  await expect(
+    page.getByRole("heading", { name: "إنشاء حساب", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('input[name="displayName"]')).toBeVisible();
+  await expect(page.locator('input[name="email"]')).toBeVisible();
+  await expect(page.locator('input[name="password"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "أنشئ الحساب" })).toBeVisible();
+  // The HTML mirror of the measured RegisterRequest bounds.
+  await expect(page.locator('input[name="email"]')).toHaveAttribute(
+    "maxlength",
+    "50",
+  );
+  await expect(page.locator('input[name="password"]')).toHaveAttribute(
+    "minlength",
+    "8",
+  );
+});
+
+test("home carries the anonymous signup entry (charter J1)", async ({ page }) => {
+  await page.goto("/");
+  const registerLink = page.getByRole("link", { name: "أنشئ حساباً" });
+  await expect(registerLink).toBeVisible();
+  await expect(registerLink).toHaveAttribute("href", "/register");
+});

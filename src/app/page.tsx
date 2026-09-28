@@ -73,6 +73,12 @@ export default async function Home() {
             ) : (
               <>
                 <span className="site-header-note">لم تسجّل الدخول بعد.</span>
+                {/* Charter J1 (slice S1): the anonymous visitor's second
+                    entry — registration is a public surface now, one click
+                    from every page top; sign-in stays the primary button. */}
+                <Link href="/register" className="button" data-variant="secondary">
+                  أنشئ حساباً
+                </Link>
                 <SignInButton />
               </>
             )}
