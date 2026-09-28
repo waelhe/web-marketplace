@@ -163,7 +163,11 @@ change preserves the system, and no patch-work that leaves debt.
 4. **The gates are sacred** («البوابات مقدسة») — never bypass or
    weaken: eslint → build → `tsc --noEmit` (after typegen) → vitest →
    playwright. A slice is Done only when all are green, and its e2e is
-   the automated definition of done.
+   the automated definition of done. The same chain runs automatically
+   on GitHub (`.github/workflows/ci.yml` — the CI mirror, backend-repo
+   style) on every push and pull request once the workflow lands on
+   origin; CI is the gates' durable public record, never a
+   replacement for the local run.
 5. **Measurement governs** («القياس يحكم») — contracts are measured
    live before coding; every edit is verified live through the
    next-dev-loop (`/_next/mcp` + `agent-browser` on the existing dev
@@ -206,10 +210,15 @@ change preserves the system, and no patch-work that leaves debt.
 `.agents/skills/next-dev-loop/SKILL.md` is followed literally from the
 preflight: one dev server, found via `.next/dev/lock` (alive → connect,
 never duplicate; dead + needed → start it yourself; never delete
-`.next` while it runs; in this sandbox the whole round runs inside ONE
-bash invocation — background processes are reaped between tool calls,
-measured 2026-09-28, and the lock outlives the server, so pid liveness
-is the only proof a server is up); two cross-checked views — `/_next/mcp`
+`.next` while it runs; measured 2026-09-28, refined same day: the
+launching `npx` wrapper dies with its bash call, but the
+`next-server` child can survive ORPHANED and keep serving across
+calls — one lived 38 minutes — so liveness = live pid AND answering
+port; a dying/zombie pid can false-positive the lock check. Teardown
+kills the pid FROM THE LOCK — the real server, not the wrapper `$!`
+— with `kill -9` when SIGTERM is ignored, then verifies the port is
+silent; when nothing is up, run the whole round inside ONE bash
+invocation); two cross-checked views — `/_next/mcp`
 (the framework's view: routes, compilation errors, errors, logs; its replies
 are SSE, so read the JSON off the `data:` line; the live `tools/list` is
 the session's authority — 9 tools measured on 16.3.5 against 8 in the
@@ -266,7 +275,7 @@ table below is the self-contained minimum:
 | System Chrome dies | `PLAYWRIGHT_CHANNEL=chromium` (the bundled 1243) |
 | HTTP from python blocked (Cloudflare 1010) | curl with a browser UA |
 | Dev server | `.next/dev/lock` carries pid/port/appUrl (the bundled ai-agents guide): alive → connect; dead → start it yourself; never a duplicate; never delete `.next` while it runs. Measured: the lock OUTLIVES the server — pid liveness is the only proof |
-| Sandbox live loop | backgrounds (even `nohup`/`setsid`) are reaped between tool calls (measured 2026-09-28) → run the entire live round — server, MCP probes, agent-browser, teardown — inside ONE bash invocation |
+| Sandbox live loop | the `npx` wrapper dies with its bash call BUT the `next-server` child can survive orphaned, serving across calls (measured 2026-09-28: 38 minutes; SIGTERM was ignored — `kill -9` needed) | liveness = live pid AND answering port; teardown kills the LOCK pid and verifies silence; Next's lock protection refuses any duplicate (validated: it stopped Playwright's webServer cold) |
 | agent-browser 0.38.1 | plain `react tree` prints only "✓ Done" (no `react` skill exists — the react commands live in `skills get core`) → use `react tree --json`; suspense / inspect / vitals / console / snapshot work plain |
 | MCP surface | live `tools/list` = 9 tools vs 8 in the bundled `mcp.md` (`get_request_insights` live-only so far) → the live `tools/list` is the session's authority |
 | railway_token lost | Ask the owner for a fresh project-scoped token when needed |
@@ -320,18 +329,58 @@ owner settles the vocabulary.
 - An endpoint wrapper nobody navigates to (a surface without
   navigation).
 - Trusting the OpenAPI spec without a live failure-shape probe.
-- Expecting a backgrounded dev server to survive between tool calls
-  (this sandbox reaps backgrounds — one bash invocation per live
-  round), or trusting a present `.next/dev/lock` without a
-  pid-liveness check.
+- Expecting EITHER direction about a backgrounded dev server between
+  tool calls: the `npx` wrapper dies with its call, but the
+  `next-server` child can survive orphaned and keep serving — always
+  check lock-pid liveness AND probe the port; teardown kills the LOCK
+  pid (`kill -9` when SIGTERM is ignored) and verifies silence.
 - Reading agent-browser 0.38.1's plain `react tree` "✓ Done" as an
   empty component tree instead of re-running it with `--json`.
-- Merging with a red or skipped gate "just this once".
+- Merging with a red or skipped gate "just this once" — locally OR on
+  CI (a red CI check is the same stop sign; never push past it).
 - Inferring deploy state from chunk fingerprints (Task-42's retracted
   misjudgment).
 - Writing to the backend repo (read and measure only).
 - Numbers in docs without a measurement date (they rot).
 - Localizing away a backend bug instead of recording the debt.
+
+## 10. The session entry prompt (the owner's clipboard)
+
+The owner starts every session by pasting ONE fixed prompt. It is
+anchored here — durable on GitHub — so neither the owner nor the
+agent depends on any local copy surviving:
+
+```text
+تابع العمل على منصة السوق. أنت وكيل المنصة الدائم:
+ابدأ بطقس الإقلاع في docs/agent-protocol.md بمستودع waelhe/web-marketplace
+(استنسخه من GitHub إن غاب محليًا؛ التوكن في /home/z/my-project/.creds/gh_token،
+وإن فُقد فاطلبه مني)، واتبع البروتوكول حرفيًا — GitHub هو الحقيقة الوحيدة.
+ثم اعرف الشريحة التالية من docs/product-charter.md وتابع العمل.
+ردودك عليّ بالعربية دائمًا، ولا دفع إلى origin إلا بكلمة صريحة مني.
+```
+
+Gloss (the prompt is owner-facing Arabic, quoted as data per §1):
+"Continue working on the marketplace platform. You are the permanent
+platform agent: start with the bootstrap ritual in
+`docs/agent-protocol.md` of the `waelhe/web-marketplace` repo (clone
+it from GitHub if missing locally; the token lives at
+`/home/z/my-project/.creds/gh_token` — if lost, ask me); follow the
+protocol literally — GitHub is the only truth. Then read the next
+slice from `docs/product-charter.md` and continue the work. Replies
+to me always in Arabic; no push to origin except on my explicit
+word."
+
+**Why a zero-memory agent needs nothing else.** The prompt's only
+local assumption is the GitHub token (ask the owner when missing).
+Everything else is fetched from GitHub at session start: the clone
+itself, this protocol (the complete method), `AGENTS.md` (read
+automatically by agent frameworks — and re-read by rule §3.6), the
+charter (the product state), the architecture map, and `git log` +
+PRs (the history). The local skill and the worklog are conveniences,
+never dependencies — §3's ritual rebuilds all session state from
+GitHub alone. The secret layer (`.env.local`) is rebuildable from §7
+except the shareable dev secret (the backend team's runbook);
+production secrets never leave Railway.
 
 ---
 

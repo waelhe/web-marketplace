@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  gates:
+    name: Gates (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [ 26.8.2 ]
+      fail-fast: false
+    timeout-minutes: 25
+
+    env:
+      # CI-only values — never real secrets (AGENTS.md rule: real dev
+      # values live only in local .env.local, production values only in
+      # Railway service variables). The e2e smoke net is hermetic
+      # (structure/contract assertions, green with 0..N data rows) and
+      # never completes an OAuth login, so a dummy client secret plus
+      # the shared staging backend are sufficient.
+      BETTER_AUTH_SECRET: ci-only-placeholder-not-a-real-secret
+      BETTER_AUTH_URL: http://127.0.0.1:3101
+      BACKEND_URL: https://app-java-v3-staging-staging.up.railway.app
+      OAUTH_CLIENT_ID: marketplace-web-staging
+      OAUTH_CLIENT_SECRET: ci-placeholder
+      # ubuntu-latest ships Google Chrome stable; channel "chrome" uses
+      # it with zero browser downloads (mirrors the local PLAYWRIGHT_
+      # CHANNEL override discipline in the other direction).
+      PLAYWRIGHT_CHANNEL: chrome
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies (engines-pinned)
+        run: npm ci --no-audit --no-fund
+
+      # The gate chain, in the protocol's sacred order — the same
+      # sequence rule 4 of docs/agent-protocol.md binds locally.
+      - name: Gate 1 — ESLint
+        run: npm run lint
+
+      - name: Gate 2 — Production build (typegen runs inside build)
+        run: npm run build
+
+      - name: Gate 3 — TypeScript (after build typegen)
+        run: npx tsc --noEmit
+
+      - name: Gate 4 — Unit tests (vitest)
+        run: npm run test:unit
+
+      - name: Gate 5 — E2E smoke (Playwright on system Chrome)
+        run: npm run test:e2e
