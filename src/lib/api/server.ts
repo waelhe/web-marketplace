@@ -104,7 +104,10 @@ export async function backendGet<T>(path: string): Promise<BackendResult<T>> {
     };
   }
 
-  return { ok: true, data: (await upstream.json()) as T, status: upstream.status };
+  // Text-then-parse: an empty ok body resolves to null (204, or the
+  // measured 200-with-no-body mark-read shape) instead of throwing
+  // inside json().
+  return { ok: true, data: await parseOkBody<T>(upstream), status: upstream.status };
 }
 
 /**
@@ -113,13 +116,15 @@ export async function backendGet<T>(path: string): Promise<BackendResult<T>> {
  * Bearer (auto-refresh included), call BACKEND_URL directly (never a
  * self-fetch through the /api/backend route handler), return expected
  * failures as data. `body` is JSON-serialized; `method` is
- * PUT/POST/PATCH/DELETE (PATCH measured on the leads inbox move).
+ * PUT/POST/PATCH/DELETE (PATCH measured on the leads inbox move). An
+ * empty ok body — 204 No Content, or the measured 200-with-no-body
+ * mark-read shape (Task 65) — resolves to `data: null`.
  *
  * The official security contract rides two layers: the framework's
  * Server-Action boundary (POST-only, Origin/Host CSRF check) and the
  * backend's resource-server chain (401/403/404 gates) — the backend is
  * the authorization authority; this channel only carries the session's
- * own token. 204 No Content resolves to `data: null`.
+ * own token.
  */
 export async function backendSend<T>(
   method: "PUT" | "POST" | "PATCH" | "DELETE",
@@ -157,11 +162,14 @@ export async function backendSend<T>(
     };
   }
 
+  // 204 fast path kept for the documented contract; parseOkBody covers
+  // every empty ok body — including the measured 200-with-no-body
+  // mark-read seam (Task 65): text-then-parse, never a bare json().
   if (upstream.status === 204) {
     return { ok: true, data: null as T, status: 204 };
   }
 
-  return { ok: true, data: (await upstream.json()) as T, status: upstream.status };
+  return { ok: true, data: await parseOkBody<T>(upstream), status: upstream.status };
 }
 
 /**
@@ -211,7 +219,7 @@ export async function backendSendPublic<T>(
     return { ok: true, data: null as T, status: 204 };
   }
 
-  return { ok: true, data: (await upstream.json()) as T, status: upstream.status };
+  return { ok: true, data: await parseOkBody<T>(upstream), status: upstream.status };
 }
 
 async function decodeBody(res: Response): Promise<ProblemDetail | null> {
@@ -220,4 +228,18 @@ async function decodeBody(res: Response): Promise<ProblemDetail | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Parse an ok (2xx) response body — text-first, then JSON. An empty body
+ * (204 No Content, whitespace-only, or the measured 200-with-no-body
+ * mark-read shape: MessagingController.markAsRead →
+ * ResponseEntity.ok().build()) resolves to null instead of throwing
+ * "Unexpected end of JSON input" inside json() — the Task-65 seam that
+ * surfaced as a 500 from the Server Action and an unhandled rejection
+ * in the browser.
+ */
+async function parseOkBody<T>(res: Response): Promise<T> {
+  const text = (await res.text()).trim();
+  return (text.length === 0 ? null : JSON.parse(text)) as T;
 }
