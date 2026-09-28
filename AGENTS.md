@@ -28,13 +28,17 @@ session cookie.
 - `/` — sign in/out, session state + the public browse entry link (Arabic RTL UI)
 - `/search` — PUBLIC flat text search (slice S4, charter J2): ONE text
   field + the live category rail (S2's registry read; codes as the link
-  values), native GET, no client JS — URL is the state. The wire routing
-  mirrors the backend's MEASURED flat-search dispatch: text present →
-  `GET /search?q` ALONE (a non-blank q silently drops every other flat
-  criterion backend-side — the composition gap recorded in the charter);
-  category only → the dedicated `GET /search/category/{c}`; idle → no
-  backend read. Unknown categories answer 200 empty envelopes (reads
-  never 400) — data via `src/lib/api/public.ts`
+  values), native GET, no client JS — URL is the state. S5 SEO decision:
+  `noindex, follow` (the category state duplicates `/listings?category=`
+  byte-identically — measured in S4; `?q=` URLs are user-generated thin
+  pages) — the page stays CRAWLABLE in robots.txt so the directive is
+  seen, and `follow` passes the rail's link equity to the listings. The
+  wire routing mirrors the backend's MEASURED flat-search dispatch: text
+  present → `GET /search?q` ALONE (a non-blank q silently drops every
+  other flat criterion backend-side — the composition gap recorded in the
+  charter); category only → the dedicated `GET /search/category/{c}`;
+  idle → no backend read. Unknown categories answer 200 empty envelopes
+  (reads never 400) — data via `src/lib/api/public.ts`
 - `/listings` — PUBLIC active-listing browse (paginated; anonymous GETs —
   the SEO-indexable surface, data via `src/lib/api/public.ts`; the
   category-ONLY state — no other criterion, no sort — rides the
@@ -273,6 +277,27 @@ session cookie.
 - `/api/backend/[...path]` — Bearer relay to `BACKEND_URL` (401 = re-auth;
   client-side use ONLY — server components use `src/lib/api/server.ts`
   for authenticated data, `src/lib/api/public.ts` for public data)
+- `/robots.txt` + `/sitemap.xml` — the launch-readiness SEO file
+  conventions (slice S5, `src/app/robots.ts` / `src/app/sitemap.ts`,
+  build-time static per the packaged docs' file-conventions guide): the
+  crawl policy keeps every private surface (`/admin`, `/api/`,
+  `/provider`, `/profile`, `/inbox`, `/bookings`, `/neighborhood`) out
+  of crawl budgets while the ONE-CHARACTER prefix trap is navigated —
+  `Disallow: /neighborhood` (private community) prefix-matches
+  `/neighborhoods` (PUBLIC geo picker) under the Robots Exclusion
+  Standard, so the longer `Allow: /neighborhoods` rule carries the
+  standard's longest-prefix-wins resolution; `/search` is deliberately
+  NEVER disallowed (a robots-blocked page's noindex meta can never be
+  seen). The sitemap lists ONLY the four stable public hubs (`/`,
+  `/listings`, `/neighborhoods`, `/register` — the origin rides
+  BETTER_AUTH_URL, one env fact with metadataBase); detail pages are
+  discovered through crawlable pagination, not enumerated (no public
+  all-ids read exists — the honest omissions documented in the file)
+- `/api/health` — the uptime probe (slice S5 "مراقبة"): pure frontend
+  liveness — 200 `{"status":"ok"}`, no session, `no-store`; deliberately
+  NO backend health fan-out (the backend's health is its own domain —
+  its service monitors own it; a probe that fails on a dependency
+  cannot tell "web down" from "backend down")
 
 ## Rules
 

@@ -83,8 +83,19 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   const query = new URLSearchParams(canonicalParams).toString();
   return {
     title: "البحث",
-    description: "ابحث في إعلانات السوق بالكلمات أو تصفّح فئة — واجهة عامة تصلها محركات البحث",
+    description:
+      "ابحث في إعلانات السوق بالكلمات أو تصفّح الفئة — أداة تفاعلية للمستخدم؛ التصفّح المُفهرس محركه /listings",
     alternates: { canonical: query ? `/search?${query}` : "/search" },
+    // S5 SEO decision: search RESULT pages stay out of the index while
+    // following links. The measured grounds: (a) the category state
+    // duplicates `/listings?category=` content byte-identically (S4's
+    // wire measurement — both funnel to the same cached port query), and
+    // `/listings` is the designated SEO browse surface; (b) `?q=` URLs
+    // are user-generated thin pages (Google Search Central's internal-
+    // search-results guidance). `follow` keeps the category rail passing
+    // crawl to the listings — and the page must stay CRAWLABLE in
+    // robots.txt for this directive to ever be seen.
+    robots: { index: false, follow: true },
   };
 }
 

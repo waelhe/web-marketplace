@@ -14,11 +14,19 @@
 > and `POST /auth/register` (S1) left the gap table — consumption
 > 115/128 ops; gate counts refreshed below.
 > Delta 2026-09-29 (S3, PR #13): the J5 provider money/profile ops
-> consumed — 120/128. Delta 2026-09-29 (S4, local merge): the two
+> consumed — 120/128. Delta 2026-09-29 (S4, PR #14): the two
 > category path ops consumed (`GET /listings/category/{c}` on the
 > browse category-only state, `GET /search/category/{c}` on the flat
 > /search category mode) — **122/128 ops (96%), 102/111 paths, ZERO
 > genuine surface gaps**; gate counts refreshed below.
+> Delta 2026-09-29 (S5, local merge): the launch-readiness layer — the
+> web origin's own `robots.txt` + `sitemap.xml` file conventions (the
+> crawl policy with the /neighborhood prefix trap navigated; the
+> public-hub sitemap), the `/api/health` uptime probe, and the /search
+> `noindex, follow` decision (duplicate-content: its category state
+> mirrors `/listings?category=` byte-identically). No backend ops
+> consumed (the backend's own robots/sitemap ops serve the BACKEND
+> origin — classified infra, unchanged).
 > This file pairs with `docs/ARCHITECTURE.md` (the deep Arabic narrative);
 > it does not replace it. The **product definition** it serves lives in
 > `docs/product-charter.md` (the journeys, their acceptance, the slice plan).
@@ -104,11 +112,12 @@ storms as a rotation signal, never a code bug.
 > أعمار الرموز/أسماء العملاء يظهر عندنا فورًا كعطل تدفق كامل —
 > نرجو إبقاءه في بروتوكول الإشعار المتبادل.
 
-## 4. Route map (16 pages · 3 handlers · 9 action modules)
+## 4. Route map (16 pages · 5 handlers · 9 action modules)
 
 | Route | State | What it renders (backend source) |
 |---|---|---|
 | `/` | public, session-aware | landing + state of entry points |
+| `/search` | public, noindex+follow | flat text search + category rail (S4; S5 SEO decision: result pages stay out of the index) |
 | `/listings` | public | paged active listings (`GET /listings`) |
 | `/listings/{id}` | public | detail + L31 property embed + L39 JSON-LD + lead form |
 | `/listings/{id}/book` | session | booking start (availability-driven) |
@@ -124,7 +133,11 @@ storms as a rotation signal, never a code bug.
 
 Route handlers: `api/auth/[...all]` (channel 4), `api/backend/[...path]`
 (channel 3), `api/account/export` (GDPR Art. 20 download — streams the
-backend's own export JSON verbatim, no recomposition).
+backend's own export JSON verbatim, no recomposition), plus the S5
+launch artifacts: `robots.txt` + `sitemap.xml` (build-time static file
+conventions — the crawl policy and the 4 public hubs) and
+`api/health` (the uptime probe: 200 `{"status":"ok"}`, no-store, no
+backend fan-out).
 
 > **لماذا يهم فريق الباك اند:** كل صفحة مرتبطة بوحدة باك اند مسماة —
 > انظر الجدول التالي للمقابلة العكسية (أي وحدة تُعرض وأيها ما زالت
