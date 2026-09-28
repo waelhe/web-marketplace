@@ -9,6 +9,7 @@ import {
   type SearchCriteria,
 } from "@/lib/api/public";
 import { getGeoSuggest, GEO_SUGGEST_MIN_LENGTH, isUuid } from "@/lib/api/geo";
+import { DEMO_LISTINGS, isDemoStorefront } from "@/lib/demo-listings";
 import { problemMessage } from "@/lib/problem";
 import { getSession } from "@/lib/dal";
 import { formatDate } from "@/lib/format";
@@ -26,6 +27,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { CategorySelect } from "@/components/ui/category-select";
+import { DemoShowcase } from "@/components/ui/demo-card";
 import { Pagination } from "@/components/ui/pagination";
 import type { PropertyPurpose, PropertyType } from "@/lib/api/types";
 
@@ -355,6 +357,19 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
       ? await searchListings(criteria, page, LISTINGS_PAGE_SIZE, sort)
       : await getActiveListings(page, LISTINGS_PAGE_SIZE);
 
+  // ---- The display-data showcase (بيانات عرض — the owner's seed-content
+  // decision, 2026-09-29) ----
+  // Engaged ONLY on the unfiltered first browse page when the backend's
+  // own 200 read served fewer real ACTIVE listings than the storefront
+  // floor: the showcase renders ABOVE the honest real-results section
+  // (nothing real is hidden — the count line and the real rows stay
+  // below). Any criterion, any sort, any later page, any backend failure
+  // (the demo rides the success path only), or DEMO_LISTINGS=0 keeps this
+  // surface 100% real-data — the search/filter contract is the user's
+  // trust. Self-retiring: the floor reached, the showcase disappears.
+  const demoShowcase =
+    result.ok && !filtered && page === 0 && isDemoStorefront(result.data.totalElements);
+
   // ---- S2 (charter J2): the live category vocabulary ----
   // The visible picker's ONLY source (never a hard list). A failed read
   // degrades honestly: the select renders with just «الكل» (plus the
@@ -614,6 +629,14 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
       ) : null}
 
       <section id="results" aria-label="نتائج الإعلانات">
+        {demoShowcase ? (
+          <DemoShowcase
+            listings={DEMO_LISTINGS}
+            categories={categories.ok ? categories.data : null}
+            realCount={result.ok ? result.data.totalElements : 0}
+            note="الإعلانات الحقيقية تُعرض أدناه بعدّها الفعلي."
+          />
+        ) : null}
         {result.ok ? (
           result.data.content.length === 0 ? (
             page > 0 && result.data.totalElements > 0 ? (
