@@ -197,9 +197,18 @@ change preserves the system, and no patch-work that leaves debt.
    explicit word («ادفع») — the push IS the production deploy trigger
    → 12. **on the word only**: push the branch → PR (English
    conventional title + Arabic measured body + gates table + authority
-   note + the push-word record) → squash merge (here `(#N)` is born;
+   note + the push-word record) → **wait for the PR's pull_request CI
+   run to complete GREEN before merging** (measured 2026-09-29, PR #13:
+   merging + branch-deleting within seconds of the PR open races the
+   runner's git fetch — the fetch then brings main only, the branch
+   commits are unreachable after a squash (GitHub drops them), and
+   gitleaks' computed range `first^..head` fails to resolve → action
+   exit 1 with ZERO findings scanned (~0 bytes): a mirror failure, not
+   a secret; waiting ~1 minute for the run also honors "CI red = stop"
+   BEFORE main moves, not after) → squash merge (here `(#N)` is born;
    the interim local merge is replaced by GitHub's canonical history —
-   reset main to origin, same tree) → delete the branch →
+   reset main to origin, same tree) → delete the branch → **watch the
+   push run green** →
    **production proof**: a new route → poll for its appearance
    (~2 minutes, measured); a server-side-only change → the Railway
    GraphQL `commitHash` (curl with a browser UA; python is blocked by
@@ -214,9 +223,14 @@ never duplicate; dead + needed → start it yourself; never delete
 launching `npx` wrapper dies with its bash call, but the
 `next-server` child can survive ORPHANED and keep serving across
 calls — one lived 38 minutes — so liveness = live pid AND answering
-port; a dying/zombie pid can false-positive the lock check. Teardown
+port; a dying/zombie pid can false-positive the lock check. The lock
+FILE is a JSON object (`{"pid":1183,"port":3000,…}` — measured
+2026-09-29), not a raw pid: parse the `"pid"` FIELD (stripping digits
+off the whole file yields garbage that kills nothing). Teardown
 kills the pid FROM THE LOCK — the real server, not the wrapper `$!`
-— with `kill -9` when SIGTERM is ignored, then verifies the port is
+— with `kill -9` when SIGTERM is ignored, sweeps the wrapper chain
+(`pkill -f "next dev --port N"`) so nothing orphans, then verifies
+the port is
 silent; when nothing is up, run the whole round inside ONE bash
 invocation); two cross-checked views — `/_next/mcp`
 (the framework's view: routes, compilation errors, errors, logs; its replies
@@ -343,6 +357,13 @@ owner settles the vocabulary.
   empty component tree instead of re-running it with `--json`.
 - Merging with a red or skipped gate "just this once" — locally OR on
   CI (a red CI check is the same stop sign; never push past it).
+- Squash-merging + branch-deleting in the same seconds the PR's
+  pull_request CI run boots (PR #13, 2026-09-29): the runner's fetch
+  then finds the branch gone and checks out main — gitleaks' range
+  `first^..head` dies as an "unknown revision" with ZERO findings
+  scanned. Wait for the PR run's GREEN first; the merge is not a race.
+- Treating `.next/dev/lock` as a raw pid file (it is JSON — parse the
+  `"pid"` field; digits-off-the-file is garbage that kills nothing).
 - Inferring deploy state from chunk fingerprints (Task-42's retracted
   misjudgment).
 - Writing to the backend repo (read and measure only).

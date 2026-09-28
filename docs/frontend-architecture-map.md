@@ -13,6 +13,12 @@
 > Delta 2026-09-29 (S2, local merge 1ae100d): `GET /listings/categories`
 > and `POST /auth/register` (S1) left the gap table — consumption
 > 115/128 ops; gate counts refreshed below.
+> Delta 2026-09-29 (S3, PR #13): the J5 provider money/profile ops
+> consumed — 120/128. Delta 2026-09-29 (S4, local merge): the two
+> category path ops consumed (`GET /listings/category/{c}` on the
+> browse category-only state, `GET /search/category/{c}` on the flat
+> /search category mode) — **122/128 ops (96%), 102/111 paths, ZERO
+> genuine surface gaps**; gate counts refreshed below.
 > This file pairs with `docs/ARCHITECTURE.md` (the deep Arabic narrative);
 > it does not replace it. The **product definition** it serves lives in
 > `docs/product-charter.md` (the journeys, their acceptance, the slice plan).
@@ -128,11 +134,14 @@ backend's own export JSON verbatim, no recomposition).
 
 **97 distinct endpoint templates** across `lib/api` + raw-fetch call
 sites. **0 dead templates** — every frontend call has a live backend
-contract. Consumption: **96/111 paths = 113/128 ops (88%)**.
+contract. Consumption: **122/128 ops (96%)** — the 6 unconsumed ops
+(all on unconsumed paths) are classified below: not-frontend infra, one
+measured backend defect, one documented deliberate cut. Zero genuine
+surface gaps after S4.
 
 | lib/api channel | Consumes (backend module) |
 |---|---|
-| `public.ts` | catalog listings browse/detail/provider-list, search |
+| `public.ts` | catalog listings browse/detail/provider-list, search, the two category path ops (S4: browse-by-category + search-by-category) |
 | `reputation.ts` | providers public page, reviews (+reply, reverse) |
 | `geo.ts` | geo children/suggest (tree navigation) |
 | `booking.ts` | bookings CRUD chain + payments intents (resolve + the pure GET) + availability |
@@ -145,17 +154,17 @@ contract. Consumption: **96/111 paths = 113/128 ops (88%)**.
 | `media.ts` | upload flow (S3-gated, honest 503) |
 | `admin.ts` | the 24-op console (users, listings, ledger, payments, geo, revisions, reports, pricing rules) |
 
-**The 9 unconsumed paths (10 ops), classified:**
+**The 6 unconsumed ops (6 paths), classified:**
 
 | Class | Paths | Meaning |
 |---|---|---|
 | Correctly not frontend (4) | `webhooks/stripe`, `webhooks/{provider}`, `/robots.txt`, `/sitemap.xml` | server-to-server / infra files |
 | Broken backend surface (1) | `GET /geo/tree` | 409 CONFLICT-001 ×3 measured — declared defect, not avoided by accident |
 | Deliberate cut (1) | `GET /pricing/convert` | auth-gated by design (doc'd decision) |
-| **Genuine surface gaps (2)** | `GET /listings/category/{c}`, `GET /search/category/{c}` | slice S4 (J2 search) — register closed by S1 (PR #4), the categories read by S2 (PR #12), and the J5 provider money/profile ops by S3 (2026-09-29: the ledger balance + statement, the pure intent read, `GET/PUT /providers/{id}`) |
+| **Genuine surface gaps (0)** | — | CLOSED by S4 (2026-09-29): `GET /listings/category/{c}` rides the /listings category-ONLY state (no other criterion, no sort — the ops answer 500 INT-001 on sort, measured traceIds 0d7295c8/e1a7b064), `GET /search/category/{c}` rides the flat /search category mode; the register was closed by S1 (PR #4), the categories read by S2 (PR #12), and the J5 provider money/profile ops by S3 (PR #13) |
 
-> **لماذا يهم فريق الباك اند:** الفجوتان المتبقيتان (بحث الفئة بمساريه)
-> هما طلب ميزة S4 من جهتنا — وقد أُغلقت ثلاث هذا الأسبوع: التسجيل
+> **لماذا يهم فريق الباك اند:** فجوتا بحث الفئة (مسارا التصفّح والبحث)
+> أُغلقتا بـS4 (2026-09-29) بعد ثلاث هذا الأسبوع: التسجيل
 > العام (S1، مُتحقَّق حيًّا عبر API في 2026-09-28)، ثم التصنيفات ثنائية
 > اللغة (S2، PR #12)، ثم دفتر المزوّد وقراءة نية الدفع وتحرير ملف
 > المزوّد (S3، 2026-09-29 — مع قياسين مسجّلين للفريق: **LEDGER-403
@@ -167,8 +176,8 @@ contract. Consumption: **96/111 paths = 113/128 ops (88%)**.
 ## 6. Quality gates (what runs before any push)
 
 ```
-eslint ─▶ tsc --noEmit (after build typegen) ─▶ vitest (35/35, 7 files)
-      ─▶ next build (RAILPACK parity: Node 26.8.2) ─▶ playwright smoke 16/16
+eslint ─▶ tsc --noEmit (after build typegen) ─▶ vitest (43/43, 8 files)
+      ─▶ next build (RAILPACK parity: Node 26.8.2) ─▶ playwright smoke 21 + 2 skipped-by-design
           + opt-in live rounds (REGISTER_LIVE=1, CATEGORIES_LIVE=1)
       ─▶ live browser pass (agent-browser; hermetic net needs no secrets,
           the signed-in pass needs an env with the staging secret + the
@@ -234,9 +243,9 @@ number is the backend's, never a client-side recount.**
 | Frontend HEAD | `5972dbd` (main) | 2026-09-28 |
 | Backend HEAD | `1710501` (main) | 2026-09-28 |
 | Live OpenAPI | 128 ops / 111 paths — staging AND prod identical | 2026-09-28 |
-| FE consumption | 97 templates · 0 dead · 96/111 paths (113/128 ops) | 2026-09-28 |
-| Source scale | 91 files / 17,031 lines / 16 pages / 9 action modules | 2026-09-28 |
-| Tests | 13 unit (vitest) + 8 e2e (playwright, hermetic) | 2026-09-28 |
+| FE consumption | 97 templates · 0 dead · 122/128 ops (96%) · 6 unconsumed classified (infra / GEO-TREE-409 / deliberate cut) | 2026-09-29 |
+| Source scale | 92 files / ~17.7k lines / 17 pages / 9 action modules | 2026-09-29 |
+| Tests | 43 unit (vitest) + 23 e2e (playwright, hermetic + opt-in live) | 2026-09-29 |
 | OAuth chain | PKCE S256 + consent, executed live on prod | 2026-09-28 |
 | Deploy proof | Railway commitHash `5972dbd…` + signed-in browser pass | 2026-09-28 |
 | Known backend defects on our radar | `GET /geo/tree` 409 ×3 | latest 2026-09-28 |
