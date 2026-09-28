@@ -23,6 +23,7 @@ import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
+import { isUuid } from "@/lib/api/geo";
 import { replyToReview } from "@/lib/api/reputation";
 import {
   activateListing,
@@ -32,6 +33,7 @@ import {
   pauseListing,
   renewListing,
   updateListing,
+  updateMyProviderProfile,
   upsertProperty,
 } from "@/lib/api/provider";
 import {
@@ -51,7 +53,6 @@ import {
   PROPERTY_TYPES,
   type ProviderActorType,
 } from "@/lib/api/provider-contract";
-import { isUuid } from "@/lib/api/geo";
 import {
   completeUpload,
   deleteMedia,
@@ -175,9 +176,13 @@ function parseListingForm(formData: FormData):
 
 /**
  * Become a provider — POST /providers (L36 onboarding). On success the
- * created profile card renders from the POST response (the only surface
- * that ever returns this caller's own profile fields — measured gap),
- * so the action refreshes the home page into its dashboard state.
+ * action redirects to the dashboard CARRYING the created profile id
+ * (`/provider?profile={id}`): the POST response is the only contract
+ * surface that ever returns this caller's own profile PK (the measured
+ * PROFILE-ID-GAP — no "read my profile" exists), so the redirect is
+ * what keeps the profile card + the J5 edit entry alive for the
+ * session (the backend re-verifies ownership on every later PUT — the
+ * URL id is a pointer, never an authority).
  */
 export async function becomeProviderAction(
   _prev: ActionState,
@@ -228,13 +233,76 @@ export async function becomeProviderAction(
     };
   }
 
-  // refresh() reruns the server render — the home re-probes and lands in
-  // its dashboard state (the created profile rode the POST response on
-  // this transition; later visits read the aggregates — declared gap).
+  // The created profile id rides the redirect (the J5 edit seam — see
+  // the doc comment above); the dashboard's own probe decides what
+  // renders there.
+  redirect(`/provider?profile=${result.data.id}`);
+}
+
+/**
+ * Update my provider profile — PUT /providers/{id} (the J5 edit, slice
+ * S3). Owner-scoped on the backend (verifyOwnership — a foreign id's
+ * 403 words surface verbatim). The measured PUT semantics: empty
+ * optional fields send null and CLEAR the stored values (the bio
+ * contract); the actor select always sends its value (same value = no
+ * change — an omitted actor type would keep the stored one, but the
+ * form never omits it, which is the honest equivalent).
+ */
+export async function updateProviderProfileAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) {
+    return { status: "error", message: "سجّل الدخول أولاً لتعديل ملفك." };
+  }
+
+  const profileId = text(formData, "profileId");
+  if (!isUuid(profileId)) {
+    return { status: "error", message: "معرّف الملف غير صالح." };
+  }
+
+  const displayName = text(formData, "displayName");
+  const bio = optionalText(formData, "bio");
+  const actorTypeRaw = text(formData, "actorType");
+  const agencyName = optionalText(formData, "agencyName");
+  const licenseNumber = optionalText(formData, "licenseNumber");
+
+  if (displayName.length === 0 || displayName.length > PROVIDER_NAME_MAX) {
+    return { status: "error", message: "الاسم العلني مطلوب (٢٠٠ حرف كحد أقصى)." };
+  }
+  if (bio !== null && bio.length > PROVIDER_BIO_MAX) {
+    return { status: "error", message: "النبذة حتى ١٠٠٠ حرف." };
+  }
+  if (agencyName !== null && agencyName.length > PROVIDER_AGENCY_MAX) {
+    return { status: "error", message: "اسم المكتب حتى ٢٠٠ حرف." };
+  }
+  if (licenseNumber !== null && licenseNumber.length > PROVIDER_LICENSE_MAX) {
+    return { status: "error", message: "رقم الترخيص حتى ١٠٠ حرف." };
+  }
+  const actorType = PROVIDER_ACTOR_TYPES.includes(actorTypeRaw as ProviderActorType)
+    ? (actorTypeRaw as ProviderActorType)
+    : null;
+
+  const result = await updateMyProviderProfile(profileId, {
+    displayName,
+    bio,
+    actorType,
+    agencyName,
+    licenseNumber,
+  });
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر حفظ تعديلات ملفك (رمز ${result.status}).`),
+    };
+  }
+
   refresh();
   return {
     status: "success",
-    message: "أُنشئ ملفك — حالته بانتظار توثيق الإدارة.",
+    message: "حُفظ ملفك بالتعديلات الجديدة.",
   };
 }
 

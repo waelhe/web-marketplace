@@ -20,10 +20,12 @@ import {
   renewListingAction,
   replyToReviewAction,
   updateListingAction,
+  updateProviderProfileAction,
   uploadMediaAction,
   upsertPropertyAction,
 } from "./actions";
 import type { ActionState } from "./actions";
+import type { ProviderProfileView } from "@/lib/api/provider-contract";
 import {
   ACTOR_TYPE_LABELS,
   BUILDING_YEAR_MAX,
@@ -119,6 +121,82 @@ export function BecomeProviderForm() {
       />
       <button type="submit" className="button" data-variant="primary" disabled={pending}>
         {pending ? "جارٍ إنشاء الملف…" : "أنشئ ملف المزوّد"}
+      </button>
+      <StateMessage state={state} />
+    </form>
+  );
+}
+
+/**
+ * Edit the provider profile — PUT /providers/{id} (the J5 edit, slice
+ * S3). Prefilled from the profile read (the page's GET). The measured
+ * PUT semantics, mirrored honestly: empty optional fields CLEAR the
+ * stored values (the bio contract — the hints say so), and the actor
+ * select always sends its value (same value = no change; an omitted
+ * actor type would KEEP the stored classification — the form's
+ * equivalent because it never omits).
+ */
+export function EditProviderProfileForm({ profile }: { profile: ProviderProfileView }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    updateProviderProfileAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="stack-form">
+      <input type="hidden" name="profileId" value={profile.id} />
+      <label htmlFor="edit-provider-display-name">الاسم العلني</label>
+      <input
+        id="edit-provider-display-name"
+        name="displayName"
+        type="text"
+        required
+        maxLength={PROVIDER_NAME_MAX}
+        defaultValue={profile.displayName}
+      />
+      <label htmlFor="edit-provider-bio">النبذة (اختياري)</label>
+      <textarea
+        id="edit-provider-bio"
+        name="bio"
+        rows={3}
+        maxLength={PROVIDER_BIO_MAX}
+        defaultValue={profile.bio ?? ""}
+      />
+      <label htmlFor="edit-provider-actor-type">الصفة</label>
+      <select
+        id="edit-provider-actor-type"
+        name="actorType"
+        defaultValue={profile.actorType}
+      >
+        {PROVIDER_ACTOR_TYPES.map((type) => (
+          <option key={type} value={type}>
+            {ACTOR_TYPE_LABELS[type as ProviderActorType]}
+          </option>
+        ))}
+      </select>
+      <p className="field-hint">
+        الصفة المخزّنة مختارة مسبقًا — حفظها كما هي يُبقيها دون تغيير.
+      </p>
+      <label htmlFor="edit-provider-agency-name">اسم المكتب</label>
+      <input
+        id="edit-provider-agency-name"
+        name="agencyName"
+        type="text"
+        maxLength={PROVIDER_AGENCY_MAX}
+        defaultValue={profile.agencyName ?? ""}
+      />
+      <p className="field-hint">اتركه فارغًا لمسح القيمة المخزّنة.</p>
+      <label htmlFor="edit-provider-license-number">رقم الترخيص (عرض فقط)</label>
+      <input
+        id="edit-provider-license-number"
+        name="licenseNumber"
+        type="text"
+        maxLength={PROVIDER_LICENSE_MAX}
+        defaultValue={profile.licenseNumber ?? ""}
+      />
+      <p className="field-hint">اتركه فارغًا لمسح القيمة المخزّنة.</p>
+      <button type="submit" className="button" data-variant="primary" disabled={pending}>
+        {pending ? "جارٍ الحفظ…" : "احفظ تعديلات ملفك"}
       </button>
       <StateMessage state={state} />
     </form>

@@ -63,14 +63,36 @@ session cookie.
 - `/provider` — AUTHENTICATED provider home (roadmap stage 3,
   Nextdoor Business): anonymous → sign-in gate (`noindex`); no provider
   profile (the me-surfaces' 404 house answer) → the L36 onboarding
-  form; provider → dashboard (L40 view analytics + L25 stats + the
-  public ACTIVE inventory + the create entry + the stage-5 reviews
+  form (success redirects to `/provider?profile={id}` — the PK seam);
+  provider → dashboard (L40 view analytics + L25 stats + the ledger
+  link + the profile card when `?profile=` carries the PK (slice S3:
+  the edit entry + the L36 public page link ride it) + the public
+  ACTIVE inventory + the create entry + the stage-5 reviews
   section: reviews about me newest-first via `GET
   /reviews/provider/{userId}` on the session's own backend user id
   (the A1 contract), each unreplied review carrying the L21 reply
   form `POST /reviews/{id}/reply`) — data via `src/lib/api/provider.ts`
   + `src/lib/api/reputation.ts`, writes via Server Actions in
   `src/app/provider/actions.ts`
+- `/provider/ledger` — AUTHENTICATED provider money home (slice S3,
+  charter J5 / L20): the me-chain balance read (`GET
+  /providers/me/ledger/balance` — measured: an unread ledger answers
+  an EMPTY 0 record, never 404) + the paginated statement (`GET
+  /providers/me/ledger/statement?page=`, URL-as-state pagination);
+  "me" resolves server-side from the session's backend user (the client
+  never supplies an id); 0 balance is the measured honest state (credits
+  ride payment completion — the Stripe owner input); LEDGER-403 (battery
+  BE-04) is FIXED on staging (measured live 2026-09-29) and any refusal
+  words would render verbatim — data via `src/lib/api/provider.ts`
+- `/provider/profile` — AUTHENTICATED provider profile edit (slice S3,
+  J5): `GET/PUT /providers/{id}` keyed by provider_profiles.PK — the
+  measured PROFILE-ID-GAP governs: no "read my profile" surface exists,
+  so the PK rides the onboarding redirect (`/provider?profile={id}` →
+  the dashboard card → this page's `?id=`); the PUT's measured
+  semantics mirrored (empty agencyName/licenseNumber CLEAR them, the
+  actor select always sends); the PROVIDER-role trust chain stated on
+  the page (onboarding grants no authority — the admin role PUT is the
+  elevator; its 403 words surface verbatim, measured 2026-09-29)
 - `/providers/[id]` — PUBLIC provider page (roadmap stage 5,
   السمعة — the second SEO surface, L36): one anonymous read
   `GET /providers/{profileId}/public` (measured: NO auth gate — unknown
@@ -128,7 +150,10 @@ session cookie.
   cancel/payment/review, provider confirm/complete/cancel/reverse
   review; the payment block resolves the intent through the
   deterministic idempotency key (read-or-create — no "intent by
-  booking" read exists) and renders amountCents (the booking's only
+  booking" read exists) on FIRST resolution and rides the PURE read
+  (`GET /payments/intents/{id}`, slice S3) whenever the id is already
+  in hand (`?intent=` — the process/cancel redirects land there; no
+  create side-effect re-runs) and renders amountCents (the booking's only
   readable total) with the honest PROCESSING/no-Stripe state; the
   batch-2 §2 consumer cancel (`POST /payments/intents/{id}/cancel` —
   CREATED-only per the backend's state machine; the transition 409

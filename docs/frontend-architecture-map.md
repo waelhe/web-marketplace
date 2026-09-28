@@ -135,40 +135,44 @@ contract. Consumption: **96/111 paths = 113/128 ops (88%)**.
 | `public.ts` | catalog listings browse/detail/provider-list, search |
 | `reputation.ts` | providers public page, reviews (+reply, reverse) |
 | `geo.ts` | geo children/suggest (tree navigation) |
-| `booking.ts` | bookings CRUD chain + payments intents + availability |
+| `booking.ts` | bookings CRUD chain + payments intents (resolve + the pure GET) + availability |
 | `inbox.ts` | notifications (paged + unread-count), preferences, leads, conversations/messages |
 | `community.ts` | posts, comments, reports, neighborhood membership |
 | `saved-searches.ts` | saved searches CRUD |
-| `provider.ts` | provider listings lifecycle + stats + views |
+| `provider.ts` | provider listings lifecycle + stats + views + the L20 ledger reads (balance, statement) + profile read/update (the J5 edit) |
 | `pricing.ts` | availability calendar + seasonal rates + weekend rule |
 | `disputes.ts` | booking disputes read/open |
 | `media.ts` | upload flow (S3-gated, honest 503) |
 | `admin.ts` | the 24-op console (users, listings, ledger, payments, geo, revisions, reports, pricing rules) |
 
-**The 14 unconsumed paths (15 ops), classified:**
+**The 9 unconsumed paths (10 ops), classified:**
 
 | Class | Paths | Meaning |
 |---|---|---|
 | Correctly not frontend (4) | `webhooks/stripe`, `webhooks/{provider}`, `/robots.txt`, `/sitemap.xml` | server-to-server / infra files |
 | Broken backend surface (1) | `GET /geo/tree` | 409 CONFLICT-001 ×3 measured — declared defect, not avoided by accident |
 | Deliberate cut (1) | `GET /pricing/convert` | auth-gated by design (doc'd decision) |
-| **Genuine surface gaps (6)** | `GET /listings/category/{c}`, `GET /search/category/{c}`, `GET /payments/intents/{id}`, `GET /providers/me/ledger/balance`, `GET /providers/me/ledger/statement`, `GET/PUT /providers/{id}` | the next frontend batches — register closed by S1 (PR #4, 2026-09-28), the categories read by S2 (2026-09-29, `getListingCategories()` feeding every picker) |
+| **Genuine surface gaps (2)** | `GET /listings/category/{c}`, `GET /search/category/{c}` | slice S4 (J2 search) — register closed by S1 (PR #4), the categories read by S2 (PR #12), and the J5 provider money/profile ops by S3 (2026-09-29: the ledger balance + statement, the pure intent read, `GET/PUT /providers/{id}`) |
 
-> **لماذا يهم فريق الباك اند:** الستة الأخيرة هي طلبات الميزة القادمة
-> من جهتنا بالترتيب الذي نقترحه — وقد أُغلقت اثنتان هذا الأسبوع: التسجيل
+> **لماذا يهم فريق الباك اند:** الفجوتان المتبقيتان (بحث الفئة بمساريه)
+> هما طلب ميزة S4 من جهتنا — وقد أُغلقت ثلاث هذا الأسبوع: التسجيل
 > العام (S1، مُتحقَّق حيًّا عبر API في 2026-09-28)، ثم التصنيفات ثنائية
-> اللغة (S2، 2026-09-29 — قراءة السجل الحي تغذّي كل المنتقين وإحلال
-> القوائم الصلبة). يليها دفتر المزوّد وقراءة حالة الدفع وتحرير ملف
-> المزوّد.
+> اللغة (S2، PR #12)، ثم دفتر المزوّد وقراءة نية الدفع وتحرير ملف
+> المزوّد (S3، 2026-09-29 — مع قياسين مسجّلين للفريق: **LEDGER-403
+> مُصلح** ورُصد حيّاً على الستاجينغ، وبوابة دور PROVIDER على تحرير
+> الملف — التأهيل لا يمنح الدور ورفعه إداريّ فقط؛ وقراءة «ملفي»
+> (PROFILE-ID-GAP) ما زالت مسجّلة والواجهة تعمل بمسار `?profile=`
+> المؤقت من التأهيل).
 
 ## 6. Quality gates (what runs before any push)
 
 ```
-eslint ─▶ tsc --noEmit (after build typegen) ─▶ vitest (29/29, 6 files)
-      ─▶ next build (RAILPACK parity: Node 26.8.2) ─▶ playwright smoke 12/12
+eslint ─▶ tsc --noEmit (after build typegen) ─▶ vitest (35/35, 7 files)
+      ─▶ next build (RAILPACK parity: Node 26.8.2) ─▶ playwright smoke 16/16
           + opt-in live rounds (REGISTER_LIVE=1, CATEGORIES_LIVE=1)
       ─▶ live browser pass (agent-browser; hermetic net needs no secrets,
-          the signed-in pass needs an env with the staging secret)
+          the signed-in pass needs an env with the staging secret + the
+          one-time consent round for fresh accounts)
 ```
 
 The smoke net is **hermetic by contract**: structure + 401 shapes +

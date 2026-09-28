@@ -31,10 +31,16 @@
 
 import { backendGet, backendSend, type BackendResult } from "./server";
 import type { ListingDetail } from "./types";
+// VALUE import (a runtime constant — a type-only import would erase it
+// at runtime and crash the statement read; caught live by the S3 round).
+import { LEDGER_STATEMENT_PAGE_SIZE } from "./provider-contract";
 import type {
   ListingCompletenessView,
   ListingMutateInput,
+  ProviderLedgerStatementView,
+  ProviderBalanceView,
   ProviderListingViewsView,
+  ProviderProfileMutateInput,
   ProviderProfileView,
   ProviderStatsView,
   PropertyUpsertInput,
@@ -62,6 +68,72 @@ export function getMyListingViews(
  */
 export function getMyStats(): Promise<BackendResult<ProviderStatsView>> {
   return backendGet("/api/v1/providers/me/stats");
+}
+
+/**
+ * My ledger balance — `GET /api/v1/providers/me/ledger/balance` (L20,
+ * slice S3 / charter J5). "me" resolves server-side from the session's
+ * backend user id (the client never supplies a provider id — the A1
+ * contract; the backend's own cross-module guard re-resolves
+ * independently). Measured: nothing-credited-yet answers an EMPTY
+ * balance (availableCents 0), never a 404; no provider profile answers
+ * the house 404. LEDGER-403 watch (battery card BE-04, the R10 fix on
+ * backend main 2026-09-29): if the deployment still carries the
+ * id-space defect the 403 problem words surface verbatim — the
+ * honest-failure pattern, never a guess.
+ */
+export function getMyBalance(): Promise<BackendResult<ProviderBalanceView>> {
+  return backendGet("/api/v1/providers/me/ledger/balance");
+}
+
+/**
+ * My ledger statement — `GET /api/v1/providers/me/ledger/statement?page=`
+ * (L20): newest-first movements (LedgerEntryResponse rows), the house
+ * paged envelope. Negative/out-of-range pages clamp to 0 locally only
+ * AFTER the URL-state parser has already whitelisted them — the
+ * backend's own pagination contract stays the authority.
+ */
+export function getMyStatement(
+  page = 0,
+): Promise<BackendResult<ProviderLedgerStatementView>> {
+  const safe = Math.max(0, Math.trunc(page));
+  return backendGet(
+    `/api/v1/providers/me/ledger/statement?page=${safe}&size=${LEDGER_STATEMENT_PAGE_SIZE}`,
+  );
+}
+
+/**
+ * A provider profile by its PROFILE id — `GET /api/v1/providers/{id}`.
+ * The {id} is provider_profiles.PK, NOT the user id (the A1
+ * cross-module space keys listings/reviews; this read keys the PK) — so
+ * the only contract read that hands the caller their own PK is the
+ * onboarding POST itself. The measured PROFILE-ID-GAP (declared, on the
+ * backend team's register): no "GET my profile" surface exists; this
+ * read serves the id whenever it IS known — the onboarding redirect
+ * carries it (?profile=), and the backend re-verifies ownership on the
+ * PUT alone.
+ */
+export function getProviderProfileById(
+  id: string,
+): Promise<BackendResult<ProviderProfileView>> {
+  return backendGet(`/api/v1/providers/${encodeURIComponent(id)}`);
+}
+
+/**
+ * Update my provider profile — `PUT /api/v1/providers/{id}` (the J5
+ * edit, slice S3). Owner-scoped: a foreign id answers the backend's own
+ * 403 (ProviderService.verifyOwnership — its words surface verbatim).
+ * The measured PUT semantics ride ProviderProfileMutateInput: omitted
+ * agencyName/licenseNumber CLEAR them (the bio contract); an omitted
+ * actorType KEEPS the stored classification — the edit form sends the
+ * selected actor value and null-for-empty optional fields, mirroring
+ * both rules honestly.
+ */
+export function updateMyProviderProfile(
+  id: string,
+  input: ProviderProfileMutateInput,
+): Promise<BackendResult<ProviderProfileView>> {
+  return backendSend("PUT", `/api/v1/providers/${encodeURIComponent(id)}`, input);
 }
 
 /**
