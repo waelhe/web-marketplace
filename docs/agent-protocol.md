@@ -10,8 +10,13 @@
 > (AI-facing format; Arabic reserved for owner-facing replies and the
 > owner's quoted words — see §1), on top of the docs-before-memory
 > epistemic hierarchy, the live verify loop (next-dev-loop via
-> `.next/dev/lock`), and the push-by-explicit-word gate. Maintained
-> with the charter: [`docs/product-charter.md`](./product-charter.md)
+> `.next/dev/lock`), and the push-by-explicit-word gate. The rewrite
+> was A/B-validated with six zero-context agents (behavioral parity
+> with the prior revision; structural validity restored — the old
+> skill frontmatter did not parse and its description exceeded the
+> 1024-char limit); the same test surfaced and fixed a stale
+> production-backend URL (the retired `-d020` door). Maintained with
+> the charter: [`docs/product-charter.md`](./product-charter.md)
 > (product definition) and the map
 > [`docs/frontend-architecture-map.md`](./frontend-architecture-map.md)
 > (contract measurement).
@@ -73,7 +78,7 @@ change preserves the system, and no patch-work that leaves debt.
 | Frontend | `waelhe/web-marketplace` — Next.js 16.3.5 + React 19.3 + Better Auth 1.7.5 (stateless Generic OAuth, BFF), Node 26.8.2 pinned, zero CSS framework (RTL logical tokens), TypeScript |
 | Backend | `waelhe/app-java-v3` — Java 25 / Spring Boot 4.1.1 / Modulith, 22 modules, Flyway V70 (last sync). **Owned by the backend team — read and measure it, never write it** |
 | Frontend prod | `web-marketplace-production-5cc1.up.railway.app` — auto-deploy from `main` (RAILPACK) — **so pushing to origin IS the production deploy trigger** |
-| Backend prod | `app-java-v3-production-d020.up.railway.app` |
+| Backend prod | `app-java-v3-production.up.railway.app` — the live service URL per AGENTS.md + the backend runbook (measured 200 on /v3/api-docs 2026-09-28). The old `-d020` domain is a retired remnant of a deleted service: dead, never probe it |
 | Backend staging | `app-java-v3-staging-staging.up.railway.app` — the default dev backend for `.env.local` |
 | OpenAPI | `GET /v3/api-docs` (128 ops at last sync; the two environments byte-identical when healthy) |
 | Toolchain | Installed tools only: `../.tools/node-v26.8.2-win-x64` from the project root (AGENTS.md's exact pinned path; wiped by rollbacks twice — absent again 2026-09-28, so the measured fallback in §7 is the live reality) |
@@ -121,11 +126,13 @@ change preserves the system, and no patch-work that leaves debt.
    ci` on system node 24 — a documented exception, never a preference.
    Rebuild `.env.local` pointing `BACKEND_URL` at staging.
 8. **Measure before building**: live OpenAPI + probes of this slice's
-   endpoints on staging (success shape + every failure shape). The
-   production backend has transient 502/000 availability windows — a
-   signal to flag, not a contract change. Every parity claim carries
-   its **measurement date** (true only as measured; may be
-   unverifiable during an outage window).
+   endpoints on staging (success shape + every failure shape);
+   production at its live URL — the retired `-d020` domain answers
+   000/502 as a deleted service's remnant, NOT an outage (the earlier
+   "availability window" records were that dead door). A real 502 on
+   the live URL is a signal to flag, not a contract change. Every
+   parity claim carries its **measurement date** (true only as
+   measured; may be unverifiable during a genuine outage).
 
 ## 4. The five operating rules (owner directive, 2026-09-28)
 
