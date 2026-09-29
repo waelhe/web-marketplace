@@ -27,6 +27,12 @@
 > mirrors `/listings?category=` byte-identically). No backend ops
 > consumed (the backend's own robots/sitemap ops serve the BACKEND
 > origin — classified infra, unchanged).
+> Delta 2026-09-29 (S6-a, local merge): the J4 manual-settlement note
+> (charter §7.2 owner decision) — `manual-settlement-note.tsx` + the
+> `MANUAL_SETTLEMENT_OPEN` contract constant (CREATED/PROCESSING only).
+> Pure display, zero ops consumed (the /admin confirm op rides S3 as
+> before); unit suite 82/82 (8 new pins: open-states constant + the
+> note's honesty contract incl. zero fake surfaces).
 > This file pairs with `docs/ARCHITECTURE.md` (the deep Arabic narrative);
 > it does not replace it. The **product definition** it serves lives in
 > `docs/product-charter.md` (the journeys, their acceptance, the slice plan).
@@ -125,7 +131,7 @@ storms as a rotation signal, never a code bug.
 | `/neighborhood` | session | my neighborhood feed (posts + join/leave) |
 | `/inbox` | session | notifications feed (paged, plan-2.6) + unread badge + L22 preferences matrix + L34 leads |
 | `/inbox/conversations/{id}` | participant | message thread (L44 direct / booking) |
-| `/bookings`, `/bookings/{id}` | session | my bookings + state machine actions |
+| `/bookings`, `/bookings/{id}` | session | my bookings + state machine actions; the J4 manual-settlement note (S6) on the payment block's no-channel/pending states |
 | `/profile` | session | identity + data export download |
 | `/providers/{id}` | public | provider public page + reviews |
 | `/provider` + `/provider/bookings` + `/provider/listings/*` + pricing | provider | the provider power tools |

@@ -188,7 +188,13 @@ session cookie.
   (`GET /payments/intents/{id}`, slice S3) whenever the id is already
   in hand (`?intent=` — the process/cancel redirects land there; no
   create side-effect re-runs) and renders amountCents (the booking's only
-  readable total) with the honest PROCESSING/no-Stripe state; the
+  readable total) with the honest PROCESSING/no-Stripe state; the J4
+  manual-settlement note (charter §7.2, owner decision 2026-09-29,
+  `manual-settlement-note.tsx`) rides the no-channel state while the
+  intent is payment-pending (MANUAL_SETTLEMENT_OPEN = CREATED/
+  PROCESSING): settle outside, share the reference through «محادثة هذا
+  الحجز», the administration records it, the backend closes the loop —
+  pure display, zero new endpoints; the
   batch-2 §2 consumer cancel (`POST /payments/intents/{id}/cancel` —
   CREATED-only per the backend's state machine; the transition 409
   words surface verbatim) joins the process form, and the batch-2 §4
