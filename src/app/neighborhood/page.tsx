@@ -16,49 +16,54 @@ import {
   POST_CATEGORIES,
   type PostCategory,
 } from "@/lib/api/community-contract";
-import { findGeoNodeById } from "@/lib/api/geo";
 import { ListingCard } from "@/components/ui/card";
 import {
-  BUSINESS_RAIL_SIZE,
-  DEMO_ALERTS,
-  DEMO_BUSINESSES,
-  DEMO_GROUPS,
   DEMO_POLL,
-  DEMO_PULSE,
   DEMO_WEATHER,
-  GROUPS_WIDGET_SIZE,
   airQualityBand,
-  formatRating,
   neighborhoodDemoEnabled,
 } from "@/lib/neighborhood-product";
 import { DEMO_EVENTS, formatEventDay, formatEventMonth } from "@/lib/neighborhood-events";
+import {
+  DEMO_CHARTER,
+  DEMO_EMERGENCY_CONTACTS,
+  DEMO_MOOD,
+  DEMO_OWNER_ALERTS,
+  DEMO_OWNER_GROUPS,
+  DEMO_OWNER_POSTS,
+  DEMO_OWNER_PULSE,
+  ownerCount,
+  type OwnerFeedPost,
+} from "@/lib/neighborhood-design";
 import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton } from "./forms";
 import { CommentsSection, ReportContentForm } from "./comments";
 import { AlertCard } from "./alert-card";
 import { PollCard } from "./poll-card";
 
 /**
- * حارتي — the authenticated neighborhood home: the integrated
- * community+business PRODUCT (the methodology reversal, slices S7+S8).
+ * خلاصة الحي — the neighborhood feed under the owner's own design
+ * (slice S10: the supplied HTML made executable — the حيّنا shell
+ * wraps this surface; this page is the design's first screen).
  *
- * S8 rebuilds the surface per the owner-supplied design spec
- * (2026-09-29, «خلاصة الحي ومنشورات الجيران» — product-first): the
- * rich share composer (quick-type chips over the SAME measured
- * category vocabulary + the publishing-scope selector), the filter
- * tabs (the real ?category= reads), the featured zone (the pinned
- * urgent alert + the interactive poll — product-defined contracts,
- * display-labeled), the rich post cards, and the smart sidebar (the
- * weather widget, the groups, the safety card). The S7 layers stay:
- * the place (pulse band), the business rail, and the REAL
- * location-scoped marketplace bridge.
+ * The owner-supplied anatomy, verbatim: the mood banner (greeting +
+ * zone chip + the strength line + the live metrics), the share
+ * composer (quick-type chips + scope — the REAL category write), the
+ * filter pills (the REAL ?category= reads), the featured zone (the
+ * pinned urgent alert with the works map + the interactive poll),
+ * the rich display posts (recommendation with the embedded service
+ * card, lost&found, the new-neighbor welcome — the owner's own
+ * content, display-labeled), the REAL feed under the same skin (the
+ * L42 read with comments, DMs, reports, deletes — unchanged
+ * channels), and the smart sidebar (weather, pulse with the safety
+ * ring, upcoming events, the emergency directory with the REAL 940
+ * line, the groups, the charter).
  *
- * The feed (L42) remains the heart — real posts, real comments, real
- * neighbor DMs — under the same privacy contract: everything community
- * answers 401 to anonymous callers (measured), so the honest anonymous
+ * The privacy contract is unchanged: everything community answers
+ * 401 to anonymous callers (measured), so the honest anonymous
  * render is the gate itself. `noindex` — session-scoped content.
  */
 export const metadata: Metadata = {
-  title: "حارتي",
+  title: "خلاصة الحي — حيّنا",
   description: "خلاصة جيرانك — منشورات، توصيات، مفقودات، فعاليات، وأعمال حارتك",
   robots: { index: false },
 };
@@ -67,6 +72,13 @@ type NeighborhoodPageProps = PageProps<"/neighborhood">;
 
 /** The local-listings strip size — the marketplace bridge row. */
 const LOCAL_LISTINGS_SIZE = 4;
+
+/** Latin-digit one-decimal rating — the owner's own number style. */
+const ratingLatn = (rating: number) =>
+  new Intl.NumberFormat("ar-u-nu-latn", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(rating);
 
 /** Parse ?category= against the backend vocabulary — invalid values drop to null (no invented filters). */
 function parseCategory(raw: string | string[] | undefined): PostCategory | null {
@@ -82,8 +94,13 @@ function parsePage(raw: string | string[] | undefined): number {
   return parsed - 1;
 }
 
-/** Arabic-locale count formatting (the feed's own discipline). */
-const count = (n: number) => new Intl.NumberFormat("ar").format(n);
+/** The category chip's tone — the design's four colored vocabularies. */
+const CATEGORY_TONES: Record<PostCategory, string> = {
+  RECOMMENDATION: "tertiary",
+  LOST_FOUND: "primary",
+  CLASSIFIED: "secondary",
+  GENERAL: "neutral",
+};
 
 export default async function NeighborhoodPage({ searchParams }: NeighborhoodPageProps) {
   const sp = await searchParams;
@@ -93,10 +110,11 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
   const session = await getSession();
   if (!session) {
     // The Nextdoor privacy gate: nothing community is public (measured
-    // 401 contract) — the honest anonymous render is the gate itself.
+    // 401 contract) — the honest anonymous render is the gate itself,
+    // inside the design's own shell.
     return (
       <main>
-        <h1>حارتي</h1>
+        <h1>حيّنا</h1>
         <p className="page-note" role="status">
           هذا القسم لأعضاء الحارات — محتواه خاص بالجيران المسجّلين.
         </p>
@@ -115,9 +133,9 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
       // picker is the entry (join first; the feed would answer 403).
       return (
         <main>
-          <h1>حارتي</h1>
+          <h1>حيّنا</h1>
           <p className="page-note" role="status">
-            لم تنتمِ إلى حارة بعد — العضوية هي مفتاح تغذية الحارة.
+            لم تنتمِ إلى حارة بعد — العضوية هي مفتاح تغذية الحي.
           </p>
           <p>
             <Link className="button" data-variant="primary" href="/neighborhoods">
@@ -132,7 +150,7 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
     }
     return (
       <main>
-        <h1>حارتي</h1>
+        <h1>حيّنا</h1>
         <p className="page-note" role="status">
           {membership.unauthenticated
             ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
@@ -148,12 +166,6 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
     );
   }
 
-  // Resolve the neighborhood's display name through the public geo
-  // surface — the backend's projection discipline keeps views
-  // locationId-only; names are geo's concern (one memoized walk).
-  const node = await findGeoNodeById(membership.data.locationId);
-  const neighborhoodName = node?.nameAr ?? null;
-
   const [feed, me, localListings] = await Promise.all([
     getMyFeed(page, FEED_PAGE_SIZE, category),
     // My backend user id (the /me projection) — powers the feed's
@@ -168,95 +180,85 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
   ]);
   const myBackendId = me.ok ? me.id : null;
 
-  // The S8 product-defined display layers (clearly labeled, one env
+  // The S10 owner-design display layers (clearly labeled, one env
   // kill-switch, demo-prefixed ids, never links) — see
-  // src/lib/neighborhood-product.ts for the discipline.
+  // src/lib/neighborhood-design.ts for the discipline.
   const demoOn = neighborhoodDemoEnabled();
-  const pulse = demoOn ? DEMO_PULSE[0] : null;
-  const alert = demoOn ? DEMO_ALERTS[0] ?? null : null;
+  const mood = demoOn ? DEMO_MOOD[0] ?? null : null;
+  const alert = demoOn ? DEMO_OWNER_ALERTS[0] ?? null : null;
   const poll = demoOn ? DEMO_POLL[0] ?? null : null;
   const weather = demoOn ? DEMO_WEATHER[0] ?? null : null;
-  const groups = demoOn ? DEMO_GROUPS.slice(0, GROUPS_WIDGET_SIZE) : [];
-  const businesses = demoOn ? DEMO_BUSINESSES.slice(0, BUSINESS_RAIL_SIZE) : [];
-  // The upcoming-events preview (the sidebar's «الفعاليات القادمة» —
+  const pulse = demoOn ? DEMO_OWNER_PULSE[0] ?? null : null;
+  const ownerPosts = demoOn ? DEMO_OWNER_POSTS : [];
+  const emergencyContacts = demoOn ? DEMO_EMERGENCY_CONTACTS : [];
+  const groups = demoOn ? DEMO_OWNER_GROUPS : [];
+  const charter = demoOn ? DEMO_CHARTER[0] ?? null : null;
+  // The upcoming-events preview (the sidebar's «الفعاليات القريبة» —
   // the design's widget): the next two demo gatherings, linked to the
   // events wing (the product's own surface, slice S9).
   const upcomingEvents = demoOn ? DEMO_EVENTS.slice(0, 2) : [];
 
   return (
-    <main className="hood-app">
-      <header className="hood-hero">
-        <h1 className="hood-title">حارتي{neighborhoodName ? ` — ${neighborhoodName}` : ""}</h1>
-        <p className="hood-hero-sub listing-meta">
-          <span className="listing-category">{neighborhoodName ?? "حارة غير معروفة"}</span>
-          <span>·</span>
-          <span>عضو منذ {formatDate(membership.data.memberSince)}</span>
-        </p>
-        {pulse ? (
-          <div className="hood-pulse" aria-label="نبض الحارة">
-            <ul className="pulse-chips">
-              <li className="pulse-chip">
-                <strong>{count(pulse.members)}</strong>
-                <span>جاراً</span>
-              </li>
-              <li className="pulse-chip">
-                <strong>{count(pulse.postsThisWeek)}</strong>
-                <span>منشوراً هذا الأسبوع</span>
-              </li>
-              <li className="pulse-chip">
-                <strong>{count(pulse.localBusinesses)}</strong>
-                <span>عملاً محلياً</span>
-              </li>
-            </ul>
-            <p className="pulse-disclosure">بيانات عرض — قياسات الحي الحقيقية قادمة مع خدمة الباك اند لهذا العقد</p>
+    <main>
+      {/* THE MOOD BANNER — the design's ambient greeting strip. */}
+      {mood ? (
+        <section className="hy-mood" aria-label="ترحيب الحي">
+          <div className="hy-mood-inner">
+            <div className="hy-mood-id">
+              <span className="hy-mood-icon" aria-hidden="true">
+                <span className="material-symbols-outlined">wb_sunny</span>
+              </span>
+              <div>
+                <p className="hy-mood-title-row">
+                  <span className="hy-mood-title">{mood.greeting}</span>
+                  <span className="hy-mood-zone">
+                    <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.75rem" }}>
+                      location_on
+                    </span>
+                    {mood.zoneChip}
+                  </span>
+                </p>
+                <p className="hy-mood-strength">
+                  {mood.strength} • {ownerCount(mood.families)} عائلة • {mood.gateWatch}
+                </p>
+              </div>
+            </div>
+            <div className="hy-mood-metrics">
+              <span className="hy-mood-metric">
+                <strong>{ownerCount(mood.families)}</strong> عائلة مسجلة
+              </span>
+              <span className="hy-mood-metric hy-mood-metric-live">{mood.gateWatch}</span>
+            </div>
           </div>
-        ) : null}
-        {/* The product's own navigation — the sections of حيّنا (the
-            feed is the active surface; the events wing, the marketplace
-            bridge, and the works directory are the other product wings). */}
-        <nav className="hood-tabs" aria-label="أقسام حيّنا">
-          <span className="hood-tab" data-active="true" aria-current="page">
-            الخلاصة
-          </span>
-          <Link className="hood-tab" href="/neighborhood/events">
-            الفعاليات
-          </Link>
-          <Link className="hood-tab" href="/listings">
-            سوق الحي
-          </Link>
-          <a className="hood-tab" href="#hood-biz">
-            أعمال الحي
-          </a>
-        </nav>
-      </header>
+          <p className="hy-badge-demo" style={{ position: "absolute", insetBlockEnd: "0.5rem", insetInlineEnd: "0.75rem" }}>
+            بيانات عرض
+          </p>
+        </section>
+      ) : null}
 
-      <div className="hood-layout">
-        <section className="hood-main">
+      <div className="hy-grid">
+        <section className="hy-grid-main">
           {/* THE SHARE COMPOSER — the product's front door: quick-type
               chips over the measured category vocabulary + the scope
               selector. Real writes, the honest «قريبًا» gates. */}
-          <section className="hood-section" aria-labelledby="composer-heading">
+          <section className="hy-card" aria-labelledby="composer-heading">
             <h2 id="composer-heading" className="visually-hidden">
-              انشر في حارتك
+              انشر في حيّك
             </h2>
             <CreatePostForm locationId={membership.data.locationId} />
           </section>
 
-          {/* The filter tabs — the REAL ?category= reads (the backend's
-              own filter), presented as the product's tab row. */}
-          <nav className="hood-filter" aria-label="تصفية الخلاصة">
-            <Link
-              href="/neighborhood"
-              className="hood-filter-tab"
-              data-active={category === null || undefined}
-            >
+          {/* The filter pills — the REAL ?category= reads (the backend's
+              own filter), presented as the design's chip row. */}
+          <nav className="hy-filter" aria-label="تصنيفات الخلاصة">
+            <Link href="/neighborhood" className="hy-pill" data-active={category === null || undefined}>
               الكل
             </Link>
             {POST_CATEGORIES.map((value) => (
               <Link
                 key={value}
                 href={`/neighborhood?category=${value}`}
-                className="hood-filter-tab"
+                className="hy-pill"
                 data-active={category === value || undefined}
               >
                 {CATEGORY_LABELS[value]}
@@ -268,64 +270,80 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
               community poll: product-defined contracts, display-labeled,
               interactive as display interactions (never fake writes). */}
           {alert || poll ? (
-            <section className="hood-featured" aria-label="مختارات الحارة">
+            <section aria-label="مختارات الحي" className="hy-grid-main">
               {alert ? <AlertCard alert={alert} /> : null}
               {poll ? <PollCard poll={poll} /> : null}
             </section>
           ) : null}
 
-          <section className="hood-section" aria-labelledby="feed-heading">
-            <div className="hood-section-head">
-              <h2 id="feed-heading">تغذية الحارة</h2>
+          {/* The owner's own display posts — the rich cards of the
+              supplied design (recommendation / lost&found / welcome),
+              display-labeled, never links. */}
+          {ownerPosts.length > 0 ? (
+            <section aria-label="منشورات عرض الحي" className="hy-grid-main">
+              {ownerPosts.map((post) => (
+                <OwnerPostCard key={post.id} post={post} />
+              ))}
+            </section>
+          ) : null}
+
+          {/* THE REAL FEED — the L42 read under the owner's skin: real
+              posts, real comments, real neighbor DMs, real reports. */}
+          <section className="hy-card" aria-labelledby="feed-heading">
+            <div className="hy-real-head">
+              <h2 id="feed-heading" className="hy-section-title">
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  forum
+                </span>
+                منشورات جيرانك
+              </h2>
+              {feed.ok ? (
+                <span className="hy-real-count">
+                  {new Intl.NumberFormat("ar").format(feed.data.totalElements)} منشورًا
+                </span>
+              ) : null}
             </div>
             {feed.ok ? (
               feed.data.content.length === 0 ? (
                 page > 0 && feed.data.totalElements > 0 ? (
-                  <p className="page-note" role="status">
-                    لا منشورات في هذه الصفحة.{" "}
-                    <Link href="/neighborhood">العودة إلى الأولى</Link>
+                  <p className="hy-empty" role="status">
+                    لا منشورات في هذه الصفحة. <Link href="/neighborhood">العودة إلى الأولى</Link>
                   </p>
                 ) : (
-                  <p className="page-note" role="status">
-                    لا منشورات في حارتك بعد — كن أول من يكتب لجيرانه من صندوق المشاركة.
+                  <p className="hy-empty" role="status">
+                    لا منشورات في حيّك بعد — كن أول من يكتب لجيرانه من صندوق المشاركة.
                   </p>
                 )
               ) : (
                 <>
-                  <p className="page-note">
-                    {count(feed.data.totalElements)} منشوراً — الصفحة{" "}
-                    {count(feed.data.pageNumber + 1)} من{" "}
-                    {count(Math.max(feed.data.totalPages, 1))}
-                  </p>
-                  <ul className="feed-list">
+                  <ul className="hy-real-list">
                     {feed.data.content.map((post) => (
-                      <li
-                        key={post.id}
-                        className={`hood-post hood-post-${post.category.toLowerCase()}`}
-                      >
-                        <header className="hood-post-head">
-                          {/* The author is an opaque UUID by the backend's
-                              projection contract — the avatar shows the first
-                              two characters, the only identity signal that
-                              contract carries. No invented name, no "user"
-                              label (the contract carries none). */}
-                          <span className="hood-avatar" aria-hidden="true">
-                            {post.authorId.slice(0, 2).toUpperCase()}
-                          </span>
-                          <span className="hood-post-id">
-                            <span className={`hood-cat hood-cat-${post.category.toLowerCase()}`}>
+                      <li key={post.id} className="hy-real-item">
+                        <header className="hy-post-head">
+                          <div className="hy-post-id">
+                            {/* The author is an opaque UUID by the backend's
+                                projection contract — the avatar shows the first
+                                two characters, the only identity signal that
+                                contract carries. No invented name, no "user"
+                                label (the contract carries none). */}
+                            <span className="hy-avatar" data-tone="primary" aria-hidden="true">
+                              {post.authorId.slice(0, 2).toUpperCase()}
+                            </span>
+                            <span className="hy-post-chip" data-tone={CATEGORY_TONES[post.category]}>
                               {CATEGORY_LABELS[post.category]}
                             </span>
-                            <time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time>
-                          </span>
+                          </div>
+                          <time className="hy-post-meta" dateTime={post.createdAt}>
+                            {formatDate(post.createdAt)}
+                          </time>
                         </header>
-                        <h3>{post.title}</h3>
-                        <p className="post-body">{post.body}</p>
-                        {/* L42's conversational layer (batch-2 spec §1): the
-                            comments disclosure — an on-demand read, so a closed
-                            post costs the feed render nothing. */}
+                        <h3 className="hy-real-title">{post.title}</h3>
+                        <p className="hy-real-body">{post.body}</p>
+                        {/* L42's conversational layer: the comments
+                            disclosure — an on-demand read, so a closed post
+                            costs the feed render nothing. */}
                         <CommentsSection postId={post.id} />
-                        <div className="post-actions">
+                        <div className="hy-real-actions">
                           {/* L44 entry: message the author (hidden on my own
                               posts via the measured /me identity chain — the
                               backend's 400-self guard remains the authority). */}
@@ -341,10 +359,10 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                       </li>
                     ))}
                   </ul>
-                  <nav className="listing-pager" aria-label="تصفّح الصفحات">
+                  <nav className="hy-pager" aria-label="تصفّح الصفحات">
                     {feed.data.pageNumber > 0 ? (
                       <Link
-                        className="button"
+                        className="hy-btn hy-btn-soft"
                         href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber}`}
                       >
                         الصفحة السابقة
@@ -352,7 +370,7 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                     ) : null}
                     {!feed.data.last ? (
                       <Link
-                        className="button"
+                        className="hy-btn hy-btn-soft"
                         href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber + 2}`}
                       >
                         الصفحة التالية
@@ -362,11 +380,11 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                 </>
               )
             ) : feed.status === 403 ? (
-              <p className="page-note" role="status">
-                عضويتك لم تعد فعّالة — غادِر ثم انضم من جديد إلى حارتك.
+              <p className="hy-state" role="status">
+                عضويتك لم تعد فعّالة — غادِر ثم انضم من جديد إلى حيّك.
               </p>
             ) : (
-              <p className="page-note" role="status">
+              <p className="hy-state" role="status">
                 {feed.unauthenticated
                   ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
                   : problemMessage(feed.problem, `تعذّر قراءة التغذية (رمز ${feed.status}).`)}
@@ -374,47 +392,19 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
             )}
           </section>
 
-          {businesses.length > 0 ? (
-            <section className="hood-section" id="hood-biz" aria-labelledby="biz-heading">
-              <div className="hood-section-head">
-                <h2 id="biz-heading">أعمال حارتك</h2>
-                <span className="badge badge-muted">بيانات عرض</span>
-              </div>
-              <ul className="biz-rail">
-                {businesses.map((biz) => (
-                  /* Display cards, never links (rule 4): the demo id is
-                      not a backend UUID — the public provider read would
-                      404, and a fake page would poison trust. */
-                  <li key={biz.id} className="biz-card">
-                    <p className="biz-trade">{biz.trade}</p>
-                    <h3>{biz.name}</h3>
-                    <p className="biz-tagline">{biz.tagline}</p>
-                    <p className="biz-meta listing-meta">
-                      {biz.rating !== null ? (
-                        <span className="biz-rating" aria-label={`التقييم ${formatRating(biz.rating)} من ٥`}>
-                          <span aria-hidden="true">★</span> {formatRating(biz.rating)}
-                          <span className="biz-reviews">({count(biz.reviews)})</span>
-                        </span>
-                      ) : (
-                        <span className="biz-rating biz-rating-new">جديد — بلا تقييمات بعد</span>
-                      )}
-                      {biz.verified ? <span className="biz-verified">موثّق</span> : null}
-                      {biz.offerings > 0 ? (
-                        <span>{count(biz.offerings)} عروض نشطة</span>
-                      ) : null}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-              <p className="page-note">
-                دليل أعمال الحي — عندما تُفعَّل عقود الباك اند ستظهر الأعمال الحقيقية هنا بنفس البطاقات.
-              </p>
-            </section>
-          ) : null}
-
-          <section className="hood-section" aria-labelledby="local-heading">
-            <div className="hood-section-head">
-              <h2 id="local-heading">إعلانات في حارتك</h2>
+          {/* THE MARKETPLACE BRIDGE — the real location-scoped public
+              read (unchanged channel, the platform's own card). */}
+          <section className="hy-card" aria-labelledby="local-heading">
+            <div className="hy-section-head">
+              <h2 id="local-heading" className="hy-section-title">
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  storefront
+                </span>
+                إعلانات في حيّك
+              </h2>
+              <Link href="/neighborhood/market" className="hy-btn hy-btn-soft">
+                سوق الحي
+              </Link>
             </div>
             {localListings.ok ? (
               localListings.data.content.length > 0 ? (
@@ -426,15 +416,15 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                   ))}
                 </ul>
               ) : (
-                <p className="page-note" role="status">
-                  لا إعلانات نشطة في حارتك بعد.{" "}
+                <p className="hy-empty" role="status">
+                  لا إعلانات نشطة في حيّك بعد.{" "}
                   <Link href="/listings">تصفّح كل إعلانات المنصة</Link>
                 </p>
               )
             ) : (
-              <p className="page-note" role="status">
+              <p className="hy-state" role="status">
                 {localListings.status === 0
-                  ? "الخادم الخلفي غير متاح حالياً — لا يمكن قراءة إعلانات الحي."
+                  ? "الخادم الخلفي غير متاح حاليًا — لا يمكن قراءة إعلانات الحي."
                   : problemMessage(
                       localListings.problem,
                       `تعذّرت قراءة إعلانات الحي (رمز ${localListings.status}).`,
@@ -444,101 +434,259 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
           </section>
         </section>
 
-        <aside className="hood-side">
-          <section className="card member-card">
-            <h2>عضويتك</h2>
-            <p className="page-note">
+        <aside className="hy-grid-side">
+          {/* The member's own state — the REAL membership read. */}
+          <section className="hy-card" aria-labelledby="member-heading">
+            <h2 id="member-heading" className="hy-widget-title">
+              عضويتك
+            </h2>
+            <p className="hy-screen-sub">
               {/* SELF_DECLARED is the measured verificationState — the
                   verification method itself is a pending backend product gate. */}
               {membership.data.verificationState === "SELF_DECLARED"
                 ? "عضوية معلَنة ذاتياً — التحقق من السكان بوابة منتج لاحقة."
                 : `حالة التحقق: ${membership.data.verificationState}`}
             </p>
+            <p className="hy-post-meta">عضو منذ {formatDate(membership.data.memberSince)}</p>
             <LeaveForm />
           </section>
 
+          {/* The weather widget — the design's microclimate card. */}
           {weather ? (
-            <section className="card hood-widget" aria-labelledby="weather-heading">
-              <div className="hood-widget-head">
-                <h2 id="weather-heading">طقس الحي</h2>
-                <span className="badge badge-muted">بيانات عرض</span>
+            <section className="hy-card" aria-labelledby="weather-heading">
+              <div className="hy-widget-head">
+                <h2 id="weather-heading" className="hy-widget-title">
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    thermostat
+                  </span>
+                  طقس وبيئة الحي
+                </h2>
+                <span className="hy-badge-demo">بيانات عرض</span>
               </div>
-              <p className="weather-now">
-                <strong>{count(weather.temperature)}°</strong>
-                <span>{weather.condition}</span>
-              </p>
-              <dl className="weather-rows">
+              <div className="hy-weather-now">
                 <div>
-                  <dt>جودة الهواء</dt>
-                  <dd>
-                    {airQualityBand(weather.airQuality)}{" "}
-                    <span className="listing-meta">({count(weather.airQuality)})</span>
-                  </dd>
+                  <p className="hy-weather-temp">
+                    {ownerCount(weather.temperature)}°<span>م</span>
+                  </p>
+                  <p className="hy-weather-desc">{weather.condition}</p>
                 </div>
-                <div>
-                  <dt>ملاءمة المشي</dt>
-                  <dd>{weather.walkability}</dd>
+                <span className="hy-weather-icon" aria-hidden="true">
+                  <span className="material-symbols-outlined">sunny</span>
+                </span>
+              </div>
+              <div className="hy-weather-aqi">
+                <div className="hy-weather-aqi-id">
+                  <span className="material-symbols-outlined" aria-hidden="true">air</span>
+                  <div>
+                    <strong>
+                      جودة الهواء: {airQualityBand(weather.airQuality)} ({ownerCount(weather.airQuality)})
+                    </strong>
+                    <span>{weather.walkability}</span>
+                  </div>
                 </div>
-              </dl>
+                <span className="hy-aqi-dot" aria-hidden="true" />
+              </div>
             </section>
           ) : null}
 
-          {upcomingEvents.length > 0 ? (
-            <section className="card hood-widget" aria-labelledby="upcoming-heading">
-              <div className="hood-widget-head">
-                <h2 id="upcoming-heading">الفعاليات القادمة</h2>
-                <span className="badge badge-muted">بيانات عرض</span>
+          {/* نبض الحي — the design's pulse widget + the safety ring. */}
+          {pulse ? (
+            <section className="hy-card" aria-labelledby="pulse-heading">
+              <div className="hy-widget-head">
+                <h2 id="pulse-heading" className="hy-widget-title">
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    monitoring
+                  </span>
+                  نبض الحي اليوم
+                </h2>
+                <span className="hy-badge-demo">بيانات عرض</span>
               </div>
-              <ul className="upcoming-list">
+              <div className="hy-pulse-grid">
+                <div className="hy-pulse-tile">
+                  <span className="hy-pulse-tile-label">جيران نشطون الآن</span>
+                  <span className="hy-pulse-tile-value">
+                    <strong>{ownerCount(pulse.onlineNow)}</strong>
+                    <span className="hy-pulse-tile-unit">جار متصل</span>
+                  </span>
+                </div>
+                <div className="hy-pulse-tile">
+                  <span className="hy-pulse-tile-label">طلبات حُلّت هذا الأسبوع</span>
+                  <span className="hy-pulse-tile-value" data-tone="tertiary">
+                    <strong>{ownerCount(pulse.solvedThisWeek)}</strong>
+                    <span className="hy-pulse-tile-unit">مبادرة منجزة</span>
+                  </span>
+                </div>
+              </div>
+              <div className="hy-safety-ring">
+                <div className="hy-safety-ring-id">
+                  <strong>{pulse.safetyTitle}</strong>
+                  <span>{pulse.safetyNote}</span>
+                </div>
+                <div className="hy-ring" role="img" aria-label={`${ownerCount(pulse.safetyPercent)}% ${pulse.safetyTitle}`}>
+                  <svg viewBox="0 0 36 36" aria-hidden="true">
+                    <circle className="hy-ring-track" cx="18" cy="18" r="15.9155" fill="none" stroke="currentColor" strokeWidth="3.5" />
+                    <circle
+                      className="hy-ring-value"
+                      cx="18"
+                      cy="18"
+                      r="15.9155"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeDasharray={`${pulse.safetyPercent}, 100`}
+                    />
+                  </svg>
+                  <span className="hy-ring-label">{ownerCount(pulse.safetyPercent)}%</span>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {/* الفعاليات القريبة — the S9 events source under the new skin. */}
+          {upcomingEvents.length > 0 ? (
+            <section className="hy-card" aria-labelledby="upcoming-heading">
+              <div className="hy-widget-head">
+                <h2 id="upcoming-heading" className="hy-widget-title">
+                  <span className="material-symbols-outlined" aria-hidden="true">event</span>
+                  فعاليات قريبة
+                </h2>
+                <span className="hy-badge-demo">بيانات عرض</span>
+              </div>
+              <ul className="hy-events-list">
                 {upcomingEvents.map((event) => (
-                  <li key={event.id} className="upcoming-row">
-                    <span className="upcoming-date">
-                      <strong>{formatEventDay(event.startsAt)}</strong>
+                  <li key={event.id} className="hy-event-row">
+                    <span className="hy-event-date" aria-hidden="true">
                       <span>{formatEventMonth(event.startsAt)}</span>
+                      <strong>{formatEventDay(event.startsAt)}</strong>
                     </span>
-                    <span className="upcoming-body">
-                      <span className="upcoming-title">{event.title}</span>
-                      <span className="listing-meta">{event.location}</span>
+                    <span className="hy-event-id">
+                      <span className="hy-event-title">{event.title}</span>
+                      <span className="hy-event-meta">{event.location}</span>
                     </span>
                   </li>
                 ))}
               </ul>
-              <Link className="button" href="/neighborhood/events">
+              <Link className="hy-btn hy-btn-soft" href="/neighborhood/events">
+                <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
                 كل فعاليات الحي
               </Link>
             </section>
           ) : null}
 
-          {groups.length > 0 ? (
-            <section className="card hood-widget" aria-labelledby="groups-heading">
-              <div className="hood-widget-head">
-                <h2 id="groups-heading">مجموعات الجيران</h2>
-                <span className="badge badge-muted">بيانات عرض</span>
+          {/* طوارئ وتواصل الحي السريع — the emergency directory (the
+              municipality's 940 line is the one REAL number). */}
+          {emergencyContacts.length > 0 ? (
+            <section className="hy-card" aria-labelledby="emergency-heading">
+              <div className="hy-widget-head">
+                <h2 id="emergency-heading" className="hy-widget-title">
+                  <span className="material-symbols-outlined" aria-hidden="true" style={{ color: "var(--hy-error)" }}>
+                    emergency
+                  </span>
+                  طوارئ وتواصل الحي السريع
+                </h2>
+                <span className="hy-badge-demo">بيانات عرض</span>
               </div>
-              <ul className="groups-list">
-                {groups.map((group) => (
-                  /* Display chips, never links (rule 4): no group
-                      surfaces exist — a demo id link would 404. */
-                  <li key={group.id} className="group-chip">
-                    <span className="group-name">{group.name}</span>
-                    <span className="listing-meta">{count(group.members)} جاراً</span>
-                    <span className="group-desc">{group.description}</span>
+              <ul className="hy-contact-list">
+                {emergencyContacts.map((contact) => (
+                  <li key={contact.id} className="hy-contact-row">
+                    <div className="hy-contact-id">
+                      <span className="hy-icon-tile" data-tone={contact.tone === "neutral" ? "neutral" : contact.tone === "primary" ? "primary" : "secondary"}>
+                        <span className="material-symbols-outlined">{contact.icon}</span>
+                      </span>
+                      <div>
+                        <span className="hy-contact-name">{contact.name}</span>
+                        <span className="hy-contact-note">{contact.note}</span>
+                      </div>
+                    </div>
+                    {contact.id === "demo-emergency-municipality" ? (
+                      /* The municipality's own published emergency line —
+                          the one REAL number in the design's directory. */
+                      <a
+                        className="hy-contact-call"
+                        data-tone="primary"
+                        href="tel:940"
+                        title="اتصال فوري — طوارئ أمانة الشمال 940"
+                        aria-label={`اتصال بـ ${contact.name}`}
+                      >
+                        <span className="material-symbols-outlined">call</span>
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        className="hy-contact-call"
+                        data-tone="neutral"
+                        disabled
+                        title="قريبًا — الأرقام المباشرة بانتظار عقد التواصل لدى الباك اند"
+                        aria-label={`اتصال بـ ${contact.name}`}
+                      >
+                        <span className="material-symbols-outlined">call</span>
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
             </section>
           ) : null}
 
-          <section className="card hood-widget" aria-labelledby="safety-heading">
-            <div className="hood-widget-head">
-              <h2 id="safety-heading">سلامة الحي</h2>
-            </div>
-            <ul className="safety-list">
-              <li>لا تنشر تفاصيل سفرك أو مفاتيح بيتك في المنشورات العامة.</li>
-              <li>زرّ «التبليغ» أسفل كل منشور يصلك مقلقًا — الإدارة تراجعه.</li>
-              <li>الرسائل مع الجيران محفوظة داخل المنصة — لا تشارك بياناتك البنكية أبدًا.</li>
-            </ul>
-          </section>
+          {/* مجموعات الحي التخصصية — the design's clubs widget. */}
+          {groups.length > 0 ? (
+            <section className="hy-card" aria-labelledby="groups-heading">
+              <div className="hy-widget-head">
+                <h2 id="groups-heading" className="hy-widget-title">
+                  <span className="material-symbols-outlined" aria-hidden="true">groups_3</span>
+                  مجموعات الحي التخصصية
+                </h2>
+                <span className="hy-badge-demo">بيانات عرض</span>
+              </div>
+              <ul className="hy-group-list">
+                {groups.map((group) => (
+                  /* Display rows, never links (rule 4): no group surfaces
+                      exist — a demo id link would 404. */
+                  <li key={group.id} className="hy-group-row">
+                    <div className="hy-group-id">
+                      <span className="hy-group-icon" data-tone={group.tone}>
+                        <span className="material-symbols-outlined">{group.icon}</span>
+                      </span>
+                      <div>
+                        <span className="hy-group-name">{group.name}</span>
+                        <span className="hy-group-meta">{group.meta}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="hy-btn hy-btn-soft"
+                      disabled
+                      title={group.joinGate}
+                    >
+                      انضمام
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {/* ميثاق الجيرة الطيبة — the design's closing charter badge. */}
+          {charter ? (
+            <section className="hy-charter" aria-labelledby="charter-heading">
+              <span className="material-symbols-outlined" aria-hidden="true" style={{ color: "var(--hy-primary)" }}>
+                handshake
+              </span>
+              <h2 id="charter-heading" className="hy-charter-title">
+                {charter.title}
+              </h2>
+              <p className="hy-charter-quote">{charter.quote}</p>
+              <details>
+                <summary className="hy-charter-link">{charter.rulesLabel}</summary>
+                <ul className="hy-market-rules">
+                  {charter.rules.map((rule) => (
+                    <li key={rule}>{rule}</li>
+                  ))}
+                </ul>
+              </details>
+            </section>
+          ) : null}
         </aside>
       </div>
 
@@ -546,5 +694,196 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
         <Link href="/">الرئيسية</Link>
       </p>
     </main>
+  );
+}
+
+/**
+ * The owner's own display post — the rich card anatomy of the supplied
+ * design (recommendation with the embedded service card + the preview
+ * comment, lost&found with the image block, the welcome with the
+ * stacked avatars). Display-labeled, demo ids, never links.
+ */
+function OwnerPostCard({ post }: { post: OwnerFeedPost }) {
+  return (
+    <article className="hy-card hy-post">
+      <header className="hy-post-head">
+        <div className="hy-post-id">
+          <span className="hy-avatar" data-tone={post.tone} aria-hidden="true">
+            {post.initials}
+          </span>
+          <div>
+            <span className="hy-post-name-row">
+              <span className="hy-post-name">{post.author}</span>
+              <span className="hy-post-chip" data-tone="verified">
+                <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.75rem" }}>
+                  {post.chipIcon}
+                </span>
+                {post.chip}
+              </span>
+              {post.sectionChip ? (
+                <span className="hy-post-chip" data-tone="neutral">
+                  {post.sectionChip}
+                </span>
+              ) : null}
+            </span>
+            <span className="hy-post-meta">{post.meta}</span>
+          </div>
+        </div>
+        <span className="hy-badge-demo">بيانات عرض</span>
+      </header>
+
+      {post.title ? <h3 className="hy-post-title">{post.title}</h3> : null}
+      <p className={post.kind === "WELCOME" ? "hy-post-body hy-post-body-muted" : "hy-post-body"}>
+        {post.body}
+      </p>
+
+      {/* The embedded service card — the recommendation's trust core. */}
+      {post.service ? (
+        <div className="hy-service-card">
+          <div className="hy-service-id">
+            <span className="hy-icon-tile" data-tone="tertiary" aria-hidden="true">
+              <span className="material-symbols-outlined">{post.service.icon}</span>
+            </span>
+            <div>
+              <span className="hy-service-name-row">
+                <span className="hy-service-name">{post.service.name}</span>
+                <span className="hy-service-rating" aria-label={`التقييم ${ratingLatn(post.service.rating)} من 5`}>
+                  <span className="hy-stars" aria-hidden="true">★★★★★</span>
+                  {ratingLatn(post.service.rating)}
+                  <span className="hy-rating-count">({ownerCount(post.service.reviews)} تقييم من أهل الحي)</span>
+                </span>
+              </span>
+              <span className="hy-service-coverage">{post.service.coverage}</span>
+            </div>
+          </div>
+          <div className="hy-service-actions">
+            <button
+              type="button"
+              className="hy-btn hy-btn-primary"
+              disabled
+              title="قريبًا — الاتصال المباشر بانتظار عقد التواصل لدى الباك اند"
+            >
+              <span className="material-symbols-outlined">call</span>
+              اتصل الآن
+            </button>
+            <button
+              type="button"
+              className="hy-btn hy-btn-soft"
+              disabled
+              title="قريبًا — مراسلة الحرفي بانتظار صفحة مقدم الخدمة لهذا العقد"
+            >
+              <span className="material-symbols-outlined">chat</span>
+              راسله عبر المنصة
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* The lost&found image block — the icon tile stands in for the
+          photograph (no fake photos of a real neighbor's pet). */}
+      {post.kind === "LOST_FOUND" && post.imageIcon ? (
+        <div className="hy-lostfound">
+          <div className="hy-image-block" role="img" aria-label={post.imageAlt ?? ""}>
+            <span className="material-symbols-outlined" style={{ fontSize: "3rem" }}>
+              {post.imageIcon}
+            </span>
+          </div>
+          {post.ctaLabel ? (
+            <div className="hy-service-actions">
+              <button
+                type="button"
+                className="hy-btn hy-btn-primary"
+                disabled
+                title="قريبًا — التواصل مع صاحب المنشور بانتظار عقد التفاعلات"
+              >
+                <span className="material-symbols-outlined">call</span>
+                {post.ctaLabel}
+              </button>
+              {post.ctaSecondary ? (
+                <button
+                  type="button"
+                  className="hy-btn hy-btn-soft"
+                  disabled
+                  title="قريبًا — المشاركة الخارجية خارج نطاق المنصة"
+                >
+                  <span className="material-symbols-outlined">share</span>
+                  {post.ctaSecondary}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* The preview comment — the design's inline neighbor comment. */}
+      {post.commentPreview ? (
+        <div className="hy-comment-preview">
+          <div className="hy-comment-row">
+            <span className="hy-avatar hy-avatar-sm" data-tone="primary" aria-hidden="true">
+              {post.commentPreview.author.slice(0, 2)}
+            </span>
+            <div className="hy-comment-bubble">
+              <div className="hy-comment-head">
+                <span className="hy-comment-author">{post.commentPreview.author}</span>
+                <span className="hy-comment-when">{post.commentPreview.when}</span>
+              </div>
+              <p className="hy-comment-body">{post.commentPreview.body}</p>
+            </div>
+          </div>
+          <button type="button" className="hy-comment-more" disabled title="قريبًا — بقية التعليقات بانتظار عقد التفاعلات">
+            {post.commentPreview.moreLabel}
+          </button>
+        </div>
+      ) : null}
+
+      <footer className="hy-post-foot">
+        <span className="hy-post-foot-meta">
+          {post.thanks ? (
+            <span className="hy-metric-primary">
+              <span className="material-symbols-outlined" aria-hidden="true">thumb_up</span>
+              {ownerCount(post.thanks)} {post.thanksLabel}
+            </span>
+          ) : null}
+          {post.commentsCount ? (
+            <span>
+              <span className="material-symbols-outlined" aria-hidden="true">mode_comment</span>
+              {ownerCount(post.commentsCount)} تعليقًا
+            </span>
+          ) : null}
+          {post.footNote ? (
+            <span className="hy-metric-tertiary">
+              <span className="material-symbols-outlined" aria-hidden="true">info</span>
+              {post.footNote}
+            </span>
+          ) : null}
+        </span>
+        {post.kind === "WELCOME" ? (
+          <span className="hy-post-foot-meta">
+            <button
+              type="button"
+              className="hy-btn hy-btn-primary"
+              disabled
+              title="قريبًا — الترحيب التفاعلي بانتظار عقد التفاعلات"
+            >
+              <span className="material-symbols-outlined">waving_hand</span>
+              {post.ctaLabel}
+            </button>
+            {post.welcomedBy ? (
+              <span className="hy-welcome-stack" aria-hidden="true">
+                {(post.welcomeStack ?? []).map((initials) => (
+                  <span key={initials} className="hy-avatar-sm hy-avatar" data-tone="primary">
+                    {initials}
+                  </span>
+                ))}
+                <span className="hy-avatar-sm hy-avatar hy-welcome-more">
+                  +{ownerCount(post.welcomedBy - (post.welcomeStack ?? []).length)}
+                </span>
+              </span>
+            ) : null}
+            <span className="hy-metric-tertiary">{ownerCount(post.welcomedBy ?? 0)} جار رحبوا به اليوم</span>
+          </span>
+        ) : null}
+      </footer>
+    </article>
   );
 }

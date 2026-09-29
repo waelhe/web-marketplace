@@ -181,7 +181,8 @@ describe("the poll contract (the interactive featured card)", () => {
   test("the poll card renders its options as buttons with the honest display label", async () => {
     const { PollCard } = await import("@/app/neighborhood/poll-card");
     const markup = renderToStaticMarkup(createElement(PollCard, { poll: DEMO_POLL[0] }));
-    expect(markup).toContain('class="poll-card"');
+    // The S10 owner-design skin: the same interaction, the design's card.
+    expect(markup).toContain("hy-card");
     expect(markup).toContain("استطلاع رأي");
     expect(markup).toContain("بيانات عرض");
     expect(markup).toContain(DEMO_POLL[0].question);
@@ -207,12 +208,18 @@ describe("the pinned alert contract (the featured zone's urgent card)", () => {
 
   test("the alert card renders its acknowledgment as a display interaction", async () => {
     const { AlertCard } = await import("@/app/neighborhood/alert-card");
-    const markup = renderToStaticMarkup(createElement(AlertCard, { alert: DEMO_ALERTS[0] }));
-    expect(markup).toContain('class="alert-card"');
-    expect(markup).toContain("تنبيه عاجل");
+    // The S10 owner-design skin: the card rides the design layer's
+    // OwnerAlert contract (the works map, the guidelines, the parking).
+    const { DEMO_OWNER_ALERTS } = await import("@/lib/neighborhood-design");
+    const markup = renderToStaticMarkup(createElement(AlertCard, { alert: DEMO_OWNER_ALERTS[0] }));
+    expect(markup).toContain("hy-card");
+    expect(markup).toContain(DEMO_OWNER_ALERTS[0].badge);
     expect(markup).toContain("بيانات عرض");
-    expect(markup).toContain("أكّد علمك");
-    expect(markup).toContain(DEMO_ALERTS[0].issuer);
+    expect(markup).toContain(DEMO_OWNER_ALERTS[0].ackLabel);
+    expect(markup).toContain(DEMO_OWNER_ALERTS[0].issuer);
+    // The design's works-map snippet + guidelines ride the card.
+    expect(markup).toContain(DEMO_OWNER_ALERTS[0].mapLabel);
+    expect(markup).toContain(DEMO_OWNER_ALERTS[0].parkingNote);
   });
 });
 

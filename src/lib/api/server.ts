@@ -18,6 +18,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { decodeProblem, type ProblemDetail } from "@/lib/problem";
+import { backendTimeoutSignal } from "./timeout";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
 
@@ -87,10 +88,13 @@ export async function backendGet<T>(path: string): Promise<BackendResult<T>> {
         Accept: "application/problem+json, application/json",
       },
       cache: "no-store",
+      signal: backendTimeoutSignal(),
     });
   } catch {
-    // Network-level failure: backend unreachable (e.g. local backend not
-    // started). Honest, expected state — surfaced as data, not a crash.
+    // Network-level failure: backend unreachable (connection refused —
+    // e.g. local backend not started — or the timeout ceiling tripped
+    // on a wedged-but-accepting instance). Honest, expected state —
+    // surfaced as data, never a crash of the render.
     return { ok: false, status: 0, problem: null, unauthenticated: false };
   }
 
@@ -147,8 +151,10 @@ export async function backendSend<T>(
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       cache: "no-store",
+      signal: backendTimeoutSignal(),
     });
   } catch {
+    // Unreachable OR hung-past-the-ceiling — the same honest status-0.
     return { ok: false, status: 0, problem: null, unauthenticated: false };
   }
 
@@ -200,8 +206,10 @@ export async function backendSendPublic<T>(
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       cache: "no-store",
+      signal: backendTimeoutSignal(),
     });
   } catch {
+    // Unreachable OR hung-past-the-ceiling — the same honest status-0.
     return { ok: false, status: 0, problem: null, unauthenticated: false };
   }
 
