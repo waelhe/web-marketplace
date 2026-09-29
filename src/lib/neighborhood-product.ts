@@ -177,3 +177,175 @@ export function formatRating(rating: number | null): string | null {
     maximumFractionDigits: 1,
   }).format(rating);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * The S8 product-defined contracts — the rich feed layer (owner-supplied
+ * design spec 2026-09-29: «خلاصة الحي ومنشورات الجيران» — the composer with
+ * quick types, the featured zone (pinned alert + interactive poll), and the
+ * smart sidebar widgets). Same discipline, same kill-switch.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * The neighborhood weather contract — the sidebar's «طقس الحي» widget:
+ * current conditions + air quality + walkability (the design's three
+ * signals in one read). ONE read the product defines; the backend serves
+ * it later (the natural seam: an external weather provider behind a
+ * per-location aggregate).
+ */
+export interface NeighborhoodWeather {
+  /** Current temperature, °C. */
+  temperature: number;
+  /** The condition's display label, Arabic. */
+  condition: string;
+  /** Air Quality Index 0–200 (the display bands: 0–50 جيدة…). */
+  airQuality: number;
+  /** The walkability verdict's display label, Arabic. */
+  walkability: string;
+}
+
+/**
+ * The neighborhood poll contract — the featured zone's interactive
+ * استطلاع رأي: ONE question, 2–5 options, each with a live vote count.
+ * The product defines the shape; the backend serves it later (the
+ * natural seam: a poll entity + one-vote-per-member write). The demo
+ * poll's voting is a display interaction (client state only — never a
+ * fake write), honestly labeled.
+ */
+export interface NeighborhoodPoll {
+  /** `demo-` prefixed in the display dataset — never a UUID. */
+  id: string;
+  /** The question, Arabic. */
+  question: string;
+  /** The poll's author display (a committee/role label, not a person). */
+  author: string;
+  options: ReadonlyArray<{
+    /** The option's display label. */
+    label: string;
+    /** Votes so far (the demo seed counts). */
+    votes: number;
+  }>;
+  /** Creation timestamp (ISO). */
+  createdAt: string;
+}
+
+/**
+ * The pinned alert contract — the featured zone's «تنبيه عاجل ومثبت»:
+ * urgent neighborhood news the committee pins above the feed, with the
+ * «أكد العلم» acknowledgment the design specifies (a display
+ * interaction — the real ack write joins when the backend serves the
+ * contract).
+ */
+export interface NeighborhoodAlert {
+  /** `demo-` prefixed in the display dataset — never a UUID. */
+  id: string;
+  /** The alert's headline. */
+  title: string;
+  /** The body — what, where, the alternative arrangements. */
+  body: string;
+  /** The issuing body's display label. */
+  issuer: string;
+  /** Urgency band for the accent color (the product's own vocabulary). */
+  severity: "HIGH" | "MEDIUM";
+  /** «أكد العلم» acknowledgment count so far (demo seed). */
+  acknowledgments: number;
+  /** Creation timestamp (ISO). */
+  createdAt: string;
+}
+
+/**
+ * The neighborhood group contract — the sidebar's «مجموعات الجيران»:
+ * the interest clubs a real neighborhood runs (the design's widget).
+ * Display chips only — never links (no group surfaces exist yet).
+ */
+export interface NeighborhoodGroup {
+  /** `demo-` prefixed in the display dataset — never a UUID. */
+  id: string;
+  /** The group's display name, Arabic. */
+  name: string;
+  /** One-line description — display copy. */
+  description: string;
+  /** Member count (demo seed). */
+  members: number;
+}
+
+/** The weather display dataset — ONE row, one disclosure. */
+export const DEMO_WEATHER: readonly NeighborhoodWeather[] = [
+  { temperature: 32, condition: "مشمس", airQuality: 42, walkability: "ممتازة للمشي مساءً" },
+];
+
+/** The poll display dataset — ONE active poll (the featured zone). */
+export const DEMO_POLL: readonly NeighborhoodPoll[] = [
+  {
+    id: "demo-poll-mamsha-hours",
+    question: "ما المواعيد الأنسب لفتح الممشى المظلل خلال الصيف؟",
+    author: "لجنة تطوير الحي",
+    options: [
+      { label: "الفجر — ٥:٣٠ إلى ٨:٠٠", votes: 9 },
+      { label: "المساء — ٥:٠٠ إلى ٨:٣٠", votes: 11 },
+      { label: "كلا الفترتين", votes: 5 },
+    ],
+    createdAt: "2026-09-27T18:00:00Z",
+  },
+];
+
+/** The pinned-alert display dataset — ONE active alert (the featured zone). */
+export const DEMO_ALERTS: readonly NeighborhoodAlert[] = [
+  {
+    id: "demo-alert-fiber-maintenance",
+    title: "أعمال صيانة وتمديد ألياف بصرية — شارع النخيل والحارة الشرقية",
+    body:
+      "ستبدأ لجنة تطوير الحي أعمال تمديد الألياف البصرية صباح الخميس وتستمر ثلاثة أيام. " +
+      "مسارات بديلة للمشاة: ممر المسجد ثم شارع الحديقة. عربات النقل الصغير تعمل من البوابة الجنوبية. " +
+      "قد يقتصر ضغط المياه نهارًا في الحارة الشرقية يومي الخميس والجمعة.",
+    issuer: "لجنة تطوير الحي",
+    severity: "HIGH",
+    acknowledgments: 47,
+    createdAt: "2026-09-28T07:30:00Z",
+  },
+];
+
+/** The groups display dataset — the clubs a real neighborhood runs. */
+export const DEMO_GROUPS: readonly NeighborhoodGroup[] = [
+  {
+    id: "demo-group-walking",
+    name: "نادي المشي المسائي",
+    description: "جولة يومية بعد المغرب من بوابة الحديقة",
+    members: 34,
+  },
+  {
+    id: "demo-group-garden",
+    name: "فريق تشجير الحي",
+    description: "العناية بأشجار الشوارع والمسطحات",
+    members: 18,
+  },
+  {
+    id: "demo-group-mothers",
+    name: "صباح الأمهات",
+    description: "لقاء أسبوعي وأنشطة للأطفال الصغار",
+    members: 22,
+  },
+  {
+    id: "demo-group-diy",
+    name: "ورشة أدوات الجيران",
+    description: "أدوات مشتركة ومساعدة في الصيانة المنزلية",
+    members: 12,
+  },
+];
+
+/** The sidebar's groups display size (one compact column widget). */
+export const GROUPS_WIDGET_SIZE = 4;
+
+/** Total votes across a poll's options (the percentage denominators). */
+export function pollTotalVotes(poll: NeighborhoodPoll): number {
+  return poll.options.reduce((sum, option) => sum + option.votes, 0);
+}
+
+/**
+ * The AQI display band — the walkability/air-quality verdicts the
+ * product renders (its own vocabulary, bounded like the rating band).
+ */
+export function airQualityBand(aqi: number): string {
+  if (aqi <= 50) return "جيدة";
+  if (aqi <= 100) return "متوسطة";
+  return "ضعيفة";
+}

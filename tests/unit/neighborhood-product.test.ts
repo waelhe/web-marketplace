@@ -3,10 +3,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import {
   BUSINESS_RAIL_SIZE,
+  DEMO_ALERTS,
   DEMO_BUSINESSES,
+  DEMO_GROUPS,
+  DEMO_POLL,
   DEMO_PULSE,
+  DEMO_WEATHER,
+  GROUPS_WIDGET_SIZE,
+  airQualityBand,
   formatRating,
   neighborhoodDemoEnabled,
+  pollTotalVotes,
 } from "@/lib/neighborhood-product";
 import { isUuid } from "@/lib/api/geo";
 
@@ -122,5 +129,121 @@ describe("the demo card is never a link (rule 4, rendered proof)", () => {
     expect(card).not.toContain("href");
     expect(card).toContain(biz.name);
     expect(card).toContain(biz.trade);
+  });
+});
+
+/* ── The S8 product-defined contracts — the rich feed layer
+   (owner-supplied design spec 2026-09-29). Same discipline, restated
+   for every new display shape: demo ids never UUIDs, bounded
+   vocabularies, non-negative counts, honest bands. ──────────────── */
+
+describe("the S8 demo id discipline (rule 3, restated)", () => {
+  test("every poll, alert, and group id is demo-prefixed and never parses as a UUID", () => {
+    for (const poll of DEMO_POLL) {
+      expect(poll.id.startsWith("demo-")).toBe(true);
+      expect(isUuid(poll.id)).toBe(false);
+    }
+    for (const alert of DEMO_ALERTS) {
+      expect(alert.id.startsWith("demo-")).toBe(true);
+      expect(isUuid(alert.id)).toBe(false);
+    }
+    for (const group of DEMO_GROUPS) {
+      expect(group.id.startsWith("demo-")).toBe(true);
+      expect(isUuid(group.id)).toBe(false);
+    }
+  });
+
+  test("the widgets' display sizes never exceed their datasets", () => {
+    expect(GROUPS_WIDGET_SIZE).toBeLessThanOrEqual(DEMO_GROUPS.length);
+    expect(GROUPS_WIDGET_SIZE).toBeGreaterThan(0);
+  });
+});
+
+describe("the poll contract (the interactive featured card)", () => {
+  test("the active poll is exactly one row with 2–5 options and non-negative votes", () => {
+    expect(DEMO_POLL).toHaveLength(1);
+    const poll = DEMO_POLL[0];
+    expect(poll.options.length).toBeGreaterThanOrEqual(2);
+    expect(poll.options.length).toBeLessThanOrEqual(5);
+    for (const option of poll.options) {
+      expect(option.votes).toBeGreaterThanOrEqual(0);
+      expect(option.label.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("pollTotalVotes sums the options (the percentage denominators)", () => {
+    const poll = DEMO_POLL[0];
+    const manual = poll.options.reduce((sum, option) => sum + option.votes, 0);
+    expect(pollTotalVotes(poll)).toBe(manual);
+    expect(manual).toBeGreaterThan(0);
+  });
+
+  test("the poll card renders its options as buttons with the honest display label", async () => {
+    const { PollCard } = await import("@/app/neighborhood/poll-card");
+    const markup = renderToStaticMarkup(createElement(PollCard, { poll: DEMO_POLL[0] }));
+    expect(markup).toContain('class="poll-card"');
+    expect(markup).toContain("استطلاع رأي");
+    expect(markup).toContain("بيانات عرض");
+    expect(markup).toContain(DEMO_POLL[0].question);
+    // Every option is a button (the display interaction) carrying its label.
+    for (const option of DEMO_POLL[0].options) {
+      expect(markup).toContain(option.label);
+    }
+    expect(markup).toContain("<button");
+    // The disclosure of the display-vote semantics.
+    expect(markup).toContain("صوت واحد لكل جلسة عرض");
+  });
+});
+
+describe("the pinned alert contract (the featured zone's urgent card)", () => {
+  test("the active alert is exactly one row with the bounded severity vocabulary", () => {
+    expect(DEMO_ALERTS).toHaveLength(1);
+    const alert = DEMO_ALERTS[0];
+    expect(["HIGH", "MEDIUM"]).toContain(alert.severity);
+    expect(alert.acknowledgments).toBeGreaterThanOrEqual(0);
+    expect(alert.title.length).toBeGreaterThan(0);
+    expect(alert.body.length).toBeGreaterThan(0);
+  });
+
+  test("the alert card renders its acknowledgment as a display interaction", async () => {
+    const { AlertCard } = await import("@/app/neighborhood/alert-card");
+    const markup = renderToStaticMarkup(createElement(AlertCard, { alert: DEMO_ALERTS[0] }));
+    expect(markup).toContain('class="alert-card"');
+    expect(markup).toContain("تنبيه عاجل");
+    expect(markup).toContain("بيانات عرض");
+    expect(markup).toContain("أكّد علمك");
+    expect(markup).toContain(DEMO_ALERTS[0].issuer);
+  });
+});
+
+describe("the weather contract (the sidebar widget)", () => {
+  test("the weather dataset is exactly one row with bounded signals", () => {
+    expect(DEMO_WEATHER).toHaveLength(1);
+    const weather = DEMO_WEATHER[0];
+    expect(weather.temperature).toBeGreaterThan(-10);
+    expect(weather.temperature).toBeLessThan(60);
+    expect(weather.airQuality).toBeGreaterThanOrEqual(0);
+    expect(weather.airQuality).toBeLessThanOrEqual(200);
+    expect(weather.walkability.length).toBeGreaterThan(0);
+  });
+
+  test("airQualityBand renders the three measured bands", () => {
+    expect(airQualityBand(0)).toBe("جيدة");
+    expect(airQualityBand(50)).toBe("جيدة");
+    expect(airQualityBand(51)).toBe("متوسطة");
+    expect(airQualityBand(100)).toBe("متوسطة");
+    expect(airQualityBand(101)).toBe("ضعيفة");
+    expect(airQualityBand(200)).toBe("ضعيفة");
+  });
+});
+
+describe("the groups contract (the sidebar's clubs widget)", () => {
+  test("every group carries a positive member count and non-empty copy", () => {
+    expect(DEMO_GROUPS.length).toBeGreaterThanOrEqual(GROUPS_WIDGET_SIZE);
+    for (const group of DEMO_GROUPS) {
+      expect(group.members).toBeGreaterThan(0);
+      expect(group.name.length).toBeGreaterThan(0);
+      expect(group.description.length).toBeGreaterThan(0);
+    }
   });
 });
