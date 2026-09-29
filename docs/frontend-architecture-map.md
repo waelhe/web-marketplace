@@ -33,6 +33,15 @@
 > Pure display, zero ops consumed (the /admin confirm op rides S3 as
 > before); unit suite 82/82 (8 new pins: open-states constant + the
 > note's honesty contract incl. zero fake surfaces).
+> Delta 2026-09-29 (S6-b, local merge): the live journey embodiment
+> rounds (`tests/e2e/journey-live.spec.ts`, opt-in JOURNEYS_LIVE=1) —
+> J2 full (live text search → real result → detail with JSON-LD + the
+> booking/lead entries) and J3's public half (the lead form round-trip:
+> one timestamped lead per run, the battery pattern). Graceful
+> no-fuel skips (the seed-content owner input); the signed-in legs
+> declared blocked on the staging client secret (lost to the 2026-09-29
+> rollback — an owner input). Zero ops consumed; gate counts above
+> refreshed.
 > This file pairs with `docs/ARCHITECTURE.md` (the deep Arabic narrative);
 > it does not replace it. The **product definition** it serves lives in
 > `docs/product-charter.md` (the journeys, their acceptance, the slice plan).
@@ -207,9 +216,9 @@ surface gaps after S4.
 ## 6. Quality gates (what runs before any push)
 
 ```
-eslint ─▶ tsc --noEmit (after build typegen) ─▶ vitest (43/43, 8 files)
-      ─▶ next build (RAILPACK parity: Node 26.8.2) ─▶ playwright smoke 21 + 2 skipped-by-design
-          + opt-in live rounds (REGISTER_LIVE=1, CATEGORIES_LIVE=1)
+eslint ─▶ tsc --noEmit (after build typegen) ─▶ vitest (82/82, 12 files)
+      ─▶ next build (RAILPACK parity: Node 26.8.2) ─▶ playwright smoke 26 + 4 skipped-by-design
+          + opt-in live rounds (REGISTER_LIVE=1, CATEGORIES_LIVE=1, JOURNEYS_LIVE=1)
       ─▶ live browser pass (agent-browser; hermetic net needs no secrets,
           the signed-in pass needs an env with the staging secret + the
           one-time consent round for fresh accounts)
@@ -276,7 +285,7 @@ number is the backend's, never a client-side recount.**
 | Live OpenAPI | 128 ops / 111 paths — staging AND prod identical | 2026-09-28 |
 | FE consumption | 97 templates · 0 dead · 122/128 ops (96%) · 6 unconsumed classified (infra / GEO-TREE-409 / deliberate cut) | 2026-09-29 |
 | Source scale | 92 files / ~17.7k lines / 17 pages / 9 action modules | 2026-09-29 |
-| Tests | 43 unit (vitest) + 23 e2e (playwright, hermetic + opt-in live) | 2026-09-29 |
+| Tests | 82 unit (vitest) + 30 e2e (playwright: 26 hermetic + 4 opt-in live — register/categories/journeys ×2) | 2026-09-29 |
 | OAuth chain | PKCE S256 + consent, executed live on prod | 2026-09-28 |
 | Deploy proof | Railway commitHash `5972dbd…` + signed-in browser pass | 2026-09-28 |
 | Known backend defects on our radar | `GET /geo/tree` 409 ×3 | latest 2026-09-28 |
