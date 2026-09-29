@@ -2272,3 +2272,349 @@ a.hood-tab:focus-visible {
   border-radius: 999px;
   background: var(--emerald-500);
 }
+
+/* ===== S9 — «فعاليات الحي» the events product surface (the owner's
+   design spec: the prominent create launcher, the featured weekly
+   initiative, the events grid with registration states, the
+   interactive calendar, the suggestion box). Same sanctuary tokens,
+   same discipline. ===== */
+
+/* The create launcher rides the hero band — the emerald solid CTA. */
+.hood-hero-cta { margin-block-start: var(--space-3); }
+.event-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: #ffffff;
+  color: var(--emerald-ink);
+  border: none;
+  font-weight: 800;
+  padding: var(--space-2) var(--space-6);
+  border-radius: 999px;
+  box-shadow: 0 6px 18px -10px var(--emerald-900);
+}
+.event-create-btn:hover { background: var(--emerald-50); }
+.event-create-btn:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+
+/* THE FEATURED HIGHLIGHT — the weekly initiative card. */
+.event-featured {
+  background: linear-gradient(135deg, var(--emerald-50), #ffffff 65%);
+  border: 1px solid var(--emerald-200);
+  border-inline-start: 4px solid var(--emerald-600);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: grid;
+  gap: var(--space-2);
+  margin-block-end: var(--space-6);
+}
+.event-featured-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.event-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--emerald-600);
+  color: #ffffff;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-3);
+}
+.event-featured-title { margin: 0; font-size: var(--text-xl); font-weight: 800; color: var(--ink); }
+.event-when {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.event-desc { margin: 0; white-space: pre-line; }
+.event-org { margin: 0; }
+.event-featured-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-block-start: var(--space-2);
+}
+.event-attending { color: var(--emerald-ink); font-size: var(--text-sm); }
+.event-attending strong { font-size: var(--text-lg); font-weight: 800; }
+.event-featured-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.event-featured-actions .button { background: var(--hood-action); }
+.event-featured-actions .button:hover:not(:disabled) { background: var(--hood-action-strong); }
+.event-featured-actions .button[data-variant="primary"] { background: var(--hood-action); }
+
+/* THE EVENTS GRID — the design's cards. */
+.event-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: var(--space-4);
+}
+.event-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  border-block-start: 3px solid var(--emerald-200);
+}
+.event-card.event-cat-sports_family { border-block-start-color: var(--primary); }
+.event-card.event-cat-volunteer { border-block-start-color: var(--emerald-600); }
+.event-card.event-cat-market { border-block-start-color: var(--accent); }
+.event-card.event-cat-workshop { border-block-start-color: var(--ink-2); }
+.event-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.event-cat-chip {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--emerald-ink);
+  background: var(--emerald-50);
+  border: 1px solid var(--emerald-200);
+  border-radius: 999px;
+  padding: 0 var(--space-3);
+}
+.event-reg {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
+}
+.event-reg-limited_seats { border-color: var(--amber-warm-700); color: var(--amber-warm-700); background: var(--amber-warm-50); }
+.event-reg-open { border-color: var(--emerald-500); color: var(--emerald-ink); background: var(--emerald-50); }
+.event-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+.event-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-block-start: var(--space-2);
+}
+.event-seats { font-size: var(--text-sm); font-weight: 700; color: var(--emerald-ink); }
+.event-seats[data-full] { color: var(--amber-warm-700); }
+.event-card-foot .button { background: var(--hood-action); }
+.event-card-foot .button:hover:not(:disabled) { background: var(--hood-action-strong); }
+.event-card-foot .button[data-variant="primary"] { background: var(--hood-action); }
+.event-card-foot .button:disabled { cursor: default; }
+
+/* THE INTERACTIVE CALENDAR — the sidebar's month grid with event dots. */
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+.calendar-month { font-weight: 800; color: var(--emerald-ink); }
+.calendar-nav-btn {
+  font: inherit;
+  font-weight: 800;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+}
+.calendar-nav-btn:hover { background: var(--emerald-50); border-color: var(--emerald-500); }
+.calendar-nav-btn:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.calendar-grid {
+  inline-size: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: var(--text-sm);
+}
+.calendar-grid th {
+  font-size: var(--text-xs);
+  color: var(--ink-2);
+  font-weight: 700;
+  padding-block: var(--space-1);
+}
+.calendar-grid td {
+  padding: 0.2rem 0.1rem;
+  vertical-align: top;
+}
+.calendar-grid td[data-dots] {
+  background: var(--emerald-50);
+  border-radius: var(--radius-md);
+}
+.calendar-day { display: block; font-weight: 700; color: var(--ink); }
+.calendar-dots {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-block-start: 0.15rem;
+}
+.calendar-dots i {
+  inline-size: 0.3rem;
+  block-size: 0.3rem;
+  border-radius: 999px;
+  background: var(--emerald-600);
+  display: inline-block;
+}
+.calendar-hint { margin: var(--space-2) 0 0; }
+
+/* THE SUGGESTION BOX — propose + vote between neighbors. */
+.ideas-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.idea-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+.idea-row-mine { border-style: dashed; }
+.idea-text { font-size: var(--text-sm); color: var(--ink); }
+.idea-vote {
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid var(--emerald-500);
+  color: var(--emerald-ink);
+  background: var(--emerald-50);
+  border-radius: 999px;
+  padding: 0.125rem var(--space-3);
+  cursor: pointer;
+}
+.idea-vote[data-voted] { cursor: default; background: var(--emerald-600); color: #ffffff; border-color: var(--emerald-600); }
+.idea-vote-mine { cursor: default; border-style: dashed; background: var(--bg); }
+.idea-vote:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.idea-add { display: grid; gap: var(--space-1); margin-block-start: var(--space-3); }
+.idea-add-row { display: flex; gap: var(--space-2); }
+.idea-add-row input {
+  flex: 1;
+  font: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+.idea-add-row input:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.idea-add-row .button { background: var(--hood-action); }
+.idea-add-row .button:hover:not(:disabled) { background: var(--hood-action-strong); }
+
+/* THE CREATE MODAL — the native <dialog> styling. */
+.event-create-modal {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-inline-size: 34rem;
+  inline-size: min(34rem, calc(100vw - 2rem));
+  box-shadow: 0 24px 64px -24px var(--emerald-900);
+}
+.event-create-modal::backdrop {
+  background: rgba(2, 44, 34, 0.45);
+}
+.event-create-form {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6);
+}
+.event-create-form h3 { margin: 0; font-size: var(--text-lg); font-weight: 800; color: var(--ink); }
+.event-create-form input,
+.event-create-form select,
+.event-create-form textarea {
+  font: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+.event-create-form textarea { resize: vertical; }
+.event-create-form input:focus-visible,
+.event-create-form select:focus-visible,
+.event-create-form textarea:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+.event-create-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.event-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}
+.event-create-actions .button[data-variant="primary"] { background: var(--hood-action); }
+.event-create-actions .button[data-variant="primary"]:hover:not(:disabled) { background: var(--hood-action-strong); }
+
+/* THE UPCOMING-EVENTS PREVIEW (the feed sidebar's widget). */
+.upcoming-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.upcoming-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+.upcoming-date {
+  display: grid;
+  text-align: center;
+  min-inline-size: 3.2rem;
+  padding: var(--space-1) 0;
+  border-radius: var(--radius-md);
+  background: var(--emerald-50);
+  border: 1px solid var(--emerald-200);
+  color: var(--emerald-ink);
+}
+.upcoming-date strong { font-size: var(--text-lg); font-weight: 800; }
+.upcoming-date span { font-size: var(--text-xs); }
+.upcoming-body { display: grid; gap: 0.125rem; }
+.upcoming-title { font-weight: 700; font-size: var(--text-sm); color: var(--ink); }
+
+/* The activity widget's badge row. */
+.activity-badge {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 800;
+  color: var(--amber-warm-700);
+  font-size: var(--text-lg);
+}
+.activity-badge svg { color: var(--amber-warm-700); }
+
+@media (max-width: 640px) {
+  .event-create-row { grid-template-columns: 1fr; }
+  .idea-add-row { flex-direction: column; align-items: stretch; }
+}

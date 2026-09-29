@@ -344,3 +344,27 @@ test("the filter tabs ride the REAL ?category= read: the active tab and the filt
   });
   expect(getMyFeed).toHaveBeenLastCalledWith(0, 10, null);
 });
+
+test("the feed's product navigation links the events wing + the sidebar previews the upcoming gatherings", async () => {
+  const element = await NeighborhoodPage({
+    params: Promise.resolve({}),
+    searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
+  });
+  const markup = renderToStaticMarkup(element);
+
+  // The events wing joins the product tabs (slice S9's route).
+  expect(markup).toContain('href="/neighborhood/events"');
+  expect(markup).toContain("الفعاليات");
+
+  // The sidebar's upcoming-events preview: the design's widget, labeled
+  // display data, rows are NOT links (rule 4) but the «كل فعاليات الحي»
+  // button links the REAL events surface.
+  expect(markup).toContain('aria-labelledby="upcoming-heading"');
+  expect(markup).toContain("الفعاليات القادمة");
+  const preview = markup.match(/<ul class="upcoming-list"[\s\S]*?<\/ul>/)?.[0];
+  expect(preview).toBeDefined();
+  expect(preview).not.toContain("<a ");
+  expect(preview).not.toContain("href");
+  const eventsLink = markup.match(/href="\/neighborhood\/events"/g) ?? [];
+  expect(eventsLink.length).toBeGreaterThanOrEqual(2); // the tab + the preview's CTA
+});

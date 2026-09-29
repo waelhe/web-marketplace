@@ -142,6 +142,37 @@ session cookie.
   comments (`POST /reports` — POST|COMMENT targets, the backend's own
   four-value reason vocabulary; own-content/duplicate 409 and unknown
   404 surface verbatim)
+- `/neighborhood/events` — AUTHENTICATED events management surface
+  (slice S9, the owner-supplied design spec 2026-09-29 «إدارة
+  الفعاليات وتجمعات الحي»): anonymous → sign-in gate; no membership
+  → the picker invitation (the feed's own honest branches,
+  `noindex`); member → the product view in the same `.hood-app`
+  sanctuary: the prominent «تنظيم فعالية جديدة +» launcher riding
+  the hero band (its modal = the FULL product form — name/type/date/
+  time/location/description/seats — whose submission answers with
+  the honest registered-pending state: the `NeighborhoodEvent`
+  creation contract is registered §7/7 and the backend write does
+  not exist yet; native `<dialog>` for focus/Escape semantics); the
+  events board (`event-board.tsx`, client): the five filter chips
+  (الكل/هذا الأسبوع/رياضية وعائلية/تطوعية/فعالياتي — `filterEvents`,
+  the THIS_WEEK window = 7 days from today; MINE = the attendance
+  set), the featured weekly initiative (`event-featured`: organizer,
+  when/where, attendance + volunteer DISPLAY interactions), and the
+  events grid with the three registration states (LIMITED_SEATS with
+  `seatsRemaining` counter, OPEN, TABLE_RESERVATION — the design's
+  vocabulary); the interactive monthly calendar (`event-calendar.tsx`:
+  month nav, event-day dots from Damascus calendar parts); the
+  sidebar: activity summary + badge, the suggestion box
+  (`suggestion-box.tsx`: vote + add-idea display interactions), and
+  the safety guidelines. DATE DISCIPLINE (measured hydration risk):
+  client components that format dates PIN the timezone to
+  `Asia/Damascus` (`EVENT_TIMEZONE`, the product's own geography —
+  the geo tree is ريف دمشق) so SSR and browser hydration render
+  byte-identical output; never format event dates unpinned. Data:
+  `src/lib/neighborhood-events.ts` (contracts + display datasets,
+  the same demo discipline + kill-switch); the feed page gains the
+  الفعاليات product tab + the upcoming-events preview widget linking
+  here.
 - `/provider` — AUTHENTICATED provider home (roadmap stage 3,
   Nextdoor Business): anonymous → sign-in gate (`noindex`); no provider
   profile (the me-surfaces' 404 house answer) → the L36 onboarding
