@@ -22,12 +22,14 @@ import {
 import {
   BOOKING_STATUS_LABELS,
   CONSUMER_CANCELLABLE,
+  MANUAL_SETTLEMENT_OPEN,
   PAYMENT_INTENT_STATUS_LABELS,
   PROVIDER_COMPLETABLE,
   PROVIDER_CONFIRMABLE,
   REVIEWABLE,
   type BookingStatus,
 } from "@/lib/api/booking-contract";
+import { ManualSettlementNote } from "./manual-settlement-note";
 import {
   BookingConversationButton,
   BookingLifecycleForm,
@@ -343,14 +345,24 @@ async function PaymentSection({
             </li>
           </ul>
           {intent.data.clientSecret === null ? (
-            <p className="page-note">
-              {/* The honest no-Stripe state, measured: no PSP channel is
-                  bound on the backend, so no client secret exists — the
-                  completion of this intent is the backend owner's
-                  payment-channel step, never claimed here. */}
-              لا توجد قناة دفع إلكترونية مربوطة بالخادم بعد — اكتمال الدفع
-              عبر بوابة الدفع مسؤولية مالك الباك اند (مفاتيح Stripe).
-            </p>
+            <>
+              <p className="page-note">
+                {/* The honest no-Stripe state, measured: no PSP channel is
+                    bound on the backend, so no client secret exists — the
+                    completion of this intent is the backend owner's
+                    payment-channel step, never claimed here. */}
+                لا توجد قناة دفع إلكترونية مربوطة بالخادم بعد — اكتمال الدفع
+                عبر بوابة الدفع مسؤولية مالك الباك اند (مفاتيح Stripe).
+              </p>
+              {/* The owner-approved temporary path (charter §7.2, decision
+                  2026-09-29) — surfaced to the consumer ONLY while the
+                  intent is payment-pending: settle outside, share the
+                  reference through the booking conversation, the
+                  administration records it, the backend closes the loop. */}
+              {MANUAL_SETTLEMENT_OPEN.includes(intent.data.status) ? (
+                <ManualSettlementNote />
+              ) : null}
+            </>
           ) : null}
           {intent.data.status === "CREATED" ? (
             <div className="action-row">

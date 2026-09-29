@@ -111,6 +111,18 @@ export const PAYMENT_INTENT_STATUS_LABELS: Record<PaymentIntentStatus, string> =
 };
 
 /**
+ * The intent states the owner-approved MANUAL-SETTLEMENT path is still
+ * open on (charter §7.2, owner decision 2026-09-29: with the external
+ * payment binding unavailable, the temporary approved path is settle
+ * outside the platform + the administration records the reference —
+ * the backend then closes the loop itself: intent SUCCEEDED, payment
+ * recorded with the external reference, booking auto-confirmed). The
+ * non-terminal payment-pending states only: once the machine reached
+ * SUCCEEDED/CANCELLED/FAILED the settlement question is answered.
+ */
+export const MANUAL_SETTLEMENT_OPEN: PaymentIntentStatus[] = ["CREATED", "PROCESSING"];
+
+/**
  * PaymentIntentResponse (marketplace-payments) — amountCents is MINOR
  * units (the booking total the backend derived at creation). NOTE the
  * measured mapper contract: `clientSecret` is present ONLY on the
