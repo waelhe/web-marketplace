@@ -31,6 +31,7 @@ import {
   formatRating,
   neighborhoodDemoEnabled,
 } from "@/lib/neighborhood-product";
+import { DEMO_EVENTS, formatEventDay, formatEventMonth } from "@/lib/neighborhood-events";
 import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton } from "./forms";
 import { CommentsSection, ReportContentForm } from "./comments";
 import { AlertCard } from "./alert-card";
@@ -177,6 +178,10 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
   const weather = demoOn ? DEMO_WEATHER[0] ?? null : null;
   const groups = demoOn ? DEMO_GROUPS.slice(0, GROUPS_WIDGET_SIZE) : [];
   const businesses = demoOn ? DEMO_BUSINESSES.slice(0, BUSINESS_RAIL_SIZE) : [];
+  // The upcoming-events preview (the sidebar's «الفعاليات القادمة» —
+  // the design's widget): the next two demo gatherings, linked to the
+  // events wing (the product's own surface, slice S9).
+  const upcomingEvents = demoOn ? DEMO_EVENTS.slice(0, 2) : [];
 
   return (
     <main className="hood-app">
@@ -207,13 +212,15 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
           </div>
         ) : null}
         {/* The product's own navigation — the sections of حيّنا (the
-            feed is the active surface; the marketplace bridge and the
-            works directory are the other two product wings, both REAL
-            reads; the events wing joins with its slice). */}
+            feed is the active surface; the events wing, the marketplace
+            bridge, and the works directory are the other product wings). */}
         <nav className="hood-tabs" aria-label="أقسام حيّنا">
           <span className="hood-tab" data-active="true" aria-current="page">
             الخلاصة
           </span>
+          <Link className="hood-tab" href="/neighborhood/events">
+            الفعاليات
+          </Link>
           <Link className="hood-tab" href="/listings">
             سوق الحي
           </Link>
@@ -473,6 +480,32 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                   <dd>{weather.walkability}</dd>
                 </div>
               </dl>
+            </section>
+          ) : null}
+
+          {upcomingEvents.length > 0 ? (
+            <section className="card hood-widget" aria-labelledby="upcoming-heading">
+              <div className="hood-widget-head">
+                <h2 id="upcoming-heading">الفعاليات القادمة</h2>
+                <span className="badge badge-muted">بيانات عرض</span>
+              </div>
+              <ul className="upcoming-list">
+                {upcomingEvents.map((event) => (
+                  <li key={event.id} className="upcoming-row">
+                    <span className="upcoming-date">
+                      <strong>{formatEventDay(event.startsAt)}</strong>
+                      <span>{formatEventMonth(event.startsAt)}</span>
+                    </span>
+                    <span className="upcoming-body">
+                      <span className="upcoming-title">{event.title}</span>
+                      <span className="listing-meta">{event.location}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Link className="button" href="/neighborhood/events">
+                كل فعاليات الحي
+              </Link>
             </section>
           ) : null}
 
