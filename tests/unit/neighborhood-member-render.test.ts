@@ -150,7 +150,7 @@ test("the member branch renders the two-column feed with per-post identity", asy
   expect(markup).toContain('class="hood-layout"');
   expect(markup).toContain('class="hood-side"');
   expect(markup).toContain('class="hood-main"');
-  expect(markup).toContain('class="hood-post"');
+  expect(markup).toContain("hood-post");
 
   // The client islands are stubbed — the real forms would drag useActionState
   // and the "use server" action modules into this render.
@@ -211,4 +211,136 @@ test("the member branch renders the integrated product layers: pulse, business r
 
   // The feed stays the heart under its labelled heading.
   expect(markup).toContain('aria-labelledby="feed-heading"');
+});
+
+/* ── The S8 rich feed product (owner-supplied design spec 2026-09-29):
+   the composer front door, the filter tabs, the featured zone (the
+   pinned alert + the interactive poll — client islands WITHOUT server
+   actions, so they render their REAL initial markup here), the product
+   sub-navigation, and the smart sidebar widgets. ──────────────────── */
+
+test("the member branch renders the product navigation and the filter tabs over the real reads", async () => {
+  const element = await NeighborhoodPage({
+    params: Promise.resolve({}),
+    searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
+  });
+  const markup = renderToStaticMarkup(element);
+
+  // The product's own tabs: the feed is the active surface; the
+  // marketplace wing links the REAL listings surface; the works wing
+  // anchors to the rail.
+  expect(markup).toContain('class="hood-tabs"');
+  expect(markup).toContain('aria-current="page"');
+  expect(markup).toContain('href="/listings"');
+  expect(markup).toContain('href="#hood-biz"');
+
+  // The filter tabs — one link per MEASURED category value (the real
+  // ?category= reads) plus the unfiltered home.
+  expect(markup).toContain('class="hood-filter"');
+  expect(markup).toContain('href="/neighborhood?category=RECOMMENDATION"');
+  expect(markup).toContain('href="/neighborhood?category=LOST_FOUND"');
+  expect(markup).toContain('href="/neighborhood?category=CLASSIFIED"');
+  expect(markup).toContain('href="/neighborhood?category=GENERAL"');
+  expect(markup).toContain('href="/neighborhood"');
+});
+
+test("the member branch renders the featured zone: the pinned alert + the interactive poll, both display-labeled", async () => {
+  const element = await NeighborhoodPage({
+    params: Promise.resolve({}),
+    searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
+  });
+  const markup = renderToStaticMarkup(element);
+
+  // THE FEATURED ZONE — both cards render their REAL initial markup
+  // (no server actions inside; only client state), each carrying the
+  // honest display label.
+  expect(markup).toContain('class="hood-featured"');
+  expect(markup).toContain('class="alert-card"');
+  expect(markup).toContain('class="poll-card"');
+  expect(markup).toContain("تنبيه عاجل");
+  expect(markup).toContain("استطلاع رأي");
+  // The display labels ride BOTH cards (the S7 rule 2, restated).
+  const featured = markup.match(/<section class="hood-featured"[\s\S]*?<\/section>/)?.[0];
+  expect(featured).toBeDefined();
+  expect((featured ?? "").match(/بيانات عرض/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+  // The poll's options are the design's interactive affordance.
+  expect(featured ?? "").toContain("<button");
+});
+
+test("the member branch renders the smart sidebar: weather, groups, safety — and the feed column leads", async () => {
+  const element = await NeighborhoodPage({
+    params: Promise.resolve({}),
+    searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
+  });
+  const markup = renderToStaticMarkup(element);
+
+  // The sidebar widgets: the weather (display-labeled), the groups
+  // (display chips, never links), and the safety guidance (static
+  // copy — no data row at all).
+  expect(markup).toContain('aria-labelledby="weather-heading"');
+  expect(markup).toContain("طقس الحي");
+  expect(markup).toContain("جودة الهواء");
+  expect(markup).toContain("ملاءمة المشي");
+  expect(markup).toContain('aria-labelledby="groups-heading"');
+  expect(markup).toContain("مجموعات الجيران");
+  const groupsList = markup.match(/<ul class="groups-list"[\s\S]*?<\/ul>/)?.[0];
+  expect(groupsList).toBeDefined();
+  expect(groupsList).not.toContain("<a ");
+  expect(groupsList).not.toContain("href");
+  expect(markup).toContain('aria-labelledby="safety-heading"');
+  expect(markup).toContain("سلامة الحي");
+
+  // The feed column LEADS the DOM (the product's reading order): the
+  // main column's composer section renders before the sidebar.
+  const mainAt = markup.indexOf('class="hood-main"');
+  const sideAt = markup.indexOf('class="hood-side"');
+  expect(mainAt).toBeGreaterThan(-1);
+  expect(sideAt).toBeGreaterThan(-1);
+  expect(mainAt).toBeLessThan(sideAt);
+
+  // The composer rides the main column under its accessible heading.
+  const composerAt = markup.indexOf('aria-labelledby="composer-heading"');
+  expect(composerAt).toBeGreaterThan(-1);
+  expect(composerAt).toBeGreaterThan(mainAt);
+  expect(composerAt).toBeLessThan(sideAt);
+
+  // The membership card stays in the sidebar (the S7 member anatomy).
+  expect(markup).toContain('class="card member-card"');
+  expect(markup).toContain("leave-form-stub");
+});
+
+test("the filter tabs ride the REAL ?category= read: the active tab and the filtered feed", async () => {
+  // The deterministic proof the browser round cannot flake on: the page
+  // receives ?category=RECOMMENDATION and must (1) ask the real feed
+  // channel with THAT category and (2) mark only the matching tab active.
+  const { getMyFeed } = await import("@/lib/api/community");
+  const element = await NeighborhoodPage({
+    params: Promise.resolve({}),
+    searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({
+      category: "RECOMMENDATION",
+    }),
+  });
+  const markup = renderToStaticMarkup(element);
+
+  expect(getMyFeed).toHaveBeenCalledWith(0, 10, "RECOMMENDATION");
+
+  // The active tab: only توصيات carries data-active; الكل does not.
+  const tabs = markup.match(/<a class="hood-filter-tab"[^>]*>/g) ?? [];
+  expect(tabs.length).toBe(5);
+  const active = markup.match(/<a class="hood-filter-tab" data-active="true"[^>]*>[\s\S]*?<\/a>/)?.[0];
+  expect(active).toBeDefined();
+  expect(active ?? "").toContain("توصيات");
+  expect(active ?? "").toContain("category=RECOMMENDATION");
+  const homeTab = markup.match(/<a class="hood-filter-tab" data-active="true" href="\/neighborhood">/)?.[0];
+  expect(homeTab).toBeUndefined();
+
+  // An INVALID category value drops to null (no invented filters) —
+  // the unfiltered read, never a 400.
+  await NeighborhoodPage({
+    params: Promise.resolve({}),
+    searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({
+      category: "NOT_A_CATEGORY",
+    }),
+  });
+  expect(getMyFeed).toHaveBeenLastCalledWith(0, 10, null);
 });

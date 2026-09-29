@@ -20,44 +20,45 @@ import { findGeoNodeById } from "@/lib/api/geo";
 import { ListingCard } from "@/components/ui/card";
 import {
   BUSINESS_RAIL_SIZE,
+  DEMO_ALERTS,
   DEMO_BUSINESSES,
+  DEMO_GROUPS,
+  DEMO_POLL,
   DEMO_PULSE,
+  DEMO_WEATHER,
+  GROUPS_WIDGET_SIZE,
+  airQualityBand,
   formatRating,
   neighborhoodDemoEnabled,
 } from "@/lib/neighborhood-product";
 import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton } from "./forms";
 import { CommentsSection, ReportContentForm } from "./comments";
+import { AlertCard } from "./alert-card";
+import { PollCard } from "./poll-card";
 
 /**
- * حارتي — the authenticated neighborhood home, rebuilt as the
- * INTEGRATED community+business product surface (slice S7, the
- * methodology reversal's first embodiment — owner directive
- * 2026-09-29: product-first, the frontend defines and the backend will
- * serve). Three layers in ONE screen, the Nextdoor + Business shape:
+ * حارتي — the authenticated neighborhood home: the integrated
+ * community+business PRODUCT (the methodology reversal, slices S7+S8).
  *
- * 1. THE PLACE (the pulse band) — the neighborhood's identity and
- *    aliveness: members / weekly posts / local businesses. A
- *    product-defined contract (`NeighborhoodPulse`), display-labeled
- *    until the backend serves the aggregate — then the same band goes
- *    real with zero surface changes.
- * 2. THE BUSINESS LAYER (أعمال حارتك) — the neighborhood's local
- *    businesses with the trust vocabulary (rating/verified/offerings)
- *    — display-labeled today (the `NeighborhoodBusiness` contract the
- *    backend will serve), never linked (demo ids are not UUIDs).
- * 3. THE MARKETPLACE BRIDGE (إعلانات في حارتك) — REAL, live, today:
- *    the location-scoped public search read (`GET /search?locationId=`
- *    — measured live 2026-09-29, geo self+descendants resolution),
- *    real listing cards with real detail links. The community and the
- *    marketplace meet in one screen.
+ * S8 rebuilds the surface per the owner-supplied design spec
+ * (2026-09-29, «خلاصة الحي ومنشورات الجيران» — product-first): the
+ * rich share composer (quick-type chips over the SAME measured
+ * category vocabulary + the publishing-scope selector), the filter
+ * tabs (the real ?category= reads), the featured zone (the pinned
+ * urgent alert + the interactive poll — product-defined contracts,
+ * display-labeled), the rich post cards, and the smart sidebar (the
+ * weather widget, the groups, the safety card). The S7 layers stay:
+ * the place (pulse band), the business rail, and the REAL
+ * location-scoped marketplace bridge.
  *
- * The feed (L42) stays the heart — real posts, real comments, real
+ * The feed (L42) remains the heart — real posts, real comments, real
  * neighbor DMs — under the same privacy contract: everything community
  * answers 401 to anonymous callers (measured), so the honest anonymous
  * render is the gate itself. `noindex` — session-scoped content.
  */
 export const metadata: Metadata = {
   title: "حارتي",
-  description: "مجتمع جيرانك وأعمال حارتك — منشورات، توصيات، وإعلانات الحي",
+  description: "خلاصة جيرانك — منشورات، توصيات، مفقودات، فعاليات، وأعمال حارتك",
   robots: { index: false },
 };
 
@@ -166,15 +167,19 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
   ]);
   const myBackendId = me.ok ? me.id : null;
 
-  // The pulse band + the business rail: product-defined display layers
-  // (clearly labeled, one env kill-switch, demo-prefixed ids, never
-  // links) — see src/lib/neighborhood-product.ts for the discipline.
+  // The S8 product-defined display layers (clearly labeled, one env
+  // kill-switch, demo-prefixed ids, never links) — see
+  // src/lib/neighborhood-product.ts for the discipline.
   const demoOn = neighborhoodDemoEnabled();
   const pulse = demoOn ? DEMO_PULSE[0] : null;
+  const alert = demoOn ? DEMO_ALERTS[0] ?? null : null;
+  const poll = demoOn ? DEMO_POLL[0] ?? null : null;
+  const weather = demoOn ? DEMO_WEATHER[0] ?? null : null;
+  const groups = demoOn ? DEMO_GROUPS.slice(0, GROUPS_WIDGET_SIZE) : [];
   const businesses = demoOn ? DEMO_BUSINESSES.slice(0, BUSINESS_RAIL_SIZE) : [];
 
   return (
-    <main>
+    <main className="hood-app">
       <header className="hood-hero">
         <h1 className="hood-title">حارتي{neighborhoodName ? ` — ${neighborhoodName}` : ""}</h1>
         <p className="hood-hero-sub listing-meta">
@@ -201,27 +206,42 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
             <p className="pulse-disclosure">بيانات عرض — قياسات الحي الحقيقية قادمة مع خدمة الباك اند لهذا العقد</p>
           </div>
         ) : null}
+        {/* The product's own navigation — the sections of حيّنا (the
+            feed is the active surface; the marketplace bridge and the
+            works directory are the other two product wings, both REAL
+            reads; the events wing joins with its slice). */}
+        <nav className="hood-tabs" aria-label="أقسام حيّنا">
+          <span className="hood-tab" data-active="true" aria-current="page">
+            الخلاصة
+          </span>
+          <Link className="hood-tab" href="/listings">
+            سوق الحي
+          </Link>
+          <a className="hood-tab" href="#hood-biz">
+            أعمال الحي
+          </a>
+        </nav>
       </header>
 
       <div className="hood-layout">
-        <aside className="hood-side">
-          <section className="card member-card">
-            <h2>عضويتك</h2>
-            <p className="page-note">
-              {/* SELF_DECLARED is the measured verificationState — the
-                  verification method itself is a pending backend product gate. */}
-              {membership.data.verificationState === "SELF_DECLARED"
-                ? "عضوية معلَنة ذاتياً — التحقق من السكان بوابة منتج لاحقة."
-                : `حالة التحقق: ${membership.data.verificationState}`}
-            </p>
-            <LeaveForm />
+        <section className="hood-main">
+          {/* THE SHARE COMPOSER — the product's front door: quick-type
+              chips over the measured category vocabulary + the scope
+              selector. Real writes, the honest «قريبًا» gates. */}
+          <section className="hood-section" aria-labelledby="composer-heading">
+            <h2 id="composer-heading" className="visually-hidden">
+              انشر في حارتك
+            </h2>
+            <CreatePostForm locationId={membership.data.locationId} />
           </section>
 
-          <nav className="category-filter" aria-label="تصفية الفئات">
+          {/* The filter tabs — the REAL ?category= reads (the backend's
+              own filter), presented as the product's tab row. */}
+          <nav className="hood-filter" aria-label="تصفية الخلاصة">
             <Link
               href="/neighborhood"
-              className={category === null ? "button" : "button"}
-              data-variant={category === null ? "primary" : undefined}
+              className="hood-filter-tab"
+              data-active={category === null || undefined}
             >
               الكل
             </Link>
@@ -229,23 +249,126 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
               <Link
                 key={value}
                 href={`/neighborhood?category=${value}`}
-                className="button"
-                data-variant={category === value ? "primary" : undefined}
+                className="hood-filter-tab"
+                data-active={category === value || undefined}
               >
                 {CATEGORY_LABELS[value]}
               </Link>
             ))}
           </nav>
 
-          <section className="post-composer-section">
-            <h2>انشر في حارتك</h2>
-            <CreatePostForm locationId={membership.data.locationId} />
-          </section>
-        </aside>
+          {/* THE FEATURED ZONE — the design's pinned urgent alert and
+              community poll: product-defined contracts, display-labeled,
+              interactive as display interactions (never fake writes). */}
+          {alert || poll ? (
+            <section className="hood-featured" aria-label="مختارات الحارة">
+              {alert ? <AlertCard alert={alert} /> : null}
+              {poll ? <PollCard poll={poll} /> : null}
+            </section>
+          ) : null}
 
-        <section className="hood-main">
+          <section className="hood-section" aria-labelledby="feed-heading">
+            <div className="hood-section-head">
+              <h2 id="feed-heading">تغذية الحارة</h2>
+            </div>
+            {feed.ok ? (
+              feed.data.content.length === 0 ? (
+                page > 0 && feed.data.totalElements > 0 ? (
+                  <p className="page-note" role="status">
+                    لا منشورات في هذه الصفحة.{" "}
+                    <Link href="/neighborhood">العودة إلى الأولى</Link>
+                  </p>
+                ) : (
+                  <p className="page-note" role="status">
+                    لا منشورات في حارتك بعد — كن أول من يكتب لجيرانه من صندوق المشاركة.
+                  </p>
+                )
+              ) : (
+                <>
+                  <p className="page-note">
+                    {count(feed.data.totalElements)} منشوراً — الصفحة{" "}
+                    {count(feed.data.pageNumber + 1)} من{" "}
+                    {count(Math.max(feed.data.totalPages, 1))}
+                  </p>
+                  <ul className="feed-list">
+                    {feed.data.content.map((post) => (
+                      <li
+                        key={post.id}
+                        className={`hood-post hood-post-${post.category.toLowerCase()}`}
+                      >
+                        <header className="hood-post-head">
+                          {/* The author is an opaque UUID by the backend's
+                              projection contract — the avatar shows the first
+                              two characters, the only identity signal that
+                              contract carries. No invented name, no "user"
+                              label (the contract carries none). */}
+                          <span className="hood-avatar" aria-hidden="true">
+                            {post.authorId.slice(0, 2).toUpperCase()}
+                          </span>
+                          <span className="hood-post-id">
+                            <span className={`hood-cat hood-cat-${post.category.toLowerCase()}`}>
+                              {CATEGORY_LABELS[post.category]}
+                            </span>
+                            <time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time>
+                          </span>
+                        </header>
+                        <h3>{post.title}</h3>
+                        <p className="post-body">{post.body}</p>
+                        {/* L42's conversational layer (batch-2 spec §1): the
+                            comments disclosure — an on-demand read, so a closed
+                            post costs the feed render nothing. */}
+                        <CommentsSection postId={post.id} />
+                        <div className="post-actions">
+                          {/* L44 entry: message the author (hidden on my own
+                              posts via the measured /me identity chain — the
+                              backend's 400-self guard remains the authority). */}
+                          {myBackendId === null || post.authorId !== myBackendId ? (
+                            <MessageNeighborButton authorId={post.authorId} />
+                          ) : (
+                            <DeletePostButton postId={post.id} />
+                          )}
+                          {/* L45 entry: report this content (authenticated; no
+                              membership condition — the backend's own gate). */}
+                          <ReportContentForm targetType="POST" targetId={post.id} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <nav className="listing-pager" aria-label="تصفّح الصفحات">
+                    {feed.data.pageNumber > 0 ? (
+                      <Link
+                        className="button"
+                        href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber}`}
+                      >
+                        الصفحة السابقة
+                      </Link>
+                    ) : null}
+                    {!feed.data.last ? (
+                      <Link
+                        className="button"
+                        href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber + 2}`}
+                      >
+                        الصفحة التالية
+                      </Link>
+                    ) : null}
+                  </nav>
+                </>
+              )
+            ) : feed.status === 403 ? (
+              <p className="page-note" role="status">
+                عضويتك لم تعد فعّالة — غادِر ثم انضم من جديد إلى حارتك.
+              </p>
+            ) : (
+              <p className="page-note" role="status">
+                {feed.unauthenticated
+                  ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
+                  : problemMessage(feed.problem, `تعذّر قراءة التغذية (رمز ${feed.status}).`)}
+              </p>
+            )}
+          </section>
+
           {businesses.length > 0 ? (
-            <section className="hood-section" aria-labelledby="biz-heading">
+            <section className="hood-section" id="hood-biz" aria-labelledby="biz-heading">
               <div className="hood-section-head">
                 <h2 id="biz-heading">أعمال حارتك</h2>
                 <span className="badge badge-muted">بيانات عرض</span>
@@ -312,102 +435,78 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
               </p>
             )}
           </section>
-
-          <section aria-labelledby="feed-heading">
-            <div className="hood-section-head">
-              <h2 id="feed-heading">تغذية الحارة</h2>
-            </div>
-            {feed.ok ? (
-              feed.data.content.length === 0 ? (
-                page > 0 && feed.data.totalElements > 0 ? (
-                  <p className="page-note" role="status">
-                    لا منشورات في هذه الصفحة.{" "}
-                    <Link href="/neighborhood">العودة إلى الأولى</Link>
-                  </p>
-                ) : (
-                  <p className="page-note" role="status">
-                    لا منشورات في حارتك بعد — كن أول من يكتب لجيرانه من نموذج النشر.
-                  </p>
-                )
-              ) : (
-                <>
-                  <p className="page-note">
-                    {count(feed.data.totalElements)} منشوراً — الصفحة{" "}
-                    {count(feed.data.pageNumber + 1)} من{" "}
-                    {count(Math.max(feed.data.totalPages, 1))}
-                  </p>
-                  <ul className="feed-list">
-                    {feed.data.content.map((post) => (
-                      <li key={post.id} className="hood-post">
-                        <h3>{post.title}</h3>
-                        <p className="hood-post-meta">
-                          {/* The author is an opaque UUID by the backend's
-                              projection contract — the avatar shows the first
-                              two characters, the only identity signal that
-                              contract carries. No invented name, no "user"
-                              label (the contract carries none). */}
-                          <span className="hood-avatar" aria-hidden="true">
-                            {post.authorId.slice(0, 2).toUpperCase()}
-                          </span>
-                          <span className={`hood-cat hood-cat-${post.category.toLowerCase()}`}>
-                            {CATEGORY_LABELS[post.category]}
-                          </span>
-                          <span>{formatDate(post.createdAt)}</span>
-                        </p>
-                        <p className="post-body">{post.body}</p>
-                        {/* L42's conversational layer (batch-2 spec §1): the
-                            comments disclosure — an on-demand read, so a closed
-                            post costs the feed render nothing. */}
-                        <CommentsSection postId={post.id} />
-                        <div className="post-actions">
-                          {/* L44 entry: message the author (hidden on my own
-                              posts via the measured /me identity chain — the
-                              backend's 400-self guard remains the authority). */}
-                          {myBackendId === null || post.authorId !== myBackendId ? (
-                            <MessageNeighborButton authorId={post.authorId} />
-                          ) : (
-                            <DeletePostButton postId={post.id} />
-                          )}
-                          {/* L45 entry: report this content (authenticated; no
-                              membership condition — the backend's own gate). */}
-                          <ReportContentForm targetType="POST" targetId={post.id} />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  <nav className="listing-pager" aria-label="تصفّح الصفحات">
-                    {feed.data.pageNumber > 0 ? (
-                      <Link
-                        className="button"
-                        href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber}`}
-                      >
-                        الصفحة السابقة
-                      </Link>
-                    ) : null}
-                    {!feed.data.last ? (
-                      <Link
-                        className="button"
-                        href={`/neighborhood?${category ? `category=${category}&` : ""}page=${feed.data.pageNumber + 2}`}
-                      >
-                        الصفحة التالية
-                      </Link>
-                    ) : null}
-                  </nav>
-                </>
-              )
-            ) : feed.status === 403 ? (
-              <p className="page-note" role="status">
-                عضويتك لم تعد فعّالة — غادِر ثم انضم من جديد إلى حارتك.
-              </p>
-            ) : (
-              <p className="page-note" role="status">
-                {feed.unauthenticated
-                  ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
-                  : problemMessage(feed.problem, `تعذّر قراءة التغذية (رمز ${feed.status}).`)}
-              </p>
-            )}
-          </section>
         </section>
+
+        <aside className="hood-side">
+          <section className="card member-card">
+            <h2>عضويتك</h2>
+            <p className="page-note">
+              {/* SELF_DECLARED is the measured verificationState — the
+                  verification method itself is a pending backend product gate. */}
+              {membership.data.verificationState === "SELF_DECLARED"
+                ? "عضوية معلَنة ذاتياً — التحقق من السكان بوابة منتج لاحقة."
+                : `حالة التحقق: ${membership.data.verificationState}`}
+            </p>
+            <LeaveForm />
+          </section>
+
+          {weather ? (
+            <section className="card hood-widget" aria-labelledby="weather-heading">
+              <div className="hood-widget-head">
+                <h2 id="weather-heading">طقس الحي</h2>
+                <span className="badge badge-muted">بيانات عرض</span>
+              </div>
+              <p className="weather-now">
+                <strong>{count(weather.temperature)}°</strong>
+                <span>{weather.condition}</span>
+              </p>
+              <dl className="weather-rows">
+                <div>
+                  <dt>جودة الهواء</dt>
+                  <dd>
+                    {airQualityBand(weather.airQuality)}{" "}
+                    <span className="listing-meta">({count(weather.airQuality)})</span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>ملاءمة المشي</dt>
+                  <dd>{weather.walkability}</dd>
+                </div>
+              </dl>
+            </section>
+          ) : null}
+
+          {groups.length > 0 ? (
+            <section className="card hood-widget" aria-labelledby="groups-heading">
+              <div className="hood-widget-head">
+                <h2 id="groups-heading">مجموعات الجيران</h2>
+                <span className="badge badge-muted">بيانات عرض</span>
+              </div>
+              <ul className="groups-list">
+                {groups.map((group) => (
+                  /* Display chips, never links (rule 4): no group
+                      surfaces exist — a demo id link would 404. */
+                  <li key={group.id} className="group-chip">
+                    <span className="group-name">{group.name}</span>
+                    <span className="listing-meta">{count(group.members)} جاراً</span>
+                    <span className="group-desc">{group.description}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <section className="card hood-widget" aria-labelledby="safety-heading">
+            <div className="hood-widget-head">
+              <h2 id="safety-heading">سلامة الحي</h2>
+            </div>
+            <ul className="safety-list">
+              <li>لا تنشر تفاصيل سفرك أو مفاتيح بيتك في المنشورات العامة.</li>
+              <li>زرّ «التبليغ» أسفل كل منشور يصلك مقلقًا — الإدارة تراجعه.</li>
+              <li>الرسائل مع الجيران محفوظة داخل المنصة — لا تشارك بياناتك البنكية أبدًا.</li>
+            </ul>
+          </section>
+        </aside>
       </div>
 
       <p>

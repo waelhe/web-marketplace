@@ -9,7 +9,7 @@
  * hydration (queued, then prioritized).
  */
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import {
   createPostAction,
   deletePostAction,
@@ -18,7 +18,7 @@ import {
   messageNeighborAction,
 } from "./actions";
 import type { ActionState } from "./actions";
-import { CATEGORY_LABELS, POST_CATEGORIES } from "@/lib/api/community-contract";
+import { POST_CATEGORIES } from "@/lib/api/community-contract";
 
 function StateMessage({ state }: { state: ActionState }) {
   if (state.status === "error") {
@@ -72,11 +72,67 @@ export function LeaveForm() {
 }
 
 /**
- * Publish a post into the caller's active neighborhood. The bounds on
- * the inputs mirror the backend's type gates (title ≤ 200, body ≤ 2000,
- * the four-value category vocabulary) — defense in depth behind the
- * backend's own 400s, never instead of them.
+ * Publish a post into the caller's active neighborhood — the RICH
+ * product composer (the owner-supplied design 2026-09-29: quick-type
+ * chips + a publishing-scope selector in one share box). The chips
+ * select the SAME four-value category vocabulary the backend gates
+ * (title ≤ 200, body ≤ 2000, defense in depth behind the backend's
+ * own 400s); the scope offers the one REAL scope (the direct
+ * neighborhood — the membership's location) and marks the adjacent-
+ * neighborhoods option «قريبًا» — a product-defined contract the
+ * backend does not serve yet, honestly gated, never a fake promise.
  */
+const COMPOSER_TYPES: ReadonlyArray<{
+  value: (typeof POST_CATEGORIES)[number];
+  label: string;
+  hint: string;
+  icon: ReactNode;
+}> = [
+  {
+    value: "RECOMMENDATION",
+    label: "توصية خدمة",
+    hint: "جرّبت حرفيًا وتوصي به؟",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15">
+        <path fill="currentColor" d="m12 17.3-6.2 3.7 1.7-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.5 4.8 1.7 7L12 17.3Z" />
+      </svg>
+    ),
+  },
+  {
+    value: "LOST_FOUND",
+    label: "مفقودات",
+    hint: "ضاع شيء أو وجدتَ واحدًا؟",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15">
+        <path fill="currentColor" d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" />
+      </svg>
+    ),
+  },
+  {
+    value: "CLASSIFIED",
+    label: "بيع ومقايضة",
+    hint: "أغراضك المستعملة لجيرانك",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15">
+        <path fill="currentColor" d="M7 18a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm10 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM7.1 14.3h.1l1.4-2.5h6.4c1.1 0 2.1-.6 2.6-1.6l2.9-5.3-1.7-1-2.9 5.3c-.2.4-.6.6-1 .6H8.5c-.4 0-.8.2-1 .6L4.3 16.9l-.3.6a2 2 0 0 0 1.8 2.5h11.7v-2H6.4l1.4-2.5-.7-1.2Z" />
+      </svg>
+    ),
+  },
+  {
+    value: "GENERAL",
+    label: "إعلان عام",
+    hint: "خبر أو فكرة لكل الجيران",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15">
+        <path fill="currentColor" d="M3 10v4h3l5 5V5L6 10H3Zm13.5 2a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 3.2v2.1a6.8 6.8 0 0 1 0 13.4v2.1a8.8 8.8 0 0 0 0-17.6Z" />
+      </svg>
+    ),
+  },
+];
+
+/** The composer's share prompt (the design's conversational opener). */
+const COMPOSER_PROMPT = "ما الجديد في حارتك، يا جار؟";
+
 export function CreatePostForm({ locationId }: { locationId: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createPostAction, {
     status: "idle",
@@ -84,16 +140,45 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
 
   return (
     <form action={action} className="post-composer">
+      <p className="composer-prompt" aria-hidden="true">
+        {COMPOSER_PROMPT}
+      </p>
       <input type="hidden" name="locationId" value={locationId} />
-      <label htmlFor="post-category">الفئة</label>
-      <select id="post-category" name="category" defaultValue="GENERAL" required>
-        {POST_CATEGORIES.map((category) => (
-          <option key={category} value={category}>
-            {CATEGORY_LABELS[category]}
-          </option>
+      <fieldset className="composer-types">
+        <legend className="composer-types-legend">نوع المشاركة</legend>
+        {COMPOSER_TYPES.map((type) => (
+          <label key={type.value} className="composer-type">
+            <input
+              type="radio"
+              name="category"
+              value={type.value}
+              defaultChecked={type.value === "GENERAL"}
+              required
+            />
+            <span className="composer-type-chip">
+              {type.icon}
+              <span className="composer-type-label">{type.label}</span>
+              <span className="composer-type-hint">{type.hint}</span>
+            </span>
+          </label>
         ))}
-      </select>
-      <label htmlFor="post-title">العنوان</label>
+        {/* The poll quick-option the design specifies — honestly gated:
+            the NeighborhoodPoll creation contract is registered (§7/7)
+            but the backend write does not exist yet. A disabled chip with
+            its reason, never a fake enabled control. */}
+        <span className="composer-type composer-type-soon" aria-disabled="true" title="قريبًا — بانتظار عقد الإنشاء لدى الباك اند">
+          <span className="composer-type-chip">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15">
+              <path fill="currentColor" d="M5 9h3V7H5v2Zm5 0h3V7h-3v2Zm5 0h3V7h-3v2ZM4 21a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1V5h2v2h10V5h2v2h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4Zm8-9.8a3 3 0 1 0 2 2.8 3 3 0 0 0-2-2.8Z" />
+            </svg>
+            <span className="composer-type-label">استطلاع رأي</span>
+            <span className="composer-type-hint">قريبًا</span>
+          </span>
+        </span>
+      </fieldset>
+      <label htmlFor="post-title" className="composer-field-label">
+        العنوان
+      </label>
       <input
         id="post-title"
         name="title"
@@ -101,21 +186,34 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
         required
         minLength={1}
         maxLength={200}
-        placeholder="عنوان المنشور"
+        placeholder="عنوان موجز يجذب جيرانك…"
       />
-      <label htmlFor="post-body">النص</label>
+      <label htmlFor="post-body" className="composer-field-label">
+        النص
+      </label>
       <textarea
         id="post-body"
         name="body"
         required
         minLength={1}
         maxLength={2000}
-        rows={5}
+        rows={4}
         placeholder="اكتب لجيرانك…"
       />
-      <button type="submit" className="button" data-variant="primary" disabled={pending}>
-        {pending ? "جارٍ النشر…" : "انشر في الحارة"}
-      </button>
+      <div className="composer-foot">
+        <label className="composer-scope">
+          <span className="composer-field-label">نطاق النشر</span>
+          <select name="scope" defaultValue="direct" aria-label="نطاق النشر">
+            <option value="direct">الحي المباشر</option>
+            <option value="adjacent" disabled>
+              الأحياء المجاورة — قريبًا
+            </option>
+          </select>
+        </label>
+        <button type="submit" className="button" data-variant="primary" disabled={pending}>
+          {pending ? "جارٍ النشر…" : "انشر في الحارة"}
+        </button>
+      </div>
       <StateMessage state={state} />
     </form>
   );

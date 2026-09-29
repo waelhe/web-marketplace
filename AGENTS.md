@@ -84,26 +84,54 @@ session cookie.
 - `/neighborhood` — AUTHENTICATED neighborhood home, the INTEGRATED
   community+business product surface (slice S7, the methodology
   reversal's first embodiment — owner directive 2026-09-29: product
-  first, the frontend defines and the backend will serve): anonymous →
+  first, the frontend defines and the backend will serve; REBUILT as
+  the rich feed product in slice S8 per the owner-supplied design spec
+  2026-09-29 — «خلاصة الحي ومنشورات الجيران», the warm-emerald
+  sanctuary): anonymous →
   sign-in gate (`noindex`; nothing community is public); member → the
-  three-layer product view — (1) THE PLACE: the hero band
-  (`hood-hero`) with the neighborhood identity + the pulse chips
+  product view under the scoped `.hood-app` design system (emerald
+  tokens layered OVER the platform's warm tokens — never replacing
+  them): the hero band (`hood-hero`, the emerald gradient) with the
+  neighborhood identity + the pulse chips
   (members / posts-this-week / local businesses — the
   product-defined `NeighborhoodPulse` contract, display-labeled
   «بيانات عرض» until the backend serves the aggregate; `DEMO_
-  NEIGHBORHOOD=0` kills the layer, unset = ON); (2) THE BUSINESS
-  LAYER: «أعمال حارتك» — the business rail (`biz-rail`, the
-  product-defined `NeighborhoodBusiness` contract: name/trade/tagline/
+  NEIGHBORHOOD=0` kills the layer, unset = ON) + the product
+  sub-navigation (`hood-tabs`: الخلاصة active, سوق الحي → the REAL
+  /listings, أعمال الحي → the rail anchor); the main column (FIRST in
+  the DOM — the feed leads, the sidebar auxes): (1) THE SHARE
+  COMPOSER: quick-type chips over the SAME measured four-value
+  category vocabulary (`composer-types` radios — the chips ARE the
+  category input) + the publishing-scope selector (الحي المباشر real;
+  الأحياء المجاورة an honest disabled «قريبًا» — the `scope=adjacent`
+  contract is registered, §7/7) + the poll quick-option honestly
+  gated («قريبًا» — the NeighborhoodPoll creation contract is
+  registered); (2) THE FILTER TABS (`hood-filter`): the REAL
+  `?category=` reads as the product's tab row (invalid values drop to
+  null — never an invented filter); (3) THE FEATURED ZONE
+  (`hood-featured`): the pinned urgent alert (`alert-card` — the
+  `NeighborhoodAlert` contract, «أكّد علمك» as a display
+  interaction) + the interactive poll (`poll-card` — the
+  `NeighborhoodPoll` contract, ONE display vote per session with live
+  percentage bars; both display-labeled, never fake writes); (4) THE
+  FEED (L42, the heart): rich post cards (avatar + category pill +
+  time head, comments disclosure, own-post delete, L45 reports,
+  «راسل الجار»); (5) THE BUSINESS LAYER: «أعمال حارتك» — the
+  business rail (`biz-rail`, the product-defined
+  `NeighborhoodBusiness` contract: name/trade/tagline/
   rating/verified/offerings) — display cards ONLY, never links (demo
   `demo-` ids are not UUIDs; rule 4 of the display-data discipline);
-  (3) THE MARKETPLACE BRIDGE: «إعلانات في حارتك» — REAL live data:
+  (6) THE MARKETPLACE BRIDGE: «إعلانات في حارتك» — REAL live data:
   the location-scoped public search read (`GET /search?locationId=`
   through `searchListings` — the same criteria op every public browse
   rides; geo self+descendants resolution; measured live 2026-09-29 on
   staging: real rows + real detail links) — the community and the
-  marketplace in one screen; the feed (L42) stays the heart (real
-  posts, comments disclosure, own-post delete, L45 reports, «راسل
-  الجار») — data via `src/lib/api/community.ts` + the public channel,
+  marketplace in one screen; the smart sidebar (`hood-side`): the
+  membership card + the weather widget (`NeighborhoodWeather`
+  contract, display-labeled) + the groups chips
+  (`NeighborhoodGroup` contract, display-only) + the static safety
+  guidance card (real copy, no data rows) — data via
+  `src/lib/api/community.ts` + the public channel,
   display layers via `src/lib/neighborhood-product.ts`, writes via
   Server Actions in `src/app/neighborhood/actions.ts` (`backendSend`);
   the batch-2 §1 conversational layer: a per-post comments disclosure
