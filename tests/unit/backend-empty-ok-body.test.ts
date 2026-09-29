@@ -14,6 +14,13 @@ import { beforeEach, expect, test, vi } from "vitest";
 // validates BETTER_AUTH_SECRET, and next/headers only feeds the token
 // resolution, which never runs against a network here: global fetch is
 // stubbed per test).
+// The 50ms ceiling for the hang-breaker pin (the last test) — hoisted
+// BEFORE the module import so the module-level const sees it. Harmless
+// for the other pins: their fetches resolve instantly.
+vi.hoisted(() => {
+  process.env.BACKEND_FETCH_TIMEOUT_MS = "50";
+});
+
 vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
 }));
@@ -34,6 +41,29 @@ function stubOk(body: BodyInit | null, status = 200): Response {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+});
+
+test("a wedged backend (TCP-accepts, never answers) aborts at the ceiling — the honest status-0 (the 2026-09-29 CI incident pin)", async () => {
+  // The measured incident shape: Railway's edge accepts the connection
+  // and the instance behind it never answers — a bare fetch hangs
+  // FOREVER, hanging every SSR page riding it (e2e 90s timeouts; in
+  // production, pages that never finish loading). The ceiling turns the
+  // hang into the honest status-0 every surface already renders.
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    (_url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
+        });
+      }),
+  );
+  const started = Date.now();
+  const result = await backendGet<null>("/api/v1/neighborhood/memberships/me");
+  expect(result).toEqual({ ok: false, status: 0, problem: null, unauthenticated: false });
+  // The ceiling actually tripped (not an instant failure) — bounded by
+  // the 50ms test ceiling plus scheduler slack.
+  expect(Date.now() - started).toBeGreaterThanOrEqual(45);
+  expect(Date.now() - started).toBeLessThan(5_000);
 });
 
 test("backendSend: a 200 with an empty body resolves ok with null data (the mark-read seam)", async () => {

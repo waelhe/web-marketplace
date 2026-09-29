@@ -28,6 +28,7 @@
 
 import { cache } from "react";
 import { decodeProblem, type ProblemDetail } from "@/lib/problem";
+import { backendTimeoutSignal } from "./timeout";
 import type { BackendResult } from "./server";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
@@ -67,6 +68,10 @@ async function publicGet<T>(path: string): Promise<BackendResult<T>> {
     upstream = await fetch(`${BACKEND_URL}${path}`, {
       headers: { Accept: "application/problem+json, application/json" },
       cache: "no-store",
+      // The hang-breaker (2026-09-29 incident) — same ceiling as the
+      // sibling channels; a wedged backend renders the honest status-0
+      // instead of hanging the picker and the shell's name walk.
+      signal: backendTimeoutSignal(),
     });
   } catch {
     // Network-level failure: honest, expected state — data, not a crash.

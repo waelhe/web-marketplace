@@ -145,12 +145,12 @@ test("the member branch renders the two-column feed with per-post identity", asy
   });
   const markup = renderToStaticMarkup(element);
 
-  // The two-column layout: sticky sidebar (membership card + category nav
-  // + composer) beside the feed.
-  expect(markup).toContain('class="hood-layout"');
-  expect(markup).toContain('class="hood-side"');
-  expect(markup).toContain('class="hood-main"');
-  expect(markup).toContain("hood-post");
+  // The design's two-column grid: the feed column + the widgets column
+  // under the mood banner (the S10 owner-design anatomy).
+  expect(markup).toContain('class="hy-grid"');
+  expect(markup).toContain('class="hy-grid-main"');
+  expect(markup).toContain('class="hy-grid-side"');
+  expect(markup).toContain("hy-post");
 
   // The client islands are stubbed — the real forms would drag useActionState
   // and the "use server" action modules into this render.
@@ -159,58 +159,67 @@ test("the member branch renders the two-column feed with per-post identity", asy
   expect(markup).toContain("message-neighbor-button-stub");
   expect(markup).not.toContain('id="post-title"');
 
-  // The opaque author id shows its first two characters, uppercased.
-  const avatar = markup.match(/<span class="hood-avatar"[^>]*>([^<]*)<\/span>/)?.[1];
+  // The opaque author id shows its first two characters, uppercased —
+  // inside the REAL feed row (the hy-real-item), the design's own card.
+  const realItem = markup.match(/<li class="hy-real-item"[\s\S]*?<\/li>/)?.[0];
+  expect(realItem).toBeDefined();
+  const avatar = (realItem ?? "").match(/<span class="hy-avatar"[^>]*>([^<]*)<\/span>/)?.[1];
   expect(avatar).toBeDefined();
   expect(textOf(avatar ?? "")).toBe(fixtures.authorId.slice(0, 2).toUpperCase());
   expect(textOf(avatar ?? "")).toBe("AB");
 
-  // The measured category vocabulary maps to its lowercased CSS edge.
-  expect(markup).toContain("hood-cat-lost_found");
+  // The measured category vocabulary maps to the design's chip tone.
+  expect(realItem ?? "").toContain('class="hy-post-chip" data-tone="primary">مفقودات');
 
-  // The neighborhood display name rides the geo projection into the title.
-  const title = markup.match(/<h1 class="hood-title">([\s\S]*?)<\/h1>/)?.[1];
-  expect(title).toBeDefined();
-  expect(textOf(title ?? "")).toContain(fixtures.neighborhoodName);
-  expect(textOf(title ?? "")).toContain("حارتي");
+  // The mood banner carries the design's greeting + zone chip + the
+  // strength line with the owner's own Latin-digit numbers.
+  expect(markup).toContain('class="hy-mood-title"');
+  expect(markup).toContain("صباح الخير والمودّة");
+  expect(markup).toContain("مربع 4 - واحة الأمان");
+  expect(markup).toContain("832 عائلة");
+  expect(markup).toContain("حراسة البوابات 100% متيقظة");
 });
 
-test("the member branch renders the integrated product layers: pulse, business rail, real local listings", async () => {
+test("the member branch renders the integrated product layers: pulse widget, owner posts, real local listings", async () => {
   const element = await NeighborhoodPage({
     params: Promise.resolve({}),
     searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
   });
   const markup = renderToStaticMarkup(element);
 
-  // THE PLACE — the pulse band with its three chips and the honest
-  // display-data disclosure (a labeled demo, never a silent fake).
-  expect(markup).toContain('class="hood-hero"');
-  expect(markup).toContain('aria-label="نبض الحارة"');
-  expect(markup).toContain('class="pulse-chip"');
-  expect(markup).toContain('class="pulse-disclosure"');
+  // THE PLACE — the design's pulse widget: the two tiles + the safety
+  // ring at 99 (the honest display-data disclosure rides the badge).
+  expect(markup).toContain('aria-labelledby="pulse-heading"');
+  expect(markup).toContain("نبض الحي اليوم");
+  expect(markup).toContain('class="hy-pulse-tile"');
+  expect(markup).toContain(">412<");
+  expect(markup).toContain(">18<");
+  expect(markup).toContain('stroke-dasharray="99, 100"');
   expect(markup).toContain("بيانات عرض");
 
-  // THE BUSINESS LAYER — the rail section is labeled display data, and
-  // the demo cards are NEVER links (rule 4: the demo id is not a UUID;
-  // the public provider read would 404).
-  expect(markup).toContain('aria-labelledby="biz-heading"');
-  expect(markup).toContain("أعمال حارتك");
-  expect(markup).toContain('class="biz-rail"');
-  expect(markup).toContain('class="biz-card"');
-  const bizCard = markup.match(/<li class="biz-card"[\s\S]*?<\/li>/)?.[0];
-  expect(bizCard).toBeDefined();
-  expect(bizCard).not.toContain("<a ");
-  expect(bizCard).not.toContain("href");
+  // THE OWNER'S OWN POSTS — the rich display cards (recommendation with
+  // the embedded service card, lost&found, welcome): labeled, and NEVER
+  // links (rule 4: the demo ids are not UUIDs).
+  const ownerSection = markup.match(/<section aria-label="منشورات عرض الحي"[\s\S]*?<\/section>/)?.[0];
+  expect(ownerSection).toBeDefined();
+  expect(ownerSection ?? "").toContain("د. خالد التميمي");
+  expect(ownerSection ?? "").toContain("أبو حاتم - صيانة التكييف المتقدمة");
+  expect(ownerSection ?? "").toContain("العم أبو طارق السديري");
+  expect(ownerSection ?? "").toContain("المهندس فيصل العتيبي");
+  expect(ownerSection ?? "").not.toContain("href=");
 
   // THE MARKETPLACE BRIDGE — the REAL location-scoped strip: a real
-  // listing card (a link to the real detail page) under its own heading.
+  // listing card (a link to the real detail page) under its own heading,
+  // with the design's market wing button beside it.
   expect(markup).toContain('aria-labelledby="local-heading"');
-  expect(markup).toContain("إعلانات في حارتك");
+  expect(markup).toContain("إعلانات في حيّك");
   const localLink = markup.match(/href="\/listings\/fa528602-2ab0-4867-b7fc-3d7e2a912eba"/)?.[0];
   expect(localLink).toBeDefined();
+  expect(markup).toContain('href="/neighborhood/market"');
 
-  // The feed stays the heart under its labelled heading.
+  // The real feed stays the heart under its labelled heading.
   expect(markup).toContain('aria-labelledby="feed-heading"');
+  expect(markup).toContain("منشورات جيرانك");
 });
 
 /* ── The S8 rich feed product (owner-supplied design spec 2026-09-29):
@@ -219,24 +228,16 @@ test("the member branch renders the integrated product layers: pulse, business r
    actions, so they render their REAL initial markup here), the product
    sub-navigation, and the smart sidebar widgets. ──────────────────── */
 
-test("the member branch renders the product navigation and the filter tabs over the real reads", async () => {
+test("the member branch renders the filter pills over the real reads", async () => {
   const element = await NeighborhoodPage({
     params: Promise.resolve({}),
     searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
   });
   const markup = renderToStaticMarkup(element);
 
-  // The product's own tabs: the feed is the active surface; the
-  // marketplace wing links the REAL listings surface; the works wing
-  // anchors to the rail.
-  expect(markup).toContain('class="hood-tabs"');
-  expect(markup).toContain('aria-current="page"');
-  expect(markup).toContain('href="/listings"');
-  expect(markup).toContain('href="#hood-biz"');
-
-  // The filter tabs — one link per MEASURED category value (the real
-  // ?category= reads) plus the unfiltered home.
-  expect(markup).toContain('class="hood-filter"');
+  // The design's chip row — one pill per MEASURED category value (the
+  // real ?category= reads) plus the unfiltered home.
+  expect(markup).toContain('aria-label="تصنيفات الخلاصة"');
   expect(markup).toContain('href="/neighborhood?category=RECOMMENDATION"');
   expect(markup).toContain('href="/neighborhood?category=LOST_FOUND"');
   expect(markup).toContain('href="/neighborhood?category=CLASSIFIED"');
@@ -254,46 +255,53 @@ test("the member branch renders the featured zone: the pinned alert + the intera
   // THE FEATURED ZONE — both cards render their REAL initial markup
   // (no server actions inside; only client state), each carrying the
   // honest display label.
-  expect(markup).toContain('class="hood-featured"');
-  expect(markup).toContain('class="alert-card"');
-  expect(markup).toContain('class="poll-card"');
-  expect(markup).toContain("تنبيه عاجل");
-  expect(markup).toContain("استطلاع رأي");
+  expect(markup).toContain('class="hy-alert-edge"');
+  expect(markup).toContain("تنبيه حيوي مثبت");
+  expect(markup).toContain("استطلاع رأي معتمد");
+  // The design's works-map snippet + guidelines + parking ride the alert.
+  expect(markup).toContain("مسار الأعمال الميدانية");
+  expect(markup).toContain("توجيهات الحركة أثناء الأعمال");
+  expect(markup).toContain("مواقف مخصصة مؤقتة بجوار مجمع المدارس");
   // The display labels ride BOTH cards (the S7 rule 2, restated).
-  const featured = markup.match(/<section class="hood-featured"[\s\S]*?<\/section>/)?.[0];
+  const featured = markup.match(/<section aria-label="مختارات الحي"[\s\S]*?<\/section>/)?.[0];
   expect(featured).toBeDefined();
   expect((featured ?? "").match(/بيانات عرض/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   // The poll's options are the design's interactive affordance.
   expect(featured ?? "").toContain("<button");
+  expect(featured ?? "").toContain('class="hy-poll-option"');
 });
 
-test("the member branch renders the smart sidebar: weather, groups, safety — and the feed column leads", async () => {
+test("the member branch renders the smart sidebar: weather, emergency, groups, charter — and the feed column leads", async () => {
   const element = await NeighborhoodPage({
     params: Promise.resolve({}),
     searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
   });
   const markup = renderToStaticMarkup(element);
 
-  // The sidebar widgets: the weather (display-labeled), the groups
-  // (display chips, never links), and the safety guidance (static
-  // copy — no data row at all).
+  // The sidebar widgets: the weather (display-labeled), the emergency
+  // directory (the REAL 940 line), the groups (display rows, never
+  // links), and the charter badge.
   expect(markup).toContain('aria-labelledby="weather-heading"');
-  expect(markup).toContain("طقس الحي");
+  expect(markup).toContain("طقس وبيئة الحي");
   expect(markup).toContain("جودة الهواء");
-  expect(markup).toContain("ملاءمة المشي");
+  expect(markup).toContain("ممتازة للمشي مساءً");
+  expect(markup).toContain('aria-labelledby="emergency-heading"');
+  expect(markup).toContain("طوارئ وتواصل الحي السريع");
+  // The municipality's 940 line is the one REAL number — a live tel: link.
+  expect(markup).toContain('href="tel:940"');
   expect(markup).toContain('aria-labelledby="groups-heading"');
-  expect(markup).toContain("مجموعات الجيران");
-  const groupsList = markup.match(/<ul class="groups-list"[\s\S]*?<\/ul>/)?.[0];
+  expect(markup).toContain("مجموعات الحي التخصصية");
+  const groupsList = markup.match(/<ul class="hy-group-list"[\s\S]*?<\/ul>/)?.[0];
   expect(groupsList).toBeDefined();
   expect(groupsList).not.toContain("<a ");
   expect(groupsList).not.toContain("href");
-  expect(markup).toContain('aria-labelledby="safety-heading"');
-  expect(markup).toContain("سلامة الحي");
+  expect(markup).toContain("ميثاق الجيرة الطيبة");
+  expect(markup).toContain("ما زال جبريل يوصيني بالجار");
 
   // The feed column LEADS the DOM (the product's reading order): the
-  // main column's composer section renders before the sidebar.
-  const mainAt = markup.indexOf('class="hood-main"');
-  const sideAt = markup.indexOf('class="hood-side"');
+  // main column's composer section renders before the widgets column.
+  const mainAt = markup.indexOf('class="hy-grid-main"');
+  const sideAt = markup.indexOf('class="hy-grid-side"');
   expect(mainAt).toBeGreaterThan(-1);
   expect(sideAt).toBeGreaterThan(-1);
   expect(mainAt).toBeLessThan(sideAt);
@@ -305,14 +313,15 @@ test("the member branch renders the smart sidebar: weather, groups, safety — a
   expect(composerAt).toBeLessThan(sideAt);
 
   // The membership card stays in the sidebar (the S7 member anatomy).
-  expect(markup).toContain('class="card member-card"');
+  expect(markup).toContain('aria-labelledby="member-heading"');
+  expect(markup).toContain("عضويتك");
   expect(markup).toContain("leave-form-stub");
 });
 
-test("the filter tabs ride the REAL ?category= read: the active tab and the filtered feed", async () => {
+test("the filter pills ride the REAL ?category= read: the active pill and the filtered feed", async () => {
   // The deterministic proof the browser round cannot flake on: the page
   // receives ?category=RECOMMENDATION and must (1) ask the real feed
-  // channel with THAT category and (2) mark only the matching tab active.
+  // channel with THAT category and (2) mark only the matching pill active.
   const { getMyFeed } = await import("@/lib/api/community");
   const element = await NeighborhoodPage({
     params: Promise.resolve({}),
@@ -324,15 +333,15 @@ test("the filter tabs ride the REAL ?category= read: the active tab and the filt
 
   expect(getMyFeed).toHaveBeenCalledWith(0, 10, "RECOMMENDATION");
 
-  // The active tab: only توصيات carries data-active; الكل does not.
-  const tabs = markup.match(/<a class="hood-filter-tab"[^>]*>/g) ?? [];
-  expect(tabs.length).toBe(5);
-  const active = markup.match(/<a class="hood-filter-tab" data-active="true"[^>]*>[\s\S]*?<\/a>/)?.[0];
+  // The active pill: only توصيات carries data-active; الكل does not.
+  const pills = markup.match(/<a class="hy-pill"[^>]*>/g) ?? [];
+  expect(pills.length).toBe(5);
+  const active = markup.match(/<a class="hy-pill" data-active="true"[^>]*>[\s\S]*?<\/a>/)?.[0];
   expect(active).toBeDefined();
   expect(active ?? "").toContain("توصيات");
   expect(active ?? "").toContain("category=RECOMMENDATION");
-  const homeTab = markup.match(/<a class="hood-filter-tab" data-active="true" href="\/neighborhood">/)?.[0];
-  expect(homeTab).toBeUndefined();
+  const homePill = markup.match(/<a class="hy-pill" data-active="true" href="\/neighborhood">/)?.[0];
+  expect(homePill).toBeUndefined();
 
   // An INVALID category value drops to null (no invented filters) —
   // the unfiltered read, never a 400.
@@ -345,26 +354,24 @@ test("the filter tabs ride the REAL ?category= read: the active tab and the filt
   expect(getMyFeed).toHaveBeenLastCalledWith(0, 10, null);
 });
 
-test("the feed's product navigation links the events wing + the sidebar previews the upcoming gatherings", async () => {
+test("the sidebar previews the upcoming gatherings and links the events wing", async () => {
   const element = await NeighborhoodPage({
     params: Promise.resolve({}),
     searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
   });
   const markup = renderToStaticMarkup(element);
 
-  // The events wing joins the product tabs (slice S9's route).
+  // The events wing (slice S9's route) links from the feed's sidebar.
   expect(markup).toContain('href="/neighborhood/events"');
-  expect(markup).toContain("الفعاليات");
 
   // The sidebar's upcoming-events preview: the design's widget, labeled
   // display data, rows are NOT links (rule 4) but the «كل فعاليات الحي»
   // button links the REAL events surface.
   expect(markup).toContain('aria-labelledby="upcoming-heading"');
-  expect(markup).toContain("الفعاليات القادمة");
-  const preview = markup.match(/<ul class="upcoming-list"[\s\S]*?<\/ul>/)?.[0];
+  expect(markup).toContain("فعاليات قريبة");
+  const preview = markup.match(/<ul class="hy-events-list"[\s\S]*?<\/ul>/)?.[0];
   expect(preview).toBeDefined();
   expect(preview).not.toContain("<a ");
   expect(preview).not.toContain("href");
-  const eventsLink = markup.match(/href="\/neighborhood\/events"/g) ?? [];
-  expect(eventsLink.length).toBeGreaterThanOrEqual(2); // the tab + the preview's CTA
+  expect(markup).toContain("كل فعاليات الحي");
 });

@@ -21,6 +21,7 @@
 
 import { cache } from "react";
 import { decodeProblem, type ProblemDetail } from "@/lib/problem";
+import { backendTimeoutSignal } from "./timeout";
 import type { BackendResult } from "./server";
 import type { ListingCategory, ListingDetail, ListingSummary, PagedResponse, PropertyPurpose, PropertyType } from "./types";
 
@@ -33,11 +34,16 @@ export async function publicGet<T>(path: string): Promise<BackendResult<T>> {
     upstream = await fetch(`${BACKEND_URL}${path}`, {
       headers: { Accept: "application/problem+json, application/json" },
       cache: "no-store",
+      // The hang-breaker (2026-09-29 incident): a wedged-but-accepting
+      // backend would hang this read — and every public SSR page riding
+      // it — indefinitely. The ceiling renders the honest status-0.
+      signal: backendTimeoutSignal(),
     });
   } catch {
     // Network-level failure: backend unreachable (e.g. local backend not
-    // started, Railway cold moment). Honest, expected state — data, not a
-    // crash of the render.
+    // started, Railway cold moment, or the timeout ceiling tripped on a
+    // wedged instance). Honest, expected state — data, not a crash of
+    // the render.
     return { ok: false, status: 0, problem: null, unauthenticated: false };
   }
 
