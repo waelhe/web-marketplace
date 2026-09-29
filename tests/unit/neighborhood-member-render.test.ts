@@ -3,18 +3,22 @@ import { expect, test, vi } from "vitest";
 import NeighborhoodPage from "@/app/neighborhood/page";
 
 /**
- * The MEMBER branch of /neighborhood — the one automated net over the
- * two-column feed render (tests/unit/form-accessibility.test.ts is the
+ * The MEMBER branch of /neighborhood — the automated net over the
+ * integrated community+business product render (slice S7: the pulse
+ * band, the business rail, the REAL local-listings bridge strip, and
+ * the two-column feed; tests/unit/form-accessibility.test.ts is the
  * proven pattern: renderToStaticMarkup over a mocked async server
  * component; the Playwright smoke suite only ever reaches the anonymous
- * gate, so the layout, the initials avatar, and the category edge had no
- * coverage at all).
+ * gate, so the layout, the initials avatar, and the category edge had
+ * no coverage at all).
  *
  * The page is a server component with three branches; this test drives
- * the third one — an active membership + a feed with one LOST_FOUND post
- * — with every data channel mocked (session, membership, feed, geo name
- * resolution, /me identity) and the client islands stubbed so the render
- * stays server-safe (no useActionState, no server-action modules).
+ * the third one — an active membership + a feed with one LOST_FOUND
+ * post + one REAL local listing — with every data channel mocked
+ * (session, membership, feed, geo name resolution, /me identity, the
+ * location-scoped public search) and the client islands stubbed so the
+ * render stays server-safe (no useActionState, no server-action
+ * modules).
  */
 
 const fixtures = vi.hoisted(() => ({
@@ -58,6 +62,31 @@ const fixtures = vi.hoisted(() => ({
   },
   /** A DIFFERENT backend user id — the post stays someone else's (message affordance). */
   myBackendId: "00000000-0000-4000-8000-0000000000ff",
+  /** The REAL local-listings bridge read: one ACTIVE row scoped to the
+   * membership's location — the marketplace bridge rendered with a real
+   * UUID id (a real detail link exists) and a real provider name. */
+  localListings: {
+    ok: true,
+    status: 200,
+    data: {
+      content: [
+        {
+          id: "fa528602-2ab0-4867-b7fc-3d7e2a912eba",
+          title: "شقة عائلية حديثة في الحي",
+          category: "stay",
+          price: 350,
+          currency: "SAR",
+          providerName: "qa-tester",
+        },
+      ],
+      pageNumber: 0,
+      pageSize: 4,
+      totalElements: 1,
+      totalPages: 1,
+      last: true,
+      empty: false,
+    },
+  },
 }));
 
 vi.mock("@/lib/dal", () => ({
@@ -83,6 +112,10 @@ vi.mock("@/lib/api/geo", () => ({
 
 vi.mock("@/lib/api/inbox", () => ({
   getMyBackendUser: vi.fn(async () => ({ ok: true, id: fixtures.myBackendId })),
+}));
+
+vi.mock("@/lib/api/public", () => ({
+  searchListings: vi.fn(async () => fixtures.localListings),
 }));
 
 // The member branch's client islands (useActionState + "use server"
@@ -140,4 +173,42 @@ test("the member branch renders the two-column feed with per-post identity", asy
   expect(title).toBeDefined();
   expect(textOf(title ?? "")).toContain(fixtures.neighborhoodName);
   expect(textOf(title ?? "")).toContain("حارتي");
+});
+
+test("the member branch renders the integrated product layers: pulse, business rail, real local listings", async () => {
+  const element = await NeighborhoodPage({
+    params: Promise.resolve({}),
+    searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
+  });
+  const markup = renderToStaticMarkup(element);
+
+  // THE PLACE — the pulse band with its three chips and the honest
+  // display-data disclosure (a labeled demo, never a silent fake).
+  expect(markup).toContain('class="hood-hero"');
+  expect(markup).toContain('aria-label="نبض الحارة"');
+  expect(markup).toContain('class="pulse-chip"');
+  expect(markup).toContain('class="pulse-disclosure"');
+  expect(markup).toContain("بيانات عرض");
+
+  // THE BUSINESS LAYER — the rail section is labeled display data, and
+  // the demo cards are NEVER links (rule 4: the demo id is not a UUID;
+  // the public provider read would 404).
+  expect(markup).toContain('aria-labelledby="biz-heading"');
+  expect(markup).toContain("أعمال حارتك");
+  expect(markup).toContain('class="biz-rail"');
+  expect(markup).toContain('class="biz-card"');
+  const bizCard = markup.match(/<li class="biz-card"[\s\S]*?<\/li>/)?.[0];
+  expect(bizCard).toBeDefined();
+  expect(bizCard).not.toContain("<a ");
+  expect(bizCard).not.toContain("href");
+
+  // THE MARKETPLACE BRIDGE — the REAL location-scoped strip: a real
+  // listing card (a link to the real detail page) under its own heading.
+  expect(markup).toContain('aria-labelledby="local-heading"');
+  expect(markup).toContain("إعلانات في حارتك");
+  const localLink = markup.match(/href="\/listings\/fa528602-2ab0-4867-b7fc-3d7e2a912eba"/)?.[0];
+  expect(localLink).toBeDefined();
+
+  // The feed stays the heart under its labelled heading.
+  expect(markup).toContain('aria-labelledby="feed-heading"');
 });

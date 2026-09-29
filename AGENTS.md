@@ -81,10 +81,30 @@ session cookie.
   NOT used (409 CONFLICT-001 on production — measured); level-3 leaves
   carry the join affordance (Server Action), anonymous visitors get the
   sign-in gate instead
-- `/neighborhood` — AUTHENTICATED neighborhood home (L41 + L42):
-  anonymous → sign-in gate (`noindex`; nothing community is public);
-  member → membership card + feed + composer — data via
-  `src/lib/api/community.ts` (the authenticated RSC channel), writes via
+- `/neighborhood` — AUTHENTICATED neighborhood home, the INTEGRATED
+  community+business product surface (slice S7, the methodology
+  reversal's first embodiment — owner directive 2026-09-29: product
+  first, the frontend defines and the backend will serve): anonymous →
+  sign-in gate (`noindex`; nothing community is public); member → the
+  three-layer product view — (1) THE PLACE: the hero band
+  (`hood-hero`) with the neighborhood identity + the pulse chips
+  (members / posts-this-week / local businesses — the
+  product-defined `NeighborhoodPulse` contract, display-labeled
+  «بيانات عرض» until the backend serves the aggregate; `DEMO_
+  NEIGHBORHOOD=0` kills the layer, unset = ON); (2) THE BUSINESS
+  LAYER: «أعمال حارتك» — the business rail (`biz-rail`, the
+  product-defined `NeighborhoodBusiness` contract: name/trade/tagline/
+  rating/verified/offerings) — display cards ONLY, never links (demo
+  `demo-` ids are not UUIDs; rule 4 of the display-data discipline);
+  (3) THE MARKETPLACE BRIDGE: «إعلانات في حارتك» — REAL live data:
+  the location-scoped public search read (`GET /search?locationId=`
+  through `searchListings` — the same criteria op every public browse
+  rides; geo self+descendants resolution; measured live 2026-09-29 on
+  staging: real rows + real detail links) — the community and the
+  marketplace in one screen; the feed (L42) stays the heart (real
+  posts, comments disclosure, own-post delete, L45 reports, «راسل
+  الجار») — data via `src/lib/api/community.ts` + the public channel,
+  display layers via `src/lib/neighborhood-product.ts`, writes via
   Server Actions in `src/app/neighborhood/actions.ts` (`backendSend`);
   the batch-2 §1 conversational layer: a per-post comments disclosure
   (`comments.tsx` — an ON-DEMAND client read through the BFF relay

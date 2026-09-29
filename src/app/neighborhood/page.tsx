@@ -9,6 +9,7 @@ import {
   getMyMembership,
 } from "@/lib/api/community";
 import { getMyBackendUser } from "@/lib/api/inbox";
+import { searchListings } from "@/lib/api/public";
 import {
   CATEGORY_LABELS,
   FEED_PAGE_SIZE,
@@ -16,31 +17,54 @@ import {
   type PostCategory,
 } from "@/lib/api/community-contract";
 import { findGeoNodeById } from "@/lib/api/geo";
+import { ListingCard } from "@/components/ui/card";
+import {
+  BUSINESS_RAIL_SIZE,
+  DEMO_BUSINESSES,
+  DEMO_PULSE,
+  formatRating,
+  neighborhoodDemoEnabled,
+} from "@/lib/neighborhood-product";
 import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton } from "./forms";
 import { CommentsSection, ReportContentForm } from "./comments";
 
 /**
- * حارتي — the authenticated neighborhood home (roadmap stage 2's
- * consumer surface for L41 membership + L42 feed). The privacy model is
- * the backend's own contract, measured live: every community endpoint
- * answers 401 AUTHN-001 to anonymous callers, and the feed is
- * membership-scoped with no location parameter ("one membership, one
- * feed" — G-N1/G-N3). This page renders that model faithfully:
+ * حارتي — the authenticated neighborhood home, rebuilt as the
+ * INTEGRATED community+business product surface (slice S7, the
+ * methodology reversal's first embodiment — owner directive
+ * 2026-09-29: product-first, the frontend defines and the backend will
+ * serve). Three layers in ONE screen, the Nextdoor + Business shape:
  *
- * - anonymous → the sign-in gate (never a feed fetch that would 401);
- * - signed-in without membership → the picker entry (join first);
- * - member → the membership card + the feed + the composer.
+ * 1. THE PLACE (the pulse band) — the neighborhood's identity and
+ *    aliveness: members / weekly posts / local businesses. A
+ *    product-defined contract (`NeighborhoodPulse`), display-labeled
+ *    until the backend serves the aggregate — then the same band goes
+ *    real with zero surface changes.
+ * 2. THE BUSINESS LAYER (أعمال حارتك) — the neighborhood's local
+ *    businesses with the trust vocabulary (rating/verified/offerings)
+ *    — display-labeled today (the `NeighborhoodBusiness` contract the
+ *    backend will serve), never linked (demo ids are not UUIDs).
+ * 3. THE MARKETPLACE BRIDGE (إعلانات في حارتك) — REAL, live, today:
+ *    the location-scoped public search read (`GET /search?locationId=`
+ *    — measured live 2026-09-29, geo self+descendants resolution),
+ *    real listing cards with real detail links. The community and the
+ *    marketplace meet in one screen.
  *
- * The page is a private surface — `noindex` is the honest robots
- * contract for session-scoped content.
+ * The feed (L42) stays the heart — real posts, real comments, real
+ * neighbor DMs — under the same privacy contract: everything community
+ * answers 401 to anonymous callers (measured), so the honest anonymous
+ * render is the gate itself. `noindex` — session-scoped content.
  */
 export const metadata: Metadata = {
   title: "حارتي",
-  description: "مجتمع جيرانك — منشورات حارتك",
+  description: "مجتمع جيرانك وأعمال حارتك — منشورات، توصيات، وإعلانات الحي",
   robots: { index: false },
 };
 
 type NeighborhoodPageProps = PageProps<"/neighborhood">;
+
+/** The local-listings strip size — the marketplace bridge row. */
+const LOCAL_LISTINGS_SIZE = 4;
 
 /** Parse ?category= against the backend vocabulary — invalid values drop to null (no invented filters). */
 function parseCategory(raw: string | string[] | undefined): PostCategory | null {
@@ -55,6 +79,9 @@ function parsePage(raw: string | string[] | undefined): number {
   if (!Number.isFinite(parsed) || parsed < 1) return 0;
   return parsed - 1;
 }
+
+/** Arabic-locale count formatting (the feed's own discipline). */
+const count = (n: number) => new Intl.NumberFormat("ar").format(n);
 
 export default async function NeighborhoodPage({ searchParams }: NeighborhoodPageProps) {
   const sp = await searchParams;
@@ -125,28 +152,61 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
   const node = await findGeoNodeById(membership.data.locationId);
   const neighborhoodName = node?.nameAr ?? null;
 
-  const [feed, me] = await Promise.all([
+  const [feed, me, localListings] = await Promise.all([
     getMyFeed(page, FEED_PAGE_SIZE, category),
     // My backend user id (the /me projection) — powers the feed's
     // self-message suppression; on failure every post keeps its button
     // and the backend's own 400-self guard answers honestly.
     getMyBackendUser(),
+    // THE MARKETPLACE BRIDGE (real, live): the location-scoped public
+    // search read — the same criteria op every public browse rides,
+    // scoped by the membership's own locationId (the backend resolves
+    // self+descendants; measured live 2026-09-29 on staging).
+    searchListings({ locationId: membership.data.locationId }, 0, LOCAL_LISTINGS_SIZE),
   ]);
   const myBackendId = me.ok ? me.id : null;
 
+  // The pulse band + the business rail: product-defined display layers
+  // (clearly labeled, one env kill-switch, demo-prefixed ids, never
+  // links) — see src/lib/neighborhood-product.ts for the discipline.
+  const demoOn = neighborhoodDemoEnabled();
+  const pulse = demoOn ? DEMO_PULSE[0] : null;
+  const businesses = demoOn ? DEMO_BUSINESSES.slice(0, BUSINESS_RAIL_SIZE) : [];
+
   return (
     <main>
-      <h1 className="hood-title">حارتي{neighborhoodName ? ` — ${neighborhoodName}` : ""}</h1>
+      <header className="hood-hero">
+        <h1 className="hood-title">حارتي{neighborhoodName ? ` — ${neighborhoodName}` : ""}</h1>
+        <p className="hood-hero-sub listing-meta">
+          <span className="listing-category">{neighborhoodName ?? "حارة غير معروفة"}</span>
+          <span>·</span>
+          <span>عضو منذ {formatDate(membership.data.memberSince)}</span>
+        </p>
+        {pulse ? (
+          <div className="hood-pulse" aria-label="نبض الحارة">
+            <ul className="pulse-chips">
+              <li className="pulse-chip">
+                <strong>{count(pulse.members)}</strong>
+                <span>جاراً</span>
+              </li>
+              <li className="pulse-chip">
+                <strong>{count(pulse.postsThisWeek)}</strong>
+                <span>منشوراً هذا الأسبوع</span>
+              </li>
+              <li className="pulse-chip">
+                <strong>{count(pulse.localBusinesses)}</strong>
+                <span>عملاً محلياً</span>
+              </li>
+            </ul>
+            <p className="pulse-disclosure">بيانات عرض — قياسات الحي الحقيقية قادمة مع خدمة الباك اند لهذا العقد</p>
+          </div>
+        ) : null}
+      </header>
 
       <div className="hood-layout">
         <aside className="hood-side">
           <section className="card member-card">
             <h2>عضويتك</h2>
-            <p className="listing-meta">
-              <span className="listing-category">{neighborhoodName ?? "حارة غير معروفة"}</span>
-              <span>·</span>
-              <span>عضو منذ {formatDate(membership.data.memberSince)}</span>
-            </p>
             <p className="page-note">
               {/* SELF_DECLARED is the measured verificationState — the
                   verification method itself is a pending backend product gate. */}
@@ -184,8 +244,79 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
         </aside>
 
         <section className="hood-main">
-          <section>
-            <h2>تغذية الحارة</h2>
+          {businesses.length > 0 ? (
+            <section className="hood-section" aria-labelledby="biz-heading">
+              <div className="hood-section-head">
+                <h2 id="biz-heading">أعمال حارتك</h2>
+                <span className="badge badge-muted">بيانات عرض</span>
+              </div>
+              <ul className="biz-rail">
+                {businesses.map((biz) => (
+                  /* Display cards, never links (rule 4): the demo id is
+                      not a backend UUID — the public provider read would
+                      404, and a fake page would poison trust. */
+                  <li key={biz.id} className="biz-card">
+                    <p className="biz-trade">{biz.trade}</p>
+                    <h3>{biz.name}</h3>
+                    <p className="biz-tagline">{biz.tagline}</p>
+                    <p className="biz-meta listing-meta">
+                      {biz.rating !== null ? (
+                        <span className="biz-rating" aria-label={`التقييم ${formatRating(biz.rating)} من ٥`}>
+                          <span aria-hidden="true">★</span> {formatRating(biz.rating)}
+                          <span className="biz-reviews">({count(biz.reviews)})</span>
+                        </span>
+                      ) : (
+                        <span className="biz-rating biz-rating-new">جديد — بلا تقييمات بعد</span>
+                      )}
+                      {biz.verified ? <span className="biz-verified">موثّق</span> : null}
+                      {biz.offerings > 0 ? (
+                        <span>{count(biz.offerings)} عروض نشطة</span>
+                      ) : null}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <p className="page-note">
+                دليل أعمال الحي — عندما تُفعَّل عقود الباك اند ستظهر الأعمال الحقيقية هنا بنفس البطاقات.
+              </p>
+            </section>
+          ) : null}
+
+          <section className="hood-section" aria-labelledby="local-heading">
+            <div className="hood-section-head">
+              <h2 id="local-heading">إعلانات في حارتك</h2>
+            </div>
+            {localListings.ok ? (
+              localListings.data.content.length > 0 ? (
+                <ul className="listing-grid">
+                  {localListings.data.content.map((listing) => (
+                    <li key={listing.id}>
+                      <ListingCard listing={listing} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="page-note" role="status">
+                  لا إعلانات نشطة في حارتك بعد.{" "}
+                  <Link href="/listings">تصفّح كل إعلانات المنصة</Link>
+                </p>
+              )
+            ) : (
+              <p className="page-note" role="status">
+                {localListings.status === 0
+                  ? "الخادم الخلفي غير متاح حالياً — لا يمكن قراءة إعلانات الحي."
+                  : problemMessage(
+                      localListings.problem,
+                      `تعذّرت قراءة إعلانات الحي (رمز ${localListings.status}).`,
+                    )}
+              </p>
+            )}
+          </section>
+
+          <section aria-labelledby="feed-heading">
+            <div className="hood-section-head">
+              <h2 id="feed-heading">تغذية الحارة</h2>
+            </div>
             {feed.ok ? (
               feed.data.content.length === 0 ? (
                 page > 0 && feed.data.totalElements > 0 ? (
@@ -201,9 +332,9 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
               ) : (
                 <>
                   <p className="page-note">
-                    {new Intl.NumberFormat("ar").format(feed.data.totalElements)} منشوراً —
-                    الصفحة {new Intl.NumberFormat("ar").format(feed.data.pageNumber + 1)} من{" "}
-                    {new Intl.NumberFormat("ar").format(Math.max(feed.data.totalPages, 1))}
+                    {count(feed.data.totalElements)} منشوراً — الصفحة{" "}
+                    {count(feed.data.pageNumber + 1)} من{" "}
+                    {count(Math.max(feed.data.totalPages, 1))}
                   </p>
                   <ul className="feed-list">
                     {feed.data.content.map((post) => (

@@ -1651,3 +1651,115 @@ textarea {
 @media (min-width: 900px) {
   .hood-side { max-block-size: calc(100dvh - 2 * var(--space-4)); overflow-block: auto; }
 }
+
+/* ===== S7 — the integrated neighborhood+business product layer (the
+   methodology reversal's first embodiment, 2026-09-29): the PLACE band
+   (pulse), the BUSINESS rail, and the sectioned main column. Same
+   warm-token language as every other surface — no new palette. ===== */
+
+/* The place band: the neighborhood's identity + aliveness chips. */
+.hood-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-block-end: var(--space-6);
+  display: grid;
+  gap: var(--space-3);
+}
+.hood-hero .hood-title { margin: 0; }
+.hood-hero-sub { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
+
+/* The pulse chips — three quiet stat tiles in one row (wrap on the
+   narrowest viewports). Numbers are the strong ink; labels muted. */
+.pulse-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+.pulse-chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  display: grid;
+  gap: 0.125rem;
+  min-inline-size: 7rem;
+}
+.pulse-chip strong { font-size: var(--text-lg); font-weight: 800; color: var(--primary); }
+.pulse-chip span { font-size: var(--text-xs); color: var(--ink-2); }
+
+/* The pulse's honest disclosure — the display-data quiet note, the
+   same visual family as .demo-note (dashed border, muted, small). */
+.pulse-disclosure {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+}
+
+/* The main column's sectioned anatomy: every layer (businesses /
+   local listings / feed) gets the same head rhythm. */
+.hood-section { margin-block-end: var(--space-8); }
+.hood-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-block-end: var(--space-4);
+}
+.hood-section-head h2 { margin: 0; }
+
+/* The business rail — display cards (NEVER links, rule 4 of the demo
+   discipline): a horizontal scroll row that stays one visual line on
+   every viewport, snap-aligned, keyboard-scrollable. */
+.biz-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(15rem, 17rem);
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-block-end: var(--space-2);
+}
+.biz-card {
+  scroll-snap-align: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+.biz-trade {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.02em;
+}
+.biz-card h3 { margin: 0; font-size: 1.125rem; font-weight: 800; color: var(--ink); }
+.biz-tagline { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
+.biz-meta { margin: var(--space-1) 0 0; }
+.biz-rating { font-weight: 700; color: var(--ink); }
+.biz-rating-new { font-weight: 400; color: var(--ink-2); }
+.biz-reviews { font-weight: 400; color: var(--ink-2); }
+.biz-verified {
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  padding: 0.125rem var(--space-2);
+}
+
