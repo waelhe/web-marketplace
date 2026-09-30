@@ -50,10 +50,14 @@ async function resolveBearer(): Promise<string | null> {
   const h = await headers();
   // Expected failure mode (official error-handling guide: expected errors
   // are handled in code): the account cookie's access token is inside its
-  // expiry window and the provider refresh fails — including the measured
-  // DB-less edge where an RSC render cannot land the rotated refresh token
-  // (SAS reuseRefreshTokens=false), so the rotation is consumed and lost.
-  // That state is a re-auth signal (401), never a crash of the render.
+  // expiry window and the provider refresh fails. (Historical note: with
+  // refresh-token ROTATION this fired every ~15 minutes — an RSC render
+  // consumed the rotation but dropped the re-signed cookie's Set-Cookie
+  // write, stranding the browser with the dead predecessor token. Fixed
+  // 2026-09-30 on the backend: SAS reuseRefreshTokens=true keeps the token
+  // value stable, so a dropped write only ever loses the new access token,
+  // which the next refresh re-mints. The 401 path stays as the honest
+  // re-auth signal for genuinely dead sessions, e.g. refresh-token expiry.)
   let token: Awaited<ReturnType<typeof auth.api.getAccessToken>> | null = null;
   try {
     token = await auth.api.getAccessToken({

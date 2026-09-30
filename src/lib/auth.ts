@@ -97,9 +97,15 @@ export const auth = betterAuth({
     // 1.7.x): "make sure this is the last plugin in the array". Applies every
     // Set-Cookie Better Auth collects from auth.api calls via Next's
     // cookies() in Route Handlers / Server Actions — this is what lets the
-    // relay's token refresh land the ROTATED refresh token (SAS has
-    // reuseRefreshTokens=false, measured in OAuth2ClientSecretInitializer)
-    // in the browser's account cookie, keeping stateless sessions alive.
+    // relay's token refresh land the refreshed token material in the
+    // browser's account cookie, keeping stateless sessions alive. SAS reuses
+    // refresh tokens (reuseRefreshTokens=true in the backend's
+    // OAuth2ClientSecretInitializer, the stateless-BFF contract, 2026-09-30):
+    // the refresh token's VALUE is stable across refreshes, so a dropped
+    // write (RSC renders skip session-refresh writes) only loses the new
+    // access token — never the refresh token itself. Rotation was measured
+    // fatal here: an RSC render consumed the rotation, the browser kept the
+    // dead predecessor, and every session died at the next refresh.
     // In RSC renders it detects RSC:1 and skips session-refresh writes —
     // reads stay side-effect-free there.
     nextCookies(),

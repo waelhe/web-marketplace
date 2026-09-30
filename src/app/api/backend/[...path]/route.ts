@@ -30,7 +30,10 @@ export async function GET(
   // getAccessToken auto-refreshes the provider token when within 5s of
   // expiry and re-signs the account cookie (Set-Cookie lands here — route
   // handler — keeping browser-driven calls converging; RSC contexts drop
-  // the write, see src/lib/api/server.ts).
+  // the write, see src/lib/api/server.ts). SAS refresh-token REUSE
+  // (reuseRefreshTokens=true on the backend, 2026-09-30) makes a dropped
+  // write harmless: the refresh token value never changes, so only the new
+  // access token is lost and the next refresh re-mints it.
   const token = await auth.api
     .getAccessToken({
       body: { useAccountCookie: true },
