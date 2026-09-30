@@ -1,27 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SignInButton } from "@/app/auth-buttons";
-import { getSession } from "@/lib/dal";
-import { problemMessage, type ProblemDetail } from "@/lib/problem";
-import { formatDate, formatDateTime, formatPrice } from "@/lib/format";
 import {
+  getModerationQueue,
   getAllBookings,
   getAllListings,
-  getAuditedEntities,
-  getModerationQueue,
-  getPaymentIntent,
   getPaymentSummaries,
-  getPricingRules,
-  getProviderBalance,
-  getRevisions,
   getUsers,
 } from "@/lib/api/admin";
-import { getListingCategories } from "@/lib/api/public";
 import {
-  ADMIN_BOOKINGS_PAGE_SIZE,
-  ADMIN_LISTINGS_PAGE_SIZE,
-  ADMIN_PAYMENTS_PAGE_SIZE,
-  ADMIN_USERS_PAGE_SIZE,
   MODERATION_QUEUE_PAGE_SIZE,
   REPORT_STATUS_LABELS,
   type ReportStatusFilter,
@@ -30,172 +16,188 @@ import {
   REPORT_REASON_LABELS,
   type ReportReason,
 } from "@/lib/api/community-contract";
-import { EmptyState } from "@/components/ui/empty-state";
-import {
-  ArchiveListingForm,
-  ConfirmIntentForm,
-  CreditProviderForm,
-  GeoCreateForm,
-  GeoDeleteForm,
-  GeoRenameForm,
-  PricingRuleCreateForm,
-  PromotionForm,
-  PseudonymizeForm,
-  PurgeAuditHistoryForm,
-  PurgeContentForm,
-  RefundForm,
-  ResolveDisputeForm,
-  ResolveReportForm,
-  RuleActiveButton,
-  RuleDeleteButton,
-  SuspendProviderForm,
-  UserStatusForm,
-  UserRoleForm,
-  VerifyProviderForm,
-} from "./forms";
+import { formatDateTime } from "@/lib/format";
+import { PANEL_ITEMS } from "./panel-items";
+import { EmptyState, PanelHead, ReadFailure } from "./panel-parts";
 
 /**
- * لوحة الإدارة — batch-3's console + the batch-4 spec: the remaining
- * 21 administrative operations (users ×6, all-bookings ×1, all-listings
- * ×2 + promotion ×1, the single-intent read, providers verify/suspend
- * ×2, ledger ×2, dispute resolve ×1, geo ×3, revisions ×2) — the whole
- * `/api/v1/admin/**` contract surface now has a console home.
+ * لوحات التحكم — النظرة العامة (slice N2): the console's landing —
+ * the KPI row (each number is a REAL first-page read's own
+ * totalElements, never an invented count) + the moderation queue's
+ * open head (Nextdoor's moderation-first console) + the panels map.
  *
- * The page's truth bound (the spec's honesty clause): every operation
- * sits behind the backend's three-layer hasRole('ADMIN') gates and the
- * app carries no role claims of its own (roles are NOT in /me —
- * measured, Task 24). Every read below answers 403 AUTHZ-001 for a
- * non-admin caller and those words render VERBATIM — the backend is
- * the sole authority; the admin happy paths are unverifiable with the
- * test account (no ADMIN credentials exist on our side — declared in
- * the spec, never guessed).
- *
- * The three input-driven reads (single intent, provider balance,
- * entity revisions) ride the URL as state (`?intentId=`,
- * `?balanceProviderId=`, `?revisionEntity=&revisionId=`) through plain
- * GET forms — the /neighborhoods?parent= discipline, no client-side
- * fetch, no Server Action for a pure read.
+ * The overview fires the five light reads the old single-page console
+ * always fired (queue + users + listings + bookings + payments, first
+ * page each) — strictly less work than the S6 page, which read the
+ * rules + audited entities + categories too. Every KPI card links to
+ * its own panel; the failure branch stays the backend's own words
+ * (the 403s are data — the console claims no authority).
  */
 
 export const metadata: Metadata = {
-  title: "لوحة الإدارة",
-  description: "طابور الإشراف وقواعد التسعير وإدارة المدفوعات والمستخدمين والحجوزات والإعلانات والأستاذ والنزاعات والجغرافيا ومراجعات التدقيق",
+  title: "نظرة عامة — لوحات التحكم",
   robots: { index: false },
 };
 
-type AdminPageProps = PageProps<"/admin">;
-
 /** The status axis chip — OPEN/RESOLVED/DISMISSED on the backend's own vocabulary. */
 function statusLabel(status: string): string {
-  return (
-    REPORT_STATUS_LABELS[status as ReportStatusFilter] ?? status
-  );
+  return REPORT_STATUS_LABELS[status as ReportStatusFilter] ?? status;
 }
 
-function first(raw: string | string[] | undefined): string {
-  return Array.isArray(raw) ? (raw[0] ?? "") : (raw ?? "");
-}
+type AdminPageProps = PageProps<"/admin">;
 
-/** The standard expected-failure note (reads as data — the 403 words). */
-function ReadFailure({
-  problem,
-  status,
-  what,
+/** One KPI card — the panel's own live number + its deep link. */
+function KpiCard({
+  href,
+  icon,
+  label,
+  value,
+  hint,
 }: {
-  problem: ProblemDetail | null;
-  status: number;
-  what: string;
+  href: string;
+  icon: string;
+  label: string;
+  value: string;
+  hint: string;
 }) {
-  if (status === 0) {
-    return (
-      <p className="page-note" role="status">
-        الخادم الخلفي غير متاح حالياً — لا يمكن قراءة {what} الآن.
-      </p>
-    );
-  }
   return (
-    <p className="page-note" role="status">
-      {problemMessage(problem, `تعذّرت قراءة ${what} (رمز ${status}).`)}
-    </p>
+    <Link href={href} className="hy-kpi" data-clickable>
+      <span className="hy-kpi-icon">
+        <span className="material-symbols-outlined" aria-hidden="true">
+          {icon}
+        </span>
+      </span>
+      <span className="hy-kpi-value">{value}</span>
+      <span className="hy-kpi-label">{label}</span>
+      <span className="hy-kpi-hint">{hint}</span>
+    </Link>
   );
 }
 
-export default async function AdminConsolePage({
-  searchParams,
-}: AdminPageProps) {
-  const sp = await searchParams;
-  const intentId = first(sp?.intentId);
-  const balanceProviderId = first(sp?.balanceProviderId);
-  const revisionEntity = first(sp?.revisionEntity);
-  const revisionId = first(sp?.revisionId);
-  const bookingStatus = first(sp?.bookingStatus);
+/** The fallback KPI card — the failure branch, the backend's own words. */
+function KpiFailure({
+  what,
+  status,
+}: {
+  what: string;
+  status: number;
+}) {
+  return (
+    <div className="hy-kpi" role="status">
+      <span className="hy-kpi-icon">
+        <span className="material-symbols-outlined" aria-hidden="true">
+          block
+        </span>
+      </span>
+      <span className="hy-kpi-value">—</span>
+      <span className="hy-kpi-label">{what}</span>
+      <span className="hy-kpi-hint">
+        {status === 0
+          ? "الخادم الخلفي غير متاح حالياً"
+          : `تعذّرت القراءة (رمز ${status})`}
+      </span>
+    </div>
+  );
+}
 
-  const session = await getSession();
-  if (!session) {
-    return (
-      <main>
-        <h1>لوحة الإدارة</h1>
-        <p className="page-note" role="status">
-          لوحة الإدارة للحسابات الإدارية — سجّل الدخول أولًا.
-        </p>
-        <SignInButton callbackURL="/admin" />
-        <p>
-          <Link href="/">الرئيسية</Link>
-        </p>
-      </main>
-    );
-  }
-
-  // The seven section reads fire together — each is an expected-failure
-  // channel (the 403 words are data, not exceptions). The eighth is the
-  // S2 category vocabulary — a PUBLIC registry read (no admin gate;
-  // feeds the pricing-rule form's live picker).
-  const [queue, rules, payments, users, bookings, listings, entities, categories] =
-    await Promise.all([
-      getModerationQueue(undefined, 0, MODERATION_QUEUE_PAGE_SIZE),
-      getPricingRules(),
-      getPaymentSummaries(0, ADMIN_PAYMENTS_PAGE_SIZE),
-      getUsers(0, ADMIN_USERS_PAGE_SIZE),
-      getAllBookings(bookingStatus === "" ? null : bookingStatus, 0, ADMIN_BOOKINGS_PAGE_SIZE),
-      getAllListings(0, ADMIN_LISTINGS_PAGE_SIZE),
-      getAuditedEntities(),
-      getListingCategories(),
-    ]);
-
-  // The three input-driven reads fire only when their URL state is
-  // present (the /neighborhoods?parent= discipline — a pure read rides
-  // the address, never a client fetch).
-  const [intent, balance, revisions] = await Promise.all([
-    intentId === "" ? null : getPaymentIntent(intentId),
-    balanceProviderId === "" ? null : getProviderBalance(balanceProviderId),
-    revisionEntity === "" || revisionId === ""
-      ? null
-      : getRevisions(revisionEntity, revisionId),
+export default async function AdminOverviewPage({}: AdminPageProps) {
+  // The five light reads — the same expected-failure channels the old
+  // console fired; the overview renders each read's own count.
+  const [queue, users, listings, bookings, payments] = await Promise.all([
+    getModerationQueue("OPEN", 0, MODERATION_QUEUE_PAGE_SIZE),
+    getUsers(0, 1),
+    getAllListings(0, 1),
+    getAllBookings(null, 0, 1),
+    getPaymentSummaries(0, 1),
   ]);
 
-  return (
-    <main>
-      <h1>لوحة الإدارة</h1>
-      <p className="page-note" role="note">
-        هذه اللوحة للإدارة: قراءاتها وأوامرها كلها محرّسة بدور الأدمن على
-        الخلفي نفسه، والحساب غير الإداري يرى رفض الخلفي بكلماته الحرفية —
-        الخلفي هو السلطة الوحيدة، ولا تُدّعى مسارات لا يستطيع هذا الحساب
-        التحقق منها.
-      </p>
+  const ar = new Intl.NumberFormat("ar");
 
-      {/* -- §1 the moderation report queue ----------------------------- */}
-      <section className="card" aria-labelledby="moderation-heading">
-        <h2 id="moderation-heading">بلاغات الإشراف</h2>
+  return (
+    <main className="hy-adm-panel">
+      <PanelHead
+        title="نظرة عامة"
+        note={
+          <>
+            نبض الوحدة الإدارية — كل رقم أدناه قراءته الحية من الخلفي نفسه
+            (totalElements للصفحة الأولى من كل عقد)، والأرقام العربية
+            للمشاهدة فقط. كل بطاقة تفتح لوحتها؛ الحساب غير الإداري يرى رفض
+            الخلفي بكلماته الحرفية.
+          </>
+        }
+      />
+
+      {/* -- the KPI row: five live numbers, each its own panel door -- */}
+      <section className="hy-kpi-grid" aria-label="مؤشرات الوحدة">
+        {queue.ok ? (
+          <KpiCard
+            href="/admin/moderation"
+            icon="flag"
+            label="بلاغات مفتوحة"
+            value={ar.format(queue.data.totalElements)}
+            hint="طابور FIFO — الأقدم أولاً"
+          />
+        ) : (
+          <KpiFailure what="بلاغات مفتوحة" status={queue.status} />
+        )}
+        {users.ok ? (
+          <KpiCard
+            href="/admin/users"
+            icon="group"
+            label="المستخدمون"
+            value={ar.format(users.data.totalElements)}
+            hint="الأدوار والحالة والأوامر"
+          />
+        ) : (
+          <KpiFailure what="المستخدمون" status={users.status} />
+        )}
+        {listings.ok ? (
+          <KpiCard
+            href="/admin/listings"
+            icon="home_work"
+            label="الإعلانات"
+            value={ar.format(listings.data.totalElements)}
+            hint="كل الحالات + الأرشفة والترويج"
+          />
+        ) : (
+          <KpiFailure what="الإعلانات" status={listings.status} />
+        )}
+        {bookings.ok ? (
+          <KpiCard
+            href="/admin/bookings"
+            icon="event_note"
+            label="الحجوزات"
+            value={ar.format(bookings.data.totalElements)}
+            hint="كل حجوزات المنصة بجانبيها"
+          />
+        ) : (
+          <KpiFailure what="الحجوزات" status={bookings.status} />
+        )}
+        {payments.ok ? (
+          <KpiCard
+            href="/admin/finance"
+            icon="payments"
+            label="أقساط الدفع"
+            value={ar.format(payments.data.totalElements)}
+            hint="التأكيد والاسترداد والأستاذ"
+          />
+        ) : (
+          <KpiFailure what="أقساط الدفع" status={payments.status} />
+        )}
+      </section>
+
+      {/* -- the moderation head — Nextdoor's moderation-first console -- */}
+      <section className="card hy-adm-section" aria-labelledby="overview-queue-heading">
+        <h2 id="overview-queue-heading">رأس طابور البلاغات</h2>
         <p className="page-note">
-          طابور FIFO كامل (الأقدم أولاً) — محور الحالة: مفتوح / محسوم /
-          مستبعد. التسوية على بلاغ مغلق تُجيب 409 بكلمات الخلفي.
+          أحدث البلاغات المفتوحة — التسوية الكاملة في لوحة البلاغات.
         </p>
         {queue.ok ? (
           queue.data.content.length === 0 ? (
-            <EmptyState title="لا بلاغات في الطابور" />
+            <EmptyState title="لا بلاغات مفتوحة في الطابور" />
           ) : (
             <ul className="feed-list">
-              {queue.data.content.map((report) => (
+              {queue.data.content.slice(0, 3).map((report) => (
                 <li key={report.id} className="card post-card">
                   <p className="listing-meta">
                     <span className="listing-category" aria-label="حالة البلاغ">
@@ -214,17 +216,6 @@ export default async function AdminConsolePage({
                   <p className="listing-meta" dir="ltr">
                     <span>target: {report.targetId}</span>
                   </p>
-                  {report.resolutionNote ? (
-                    <p className="post-body">ملاحظة التسوية: {report.resolutionNote}</p>
-                  ) : null}
-                  {report.status === "OPEN" ? (
-                    <ResolveReportForm reportId={report.id} />
-                  ) : (
-                    <p className="page-note" role="status">
-                      أُغلق البلاغ
-                      {report.resolvedAt ? ` — ${formatDate(report.resolvedAt)}` : ""}.
-                    </p>
-                  )}
                 </li>
               ))}
             </ul>
@@ -232,422 +223,30 @@ export default async function AdminConsolePage({
         ) : (
           <ReadFailure problem={queue.problem} status={queue.status} what="الطابور" />
         )}
+        <p>
+          <Link href="/admin/moderation">لوحة البلاغات الكاملة ←</Link>
+        </p>
       </section>
 
-      {/* -- §2 the pricing rules manager -------------------------------- */}
-      <section className="card" aria-labelledby="pricing-rules-heading">
-        <h2 id="pricing-rules-heading">قواعد التسعير</h2>
+      {/* -- the panels map: every console door on one card -- */}
+      <section className="card hy-adm-section" aria-labelledby="overview-map-heading">
+        <h2 id="overview-map-heading">اللوحات</h2>
         <p className="page-note">
-          قواعد التسعير العامة — الإنشاء والتفعيل والتعطيل والحذف، بحدود
-          الخلفي نفسها (الاسم ≤ ٢٠٠ حرف، الفئة ≤ ١٠٠، والكسور بين ٠ و١).
+          وحدة الإدارة كاملة — كل لوحة بمسارها العميق وقراءاتها وأوامرها.
         </p>
-        {rules.ok ? (
-          rules.data.length === 0 ? (
-            <EmptyState title="لا قواعد تسعير بعد" />
-          ) : (
-            <ul className="feed-list">
-              {rules.data.map((rule) => (
-                <li key={rule.id} className="card post-card">
-                  <p className="listing-meta">
-                    <span className="listing-category" aria-label="حالة القاعدة">
-                      {rule.active ? "مفعّلة" : "معطّلة"}
-                    </span>
-                    <span>·</span>
-                    <span>{rule.name}</span>
-                    {rule.category ? (
-                      <>
-                        <span>·</span>
-                        <span>{rule.category}</span>
-                      </>
-                    ) : null}
-                  </p>
-                  {rule.taxRate !== null || rule.discountPct !== null ? (
-                    <p className="post-body">
-                      {rule.taxRate !== null
-                        ? `ضريبة ${new Intl.NumberFormat("ar", { maximumFractionDigits: 4 }).format(rule.taxRate)}`
-                        : ""}
-                      {rule.taxRate !== null && rule.discountPct !== null
-                        ? " · "
-                        : ""}
-                      {rule.discountPct !== null
-                        ? `خصم ${new Intl.NumberFormat("ar", { maximumFractionDigits: 4 }).format(rule.discountPct)}`
-                        : ""}
-                    </p>
-                  ) : null}
-                  <div className="inline-actions">
-                    <RuleActiveButton ruleId={rule.id} active={rule.active} />
-                    <RuleDeleteButton ruleId={rule.id} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )
-        ) : (
-          <ReadFailure problem={rules.problem} status={rules.status} what="القواعد" />
-        )}
-        <PricingRuleCreateForm categories={categories.ok ? categories.data : null} />
-      </section>
-
-      {/* -- §3 the payments administration ------------------------------ */}
-      <section className="card" aria-labelledby="payments-heading">
-        <h2 id="payments-heading">المدفوعات</h2>
-        <p className="page-note">
-          ملخصات قصد الدفع (المعرّف هو القصد نفسه) مع المبلغ والعملة والحالة
-          والمسترد — والتأكيد والاسترداد أوامر إدارية على عقد الخلفي.
-        </p>
-        {payments.ok ? (
-          payments.data.content.length === 0 ? (
-            <EmptyState title="لا قصد دفع بعد" />
-          ) : (
-            <ul className="feed-list">
-              {payments.data.content.map((intent) => (
-                <li key={intent.id} className="card post-card">
-                  <p className="listing-meta">
-                    <span className="listing-category" aria-label="حالة القصد">
-                      {intent.status}
-                    </span>
-                    <span>·</span>
-                    <span>
-                      {formatPrice(intent.amountCents / 100, intent.currency)}
-                    </span>
-                    <span>·</span>
-                    <span>{formatDateTime(intent.createdAt)}</span>
-                  </p>
-                  <p className="listing-meta" dir="ltr">
-                    <span>intent: {intent.id}</span>
-                    <span> · booking: {intent.bookingId}</span>
-                    <span> · consumer: {intent.consumerId}</span>
-                  </p>
-                  {intent.refundedAmountCents ? (
-                    <p className="post-body">
-                      المسترد:{" "}
-                      {new Intl.NumberFormat("ar").format(intent.refundedAmountCents)}{" "}
-                      وحدة صغرى
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )
-        ) : (
-          <ReadFailure problem={payments.problem} status={payments.status} what="المدفوعات" />
-        )}
-        <form method="get" action="/admin" className="stack-form">
-          <label htmlFor="lookup-intent-id">اقرأ قصدًا واحدًا بمعرّفه</label>
-          <input id="lookup-intent-id" name="intentId" type="text" dir="ltr" defaultValue={intentId} />
-          <p className="field-hint">
-            القراءة على العنوان نفسه (URL هو الحالة) — انسخ المعرّف من صف
-            أعلاه.
-          </p>
-          <button type="submit" className="button">اقرأ القصد</button>
-        </form>
-        {intent ? (
-          intent.ok ? (
-            <div className="card post-card">
-              <p className="listing-meta">
-                <span className="listing-category" aria-label="حالة القصد">
-                  {intent.data.status}
+        <ul className="hy-adm-map">
+          {PANEL_ITEMS.filter((item) => item.href !== "/admin").map((item) => (
+            <li key={item.href}>
+              <Link href={item.href}>
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  {item.icon}
                 </span>
-                <span>·</span>
-                <span>
-                  {formatPrice(intent.data.amountCents / 100, intent.data.currency)}
-                </span>
-                <span>·</span>
-                <span>{formatDateTime(intent.data.createdAt)}</span>
-              </p>
-              <p className="listing-meta" dir="ltr">
-                <span>intent: {intent.data.id}</span>
-                <span> · booking: {intent.data.bookingId}</span>
-                <span> · consumer: {intent.data.consumerId}</span>
-              </p>
-            </div>
-          ) : (
-            <ReadFailure problem={intent.problem} status={intent.status} what="القصد" />
-          )
-        ) : null}
-        <ConfirmIntentForm />
-        <RefundForm />
+                <span>{item.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
-
-      {/* -- §4 the users administration --------------------------------- */}
-      <section className="card" aria-labelledby="users-heading">
-        <h2 id="users-heading">المستخدمون</h2>
-        <p className="page-note">
-          قائمة الحسابات مع أدوارها — وأوامر الدور والحالة والتجنّي وتطهير
-          المحتوى وسجل التدقيق، كلها بمعاجم الخلفي وحدوده الحرفية.
-        </p>
-        {users.ok ? (
-          users.data.content.length === 0 ? (
-            <EmptyState title="لا مستخدمون" />
-          ) : (
-            <ul className="feed-list">
-              {users.data.content.map((user) => (
-                <li key={user.id} className="card post-card">
-                  <p className="listing-meta">
-                    <span className="listing-category" aria-label="الدور">
-                      {user.role}
-                    </span>
-                    <span>·</span>
-                    <span>{user.displayName ?? user.email ?? "بلا اسم ظاهر"}</span>
-                    <span>·</span>
-                    <span>{formatDateTime(user.createdAt)}</span>
-                  </p>
-                  <p className="listing-meta" dir="ltr">
-                    <span>user: {user.id}</span>
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )
-        ) : (
-          <ReadFailure problem={users.problem} status={users.status} what="المستخدمين" />
-        )}
-        <UserRoleForm />
-        <UserStatusForm />
-        <PseudonymizeForm />
-        <PurgeContentForm />
-        <PurgeAuditHistoryForm />
-      </section>
-
-      {/* -- §5 the all-bookings administration -------------------------- */}
-      <section className="card" aria-labelledby="bookings-heading">
-        <h2 id="bookings-heading">الحجوزات (كلها)</h2>
-        <p className="page-note">
-          كل حجوزات المنصة بجانبيها (المستهلك والمزوّد) — مرشّح الحالة يمرّ
-          كما هو إلى الخلفي (لا معجم طرفي).
-        </p>
-        <form method="get" action="/admin" className="stack-form">
-          <label htmlFor="bookings-status">مرشّح الحالة (اختياري — يمرّ حرفيًا)</label>
-          <input
-            id="bookings-status"
-            name="bookingStatus"
-            type="text"
-            dir="ltr"
-            defaultValue={bookingStatus}
-          />
-          <button type="submit" className="button">رشّح</button>
-        </form>
-        {bookings.ok ? (
-          bookings.data.content.length === 0 ? (
-            <EmptyState title="لا حجوزات" />
-          ) : (
-            <ul className="feed-list">
-              {bookings.data.content.map((booking) => (
-                <li key={booking.id} className="card post-card">
-                  <p className="listing-meta">
-                    <span className="listing-category" aria-label="حالة الحجز">
-                      {booking.status}
-                    </span>
-                    <span>·</span>
-                    <span>
-                      {booking.priceCents !== null
-                        ? formatPrice(booking.priceCents / 100, booking.currency)
-                        : "بلا سعر"}
-                    </span>
-                    <span>·</span>
-                    <span>{formatDateTime(booking.startsAt)}</span>
-                  </p>
-                  <p className="listing-meta" dir="ltr">
-                    <span>booking: {booking.id}</span>
-                    <span> · consumer: {booking.consumerId}</span>
-                    <span> · provider: {booking.providerId}</span>
-                    <span> · listing: {booking.listingId}</span>
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )
-        ) : (
-          <ReadFailure problem={bookings.problem} status={bookings.status} what="الحجوزات" />
-        )}
-      </section>
-
-      {/* -- §6 the all-listings + promotion administration --------------- */}
-      <section className="card" aria-labelledby="listings-heading">
-        <h2 id="listings-heading">كل الإعلانات</h2>
-        <p className="page-note">
-          جرد المنصة كاملًا بكل الحالات — صفوفه تحمل providerId (مصدر معرّف
-          المزوّد الوحيد في قراءة عقدية)، والأرشفة والترويج أوامر إدارية.
-        </p>
-        {listings.ok ? (
-          listings.data.content.length === 0 ? (
-            <EmptyState title="لا إعلانات" />
-          ) : (
-            <ul className="feed-list">
-              {listings.data.content.map((listing) => (
-                <li key={listing.id} className="card post-card">
-                  <p className="listing-meta">
-                    <span className="listing-category" aria-label="حالة الإعلان">
-                      {listing.status}
-                    </span>
-                    <span>·</span>
-                    <span>{listing.title}</span>
-                    <span>·</span>
-                    <span>{listing.category}</span>
-                  </p>
-                  <p className="listing-meta" dir="ltr">
-                    <span>listing: {listing.id}</span>
-                    <span> · provider: {listing.providerId}</span>
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )
-        ) : (
-          <ReadFailure problem={listings.problem} status={listings.status} what="الإعلانات" />
-        )}
-        <ArchiveListingForm />
-        <PromotionForm />
-      </section>
-
-      {/* -- §7 the providers administration ----------------------------- */}
-      <section className="card" aria-labelledby="providers-heading">
-        <h2 id="providers-heading">المزوّدون</h2>
-        <p className="page-note">
-          التوثيق والتعليق — بمعرّف الملف (فضاء معرّف الملف، لا معرّف
-          المستخدم؛ مصدره عمود providerId في قائمة الإعلانات أعلاه).
-        </p>
-        <VerifyProviderForm />
-        <SuspendProviderForm />
-      </section>
-
-      {/* -- §8 the administrative ledger -------------------------------- */}
-      <section className="card" aria-labelledby="ledger-heading">
-        <h2 id="ledger-heading">الأستاذ</h2>
-        <p className="page-note">
-          رصيد مزوّد بالإيداع من قصد دفع — عقد الخلفي نفسه: الإيداع على
-          سلسلة الاستعلام (لا جسم JSON).
-        </p>
-        <form method="get" action="/admin" className="stack-form">
-          <label htmlFor="balance-provider-id">اقرأ رصيد مزوّد بمعرّفه</label>
-          <input
-            id="balance-provider-id"
-            name="balanceProviderId"
-            type="text"
-            dir="ltr"
-            defaultValue={balanceProviderId}
-          />
-          <button type="submit" className="button">اقرأ الرصيد</button>
-        </form>
-        {balance ? (
-          balance.ok ? (
-            <div className="card post-card">
-              <p className="listing-meta">
-                <span className="listing-category" aria-label="الرصيد المتاح">
-                  {new Intl.NumberFormat("ar").format(balance.data.availableCents)} وحدة صغرى
-                </span>
-                <span>·</span>
-                <span>{formatDateTime(balance.data.createdAt)}</span>
-              </p>
-              <p className="listing-meta" dir="ltr">
-                <span>provider: {balance.data.id}</span>
-              </p>
-            </div>
-          ) : (
-            <ReadFailure problem={balance.problem} status={balance.status} what="الرصيد" />
-          )
-        ) : null}
-        <CreditProviderForm />
-      </section>
-
-      {/* -- §9 the administrative dispute resolution --------------------- */}
-      <section className="card" aria-labelledby="disputes-heading">
-        <h2 id="disputes-heading">النزاعات</h2>
-        <p className="page-note">
-          قرار التسوية الإداري — الجسم اختياري بحسب عقد الخلفي (غيابه =
-          NO_ACTION)، والقرار المالي يُسمّى صراحةً.
-        </p>
-        <ResolveDisputeForm />
-      </section>
-
-      {/* -- §10 the administrative geo tree ------------------------------ */}
-      <section className="card" aria-labelledby="geo-heading">
-        <h2 id="geo-heading">الشجرة الجغرافية</h2>
-        <p className="page-note">
-          إنشاء موقع وابن وإعادة تسمية وحذف — حدود الخلفي نفسها: الأصل
-          المجهول 404، وتعارض slug والحوارات ذات الأبناء 409 بكلماته.
-        </p>
-        <GeoCreateForm />
-        <GeoRenameForm />
-        <GeoDeleteForm />
-      </section>
-
-      {/* -- §11 the Envers revision trail -------------------------------- */}
-      <section className="card" aria-labelledby="revisions-heading">
-        <h2 id="revisions-heading">سجل المراجعات</h2>
-        <p className="page-note">
-          كيانات التدقيق (Envers) ومراجعات أي كيان بمعرّفه — الكيان يُعرض
-          خامًا كما أعاده الخلفي (بلا إعادة تركيب).
-        </p>
-        {entities.ok ? (
-          entities.data.length === 0 ? (
-            <EmptyState title="لا كيانات مدقّقة" />
-          ) : (
-            <ul className="feed-list" dir="ltr">
-              {entities.data.map((name) => (
-                <li key={name} className="card post-card">
-                  <p className="listing-meta">
-                    <span>{name}</span>
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )
-        ) : (
-          <ReadFailure problem={entities.problem} status={entities.status} what="الكيانات المدقّقة" />
-        )}
-        <form method="get" action="/admin" className="stack-form">
-          <label htmlFor="revision-entity">اسم الكيان المدقّق</label>
-          <input
-            id="revision-entity"
-            name="revisionEntity"
-            type="text"
-            dir="ltr"
-            defaultValue={revisionEntity}
-          />
-          <label htmlFor="revision-id">معرّف الكيان</label>
-          <input
-            id="revision-id"
-            name="revisionId"
-            type="text"
-            dir="ltr"
-            defaultValue={revisionId}
-          />
-          <button type="submit" className="button">اقرأ المراجعات</button>
-        </form>
-        {revisions ? (
-          revisions.ok ? (
-            revisions.data.length === 0 ? (
-              <EmptyState title="لا مراجعات لهذا الكيان" />
-            ) : (
-              <ul className="feed-list">
-                {revisions.data.map((entry) => (
-                  <li key={entry.revisionNumber} className="card post-card">
-                    <p className="listing-meta">
-                      <span className="listing-category" aria-label="نوع المراجعة">
-                        {entry.revisionType}
-                      </span>
-                      <span>·</span>
-                      <span dir="ltr">rev {entry.revisionNumber}</span>
-                      <span>·</span>
-                      <span>{formatDateTime(entry.revisedAt)}</span>
-                    </p>
-                    <pre className="post-body" dir="ltr">
-                      {JSON.stringify(entry.entity, null, 2)}
-                    </pre>
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : (
-            <ReadFailure problem={revisions.problem} status={revisions.status} what="المراجعات" />
-          )
-        ) : null}
-      </section>
-
-      <p>
-        <Link href="/">الرئيسية</Link>
-      </p>
     </main>
   );
 }

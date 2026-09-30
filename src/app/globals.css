@@ -4492,3 +4492,199 @@ a.hood-tab:focus-visible {
 .hy-me-links { flex-wrap: wrap; }
 .hy-me-links .hy-btn { gap: var(--hy-space-xs); }
 .hy-me-links .material-symbols-outlined { font-size: 1.125rem; }
+
+/* ============ لوحات التحكم — the N2 console layer (scoped .hy-adm) ============
+   The control-panel wave rides the wing's own .hy system: the same
+   tokens, the same 5rem fixed header, the same 18rem fixed aside
+   (right — the reading start in RTL), the same .hy-main column. Only
+   what the console ADDS lives here: the mobile pill strip (8 panels
+   do not fit a bottom tab bar — the wing's own scrollable-pill
+   convention carries them), the KPI row, the panel head/section
+   rhythm, the panels map, and the sidebar nav's icon slot. */
+
+/* The sidebar nav's icon slot (the wing's nav links carry no icons —
+   the console's do; scoped to .hy-adm so the wing is untouched). */
+.hy-adm .hy-nav a,
+.hy-adm .hy-nav .hy-nav-active { gap: var(--hy-space-sm); }
+.hy-adm .hy-nav .material-symbols-outlined {
+  font-size: 1.25rem;
+  flex: none;
+  font-variation-settings: "FILL" 0, "wght" 500;
+}
+
+/* The mobile pill strip — sticky under the 5rem fixed header below
+   48rem; hidden on desktop where the sidebar carries the nav.
+   scroll-snap + horizontal scroll: the 9e20622 convention. */
+.hy-adm-strip {
+  position: sticky;
+  top: 5rem;
+  z-index: 45;
+  display: flex;
+  gap: var(--hy-space-xs);
+  align-items: center;
+  padding-block: var(--hy-space-sm);
+  padding-inline: var(--hy-margin-md);
+  background: color-mix(in srgb, var(--hy-surface) 94%, transparent);
+  backdrop-filter: blur(1rem);
+  border-block-end: 1px solid color-mix(in srgb, var(--hy-outline-variant) 30%, transparent);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.hy-adm-strip::-webkit-scrollbar { display: none; }
+.hy-adm-strip .hy-pill {
+  flex: none;
+  scroll-snap-align: start;
+  white-space: nowrap;
+  text-decoration: none;
+}
+@media (min-width: 48rem) { .hy-adm-strip { display: none; } }
+
+/* The strip is in-flow (sticky, not fixed) — the main column's top
+   padding must clear BOTH the 5rem header and the strip below 48rem.
+   The wing's .hy-main pads 5rem; the console adds the strip's band. */
+@media (max-width: 47.999rem) {
+  .hy-adm .hy-main { padding-block-start: calc(5rem + 2.75rem); }
+}
+
+/* The panel page container — the console's own column rhythm. */
+.hy-adm-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hy-space-lg);
+  min-inline-size: 0;
+}
+
+/* The panel head — h1 + the honest note. */
+.hy-adm-head h1 {
+  margin: 0;
+  font-family: var(--hy-f-headline);
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  line-height: 1.2;
+  color: var(--hy-on-surface);
+}
+.hy-adm-head .page-note { margin-block-start: var(--hy-space-xs); }
+
+/* The panel section — the S6 .card sections keep their own skin; the
+   console adds only the rhythm (the card already carries its own
+   padding from the app-wide rule). */
+.hy-adm-section { min-inline-size: 0; }
+
+/* The KPI row — five live numbers, each its own panel door. */
+.hy-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: var(--hy-space-md);
+}
+.hy-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--hy-space-lg) var(--hy-space-md);
+  border-radius: var(--hy-radius);
+  background: var(--hy-surface-container-lowest);
+  border: 1px solid var(--hy-surface-container);
+  color: var(--hy-on-surface);
+  text-decoration: none;
+  min-inline-size: 0;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+a.hy-kpi:hover,
+.hy-kpi[data-clickable="true"]:hover {
+  box-shadow: 0 6px 20px rgba(15, 118, 110, 0.14);
+  transform: translateY(-1px);
+}
+.hy-kpi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: var(--hy-radius-full);
+  background: color-mix(in srgb, var(--hy-primary) 12%, transparent);
+  color: var(--hy-primary-container);
+  margin-block-end: var(--hy-space-xs);
+}
+.hy-kpi-icon .material-symbols-outlined { font-size: 1.25rem; }
+.hy-kpi-value {
+  font-family: var(--hy-f-headline);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--hy-on-surface);
+}
+.hy-kpi-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--hy-on-surface);
+}
+.hy-kpi-hint {
+  font-size: 0.75rem;
+  color: var(--hy-on-surface-variant);
+}
+
+/* The panels map — every console door on one card. */
+.hy-adm-map {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--hy-space-sm);
+}
+.hy-adm-map a {
+  display: flex;
+  align-items: center;
+  gap: var(--hy-space-sm);
+  padding: var(--hy-space-sm) var(--hy-space-md);
+  border-radius: var(--hy-radius-full);
+  background: var(--hy-surface-container-low);
+  color: var(--hy-on-surface-variant);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.hy-adm-map a:hover {
+  background: var(--hy-surface-container-high);
+  color: var(--hy-on-surface);
+}
+.hy-adm-map .material-symbols-outlined {
+  font-size: 1.25rem;
+  flex: none;
+  color: var(--hy-primary-container);
+}
+
+/* The console's aside foot (the authority note + the home link). */
+.hy-adm-foot-note {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--hy-on-surface-variant);
+}
+.hy-adm-foot-link {
+  display: flex;
+  align-items: center;
+  gap: var(--hy-space-xs);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--hy-on-surface-variant);
+  text-decoration: none;
+  padding: var(--hy-space-xs) var(--hy-space-sm);
+  border-radius: var(--hy-radius-full);
+}
+.hy-adm-foot-link:hover {
+  background: var(--hy-surface-container-high);
+  color: var(--hy-on-surface);
+}
+
+/* The anonymous gate card keeps the console's own rhythm. */
+.hy-adm-gate { gap: var(--hy-space-md); }
+
+/* The console header's responsive point (the wing's own discipline —
+   the hood chip's): the brand's sub line hides below 48rem so the
+   5rem header row fits a phone (measured: the row was 13px over at
+   375px with the sub present). */
+@media (max-width: 47.999rem) {
+  .hy-adm .hy-brand-sub { display: none; }
+}

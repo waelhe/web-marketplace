@@ -301,3 +301,46 @@ test("the display-data showcase is a labeled, bounded contract (بيانات ع�
     ).toBe(0);
   }
 });
+
+test("the control panels render their anonymous gate honestly (N2)", async ({
+  page,
+}) => {
+  // N2: the console is a session-scoped surface — the anonymous render
+  // is the shell + the sign-in gate (the panel pages never execute,
+  // so NO admin read ever fires for a visitor), noindex, inside the
+  // wing's own design system.
+  const res = await page.goto("/admin");
+  expect(res?.status()).toBe(200);
+  await expect(
+    page.getByText("اللوحات للحسابات الإدارية — سجّل الدخول أولًا."),
+  ).toBeVisible();
+  const robots = await page.locator('meta[name="robots"]').first().getAttribute("content");
+  expect(robots).toContain("noindex");
+
+  // Every panel route answers the same gate (deep links included).
+  for (const panel of ["/admin/moderation", "/admin/finance", "/admin/audit"]) {
+    const r = await page.goto(panel);
+    expect(r?.status()).toBe(200);
+    await expect(page.getByText("سجّل الدخول أولًا", { exact: false })).toBeVisible();
+  }
+});
+
+test("no horizontal overflow at 375px on the control panels (RTL console shell)", async ({
+  page,
+}) => {
+  // N2: the console's mobile shell — the sticky pill strip under the
+  // 5rem header carries the eight panels below 48rem (eight
+  // destinations do not fit a bottom tab bar). The guard keeps the
+  // console overflow-free at the design's own narrowest tested width.
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto("/admin");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  // The strip is present, sticky, and carries the console's eight
+  // destinations as pills.
+  const strip = page.locator("nav.hy-adm-strip").first();
+  await expect(strip).toBeVisible();
+  await expect(strip.locator("a.hy-pill")).toHaveCount(8);
+});
