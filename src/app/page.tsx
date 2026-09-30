@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { getActiveListings, getListingCategories, searchListings } from "@/lib/api/public";
+import { getActiveListings, getListingCategories, searchListings, resolveCoverUrls } from "@/lib/api/public";
 import { DEMO_LISTINGS, isDemoStorefront } from "@/lib/demo-listings";
 import { problemMessage } from "@/lib/problem";
 import type { BackendResult } from "@/lib/api/server";
@@ -65,6 +65,17 @@ export default async function Home() {
   const demoLatest =
     latest.ok && isDemoStorefront(latest.data.totalElements);
   const registryCategories = categories.ok ? categories.data : null;
+
+  // Card covers on the S5 public media read (restored 2026-09-30) — one
+  // distinct-id GET per render pass (cache()-shared with any detail
+  // deep-link target): the 4:3 image the approved card design always
+  // specified, honest text-first fallback for listings without photos.
+  // Both strips share this single resolution pass; the demo showcase
+  // (بيانات عرض) carries its own illustration and never rides it.
+  const coverUrls = await resolveCoverUrls([
+    ...(featured.ok ? featured.data.content : []),
+    ...(latest.ok ? latest.data.content : []),
+  ]);
 
   return (
     <>
@@ -180,6 +191,7 @@ export default async function Home() {
           </div>
           <ListingStrip
             result={featured}
+            coverUrls={coverUrls}
             emptyTitle="لا توجد إعلانات مميزة حالياً"
             emptyHint="جرّب تصفّح كل الإعلانات"
             demo={
@@ -202,6 +214,7 @@ export default async function Home() {
           </div>
           <ListingStrip
             result={latest}
+            coverUrls={coverUrls}
             emptyTitle="لا توجد إعلانات بعد"
             emptyHint="أول إعلان يُنشأ سيظهر هنا"
             demo={
@@ -275,11 +288,13 @@ export default async function Home() {
  *  the strip would otherwise own). */
 function ListingStrip({
   result,
+  coverUrls,
   emptyTitle,
   emptyHint,
   demo,
 }: {
   result: BackendResult<PagedResponse<ListingSummary>>;
+  coverUrls: ReadonlyMap<string, string>;
   emptyTitle: string;
   emptyHint: string;
   demo?: {
@@ -311,7 +326,7 @@ function ListingStrip({
       <ul className="listing-grid">
         {result.data.content.map((listing) => (
           <li key={listing.id}>
-            <ListingCard listing={listing} />
+            <ListingCard listing={listing} coverUrl={coverUrls.get(listing.id)} />
           </li>
         ))}
       </ul>

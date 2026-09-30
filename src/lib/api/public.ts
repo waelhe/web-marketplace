@@ -24,6 +24,7 @@ import { decodeProblem, type ProblemDetail } from "@/lib/problem";
 import { backendTimeoutSignal } from "./timeout";
 import type { BackendResult } from "./server";
 import type { ListingCategory, ListingDetail, ListingSummary, PagedResponse, PropertyPurpose, PropertyType } from "./types";
+import type { MediaAssetView } from "./provider-contract";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
 
@@ -237,3 +238,51 @@ export const getProviderListings = cache(
       `/api/v1/listings/provider/${encodeURIComponent(providerUserId)}?page=${page}&size=${size}`,
     ),
 );
+
+/**
+ * The public listing media read: `GET /api/v1/media/listings/{id}` — the
+ * S5 public-read contract (backend comprehensive repair plan §10/2.2,
+ * MediaController javadoc: "Public read — same visibility as the listing
+ * endpoints"): a guest reading the public detail page sees its photos
+ * too, each asset carrying freshly presigned GET URLs (15m TTL).
+ *
+ * The detail page's gallery cut (R23/R33) was measured against the OLD
+ * authenticated-only contract; S5 removed that premise, so the read
+ * rides the same anonymous channel as every other public listing read
+ * (no session, no Bearer). Memoized per render pass so the gallery and
+ * any cover resolution in the same request share ONE backend GET.
+ */
+export const getListingMedia = cache(
+  async (listingId: string): Promise<BackendResult<MediaAssetView[]>> =>
+    publicGet(`/api/v1/media/listings/${encodeURIComponent(listingId)}`),
+);
+
+/**
+ * Cover thumbnails for a page of listing cards: one `getListingMedia`
+ * read per DISTINCT listing id (cache()-deduped across strips and the
+ * detail link target within the render pass), first UPLOADED asset in
+ * display order (position 1) wins, `thumbUrl` preferred (480px 4:3 —
+ * the backend's own thumbnail pipeline) with the original
+ * `downloadUrl` as fallback.
+ *
+ * Honest degradation, never a crash and never a broken image: a failed
+ * or empty media read simply leaves that listing WITHOUT a cover (the
+ * card's text-first shape stands); the browse read itself is the page's
+ * authority on whether listings render at all.
+ */
+export async function resolveCoverUrls(
+  listings: ReadonlyArray<{ id: string }>,
+): Promise<Map<string, string>> {
+  const covers = new Map<string, string>();
+  const ids = [...new Set(listings.map((listing) => listing.id))];
+  const results = await Promise.all(ids.map((id) => getListingMedia(id)));
+  results.forEach((result, index) => {
+    if (!result.ok || result.data.length === 0) return;
+    const first = result.data[0];
+    const url = first.thumbUrl ?? first.downloadUrl;
+    if (typeof url === "string" && url.length > 0) {
+      covers.set(ids[index], url);
+    }
+  });
+  return covers;
+}

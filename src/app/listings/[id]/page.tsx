@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getListingDetail } from "@/lib/api/public";
+import { getListingDetail, getListingMedia } from "@/lib/api/public";
 import { formatDate } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
 import type { ListingDetail, PropertyType } from "@/lib/api/types";
+import type { MediaAssetView } from "@/lib/api/provider-contract";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { PriceTag } from "@/components/ui/price";
@@ -23,12 +24,10 @@ import { LeadForm } from "../lead-form";
 // with `<` escaped) — the backend supplies the measured facts; the
 // frontend never recomposes them.
 //
-// Task 7 composition (compose only — no new fetches, no new tokens):
-// PageHeader + Badge + PriceTag + client-only ShareButton (Web Share API
-// with copy-link fallback) + an honest EmptyState gallery. CUT with
-// evidence: reviews (provider-scoped read, no providerId on the detail
-// payload), gallery images (media read is authenticated-only), similar,
-// save (zero live contracts — Task 0). Lead-form logic untouched.
+// Task 7 composition (compose only — no new tokens): PageHeader + Badge +
+// PriceTag + client-only ShareButton (Web Share API with copy-link
+// fallback) + the S5 public gallery + an honest EmptyState when a listing
+// truly has zero photos. Lead-form logic untouched.
 
 type ListingPageProps = PageProps<"/listings/[id]">;
 
@@ -134,18 +133,14 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
       {listing.property ? <PropertySection listing={listing} /> : null}
 
-      {/* Gallery images CUT (R23/R33): the only media read
-          (GET /api/v1/media/listings/{id}) is authenticated-only
-          (src/lib/api/media.ts — backendGet with session), so a public
-          SEO page must not fetch it. Zero images render EmptyState —
-          never stock photos. */}
-      <section aria-labelledby="gallery-heading">
-        <h2 id="gallery-heading">صور الإعلان</h2>
-        <EmptyState
-          title="لا توجد صور متاحة"
-          hint="لم تُنشر صور لهذا الإعلان على السطح العام بعد."
-        />
-      </section>
+      {/* The S5 public gallery (restored 2026-09-30): the backend's
+          media read went PUBLIC ("same visibility as the listing
+          endpoints" — MediaController javadoc, comprehensive repair plan
+          §10/2.2), dissolving the R23/R33 authenticated-only premise the
+          original gallery cut was measured against. One anonymous read
+          per render pass (cache()-shared), zero images → the honest
+          EmptyState stands — never stock photos. */}
+      <GallerySection listingId={listing.id} />
 
       {/* Reviews DROPPED (R6/R33): the only reviews read is
           provider-scoped (GET /api/v1/reviews/provider/{providerId},
@@ -185,6 +180,61 @@ export default async function ListingPage({ params }: ListingPageProps) {
         <Link href="/">الرئيسية</Link>
       </p>
     </main>
+  );
+}
+
+/**
+ * The public gallery — the detail page's photo surface on the S5
+ * public-read contract. The failure branches mirror the provider
+ * manage page's MediaSection honesty (503 = the backend's own S3-gate
+ * words; other failures = the problem contract verbatim), minus the
+ * upload/delete affordances that belong to the owning provider only.
+ */
+async function GallerySection({ listingId }: { listingId: string }) {
+  const media = await getListingMedia(listingId);
+
+  return (
+    <section aria-labelledby="gallery-heading">
+      <h2 id="gallery-heading">صور الإعلان</h2>
+      {media.ok ? (
+        media.data.length === 0 ? (
+          <EmptyState
+            title="لا توجد صور متاحة"
+            hint="لم تُنشر صور لهذا الإعلان على السطح العام بعد."
+          />
+        ) : (
+          <ul className="media-gallery">
+            {media.data.map((asset: MediaAssetView) => (
+              <li key={asset.id} className="media-item">
+                {/* Presigned URLs: the storage host is runtime deployment
+                    data (not a build-time known origin), so plain <img> —
+                    next/image remotePatterns cannot encode it without
+                    inventing a host. TTL 15m; the page is dynamic. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={asset.thumbUrl ?? asset.downloadUrl}
+                  alt={`صورة ${new Intl.NumberFormat("ar").format(asset.position)} من الإعلان`}
+                  loading="lazy"
+                />
+              </li>
+            ))}
+          </ul>
+        )
+      ) : media.status === 503 ? (
+        // The backend's inert default, stated in its own words — a
+        // backend-owner configuration step, not a frontend gap.
+        <p className="page-note" role="status">
+          {problemMessage(
+            media.problem,
+            "خدمة وسائط الإعلان غير مهيّأة على الخادم (تخزين S3 غير مربوط).",
+          )}
+        </p>
+      ) : (
+        <p className="page-note" role="status">
+          {problemMessage(media.problem, `تعذّر قراءة صور الإعلان (رمز ${media.status}).`)}
+        </p>
+      )}
+    </section>
   );
 }
 
