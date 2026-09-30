@@ -71,6 +71,48 @@ export const MAX_RESOLUTION_NOTE_LENGTH = 2000;
 export const MODERATION_QUEUE_PAGE_SIZE = 20;
 
 /**
+ * The residency-verification queue (the lifecycle's review surface —
+ * NeighborhoodVerificationAdminController, PR #483): the same
+ * administrative read shape as the moderation queue, applied to the
+ * membership ledger. The optional state axis filters the MEASURED
+ * MembershipVerificationState vocabulary; absent = the whole ACTIVE
+ * ledger (left memberships are hidden by the read's own filter). The
+ * queue drains on the state's own clock (updatedAt ASC, id ASC).
+ */
+export const VERIFICATION_QUEUE_STATES = [
+  "UNVERIFIED",
+  "PENDING",
+  "VERIFIED",
+  "REJECTED",
+] as const;
+export type VerificationQueueState = (typeof VERIFICATION_QUEUE_STATES)[number];
+
+/** Arabic UI labels of the MEASURED verification vocabulary (admin side). */
+export const VERIFICATION_QUEUE_STATE_LABELS: Record<VerificationQueueState, string> = {
+  UNVERIFIED: "غير موثّق",
+  PENDING: "قيد المراجعة",
+  VERIFIED: "جار موثّق",
+  REJECTED: "مرفوض",
+};
+
+/**
+ * VerificationDecision — the review command's own vocabulary. The
+ * backend parses it BEFORE any service call; an invalid value answers
+ * the house 400 listing these values.
+ */
+export const VERIFICATION_DECISIONS = ["APPROVE", "REJECT"] as const;
+export type VerificationDecision = (typeof VERIFICATION_DECISIONS)[number];
+
+/** Arabic UI labels of the MEASURED review-decision vocabulary. */
+export const VERIFICATION_DECISION_LABELS: Record<VerificationDecision, string> = {
+  APPROVE: "قبول التوثيق (علامة «جار موثق»)",
+  REJECT: "رفض التوثيق (تعطيل النشر والرسائل الجديدة)",
+};
+
+/** The verification queue read's page size (the moderation window). */
+export const VERIFICATION_QUEUE_PAGE_SIZE = 20;
+
+/**
  * PricingRuleResponse (marketplace-pricing) — one global pricing rule.
  * `active` is the rule's own switch (activate/deactivate are separate
  * PUT commands); taxRate/discountPct are 0..1 fractions (BigDecimal).

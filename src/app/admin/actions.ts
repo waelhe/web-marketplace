@@ -30,9 +30,11 @@ import {
   RULE_NAME_MAX_LENGTH,
   USER_ROLES,
   USER_STATUSES,
+  VERIFICATION_DECISIONS,
   type ModerationAction,
   type UserStatusValue,
   type UserRoleValue,
+  type VerificationDecision,
 } from "@/lib/api/admin-contract";
 import {
   activatePricingRule,
@@ -51,6 +53,7 @@ import {
   renameGeoLocation,
   resolveDispute,
   resolveReport,
+  reviewVerification,
   setListingPromotion,
   suspendProvider,
   updateUserRole,
@@ -144,6 +147,61 @@ export async function resolveReportAction(
   return {
     status: "success",
     message: "حُسم البلاغ — أُغلق في الطابور.",
+  };
+}
+
+/**
+ * Review one pending residency verification — POST /admin/
+ * neighborhood-memberships/{id}/verification?decision= (the lifecycle's
+ * review command, PR #483). The backend owns every gate: the decision
+ * parses before any service call (APPROVE|REJECT — anything else is
+ * the house 400), and a non-PENDING membership answers 409 with the
+ * entity's own transition words (the one-directional state machine).
+ * refresh() reruns the server render — the queue re-reads and the row
+ * moves to its decision trail.
+ */
+export async function reviewVerificationAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const membershipId = text(formData, "membershipId");
+  if (!isUuid(membershipId)) {
+    return { status: "error", message: "معرّف العضوية غير صالح." };
+  }
+
+  const decision = text(formData, "decision");
+  if (!VERIFICATION_DECISIONS.includes(decision as VerificationDecision)) {
+    return {
+      status: "error",
+      message: "قرار المراجعة غير معروف — اقبل التوثيق أو ارفضه.",
+    };
+  }
+
+  const result = await reviewVerification(
+    membershipId,
+    decision as VerificationDecision,
+  );
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّرت مراجعة التوثيق (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  await refresh();
+  return {
+    status: "success",
+    message:
+      decision === "APPROVE"
+        ? "قُبل التوثيق — العضو الآن «جار موثق»."
+        : "رُفض التوثيق — نشره ورسائله الجديدة معطّلة، وقراءته كاملة.",
   };
 }
 

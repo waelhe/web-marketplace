@@ -16,6 +16,7 @@ export const PANEL_ITEMS: ReadonlyArray<{
 }> = [
   { href: "/admin", label: "نظرة عامة", short: "النظرة العامة", icon: "dashboard" },
   { href: "/admin/moderation", label: "بلاغات الإشراف", short: "البلاغات", icon: "flag" },
+  { href: "/admin/verification", label: "توثيق السكن", short: "التوثيق", icon: "verified_user" },
   { href: "/admin/users", label: "المستخدمون", short: "المستخدمون", icon: "group" },
   { href: "/admin/listings", label: "الإعلانات والمزوّدون", short: "الإعلانات", icon: "home_work" },
   { href: "/admin/bookings", label: "الحجوزات", short: "الحجوزات", icon: "event_note" },

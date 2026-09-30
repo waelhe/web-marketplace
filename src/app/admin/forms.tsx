@@ -22,6 +22,7 @@ import {
   renameGeoLocationAction,
   resolveDisputeAction,
   resolveReportAction,
+  reviewVerificationAction,
   setListingPromotionAction,
   setPricingRuleActiveAction,
   archiveListingAction,
@@ -45,6 +46,8 @@ import {
   USER_ROLE_LABELS,
   USER_STATUSES,
   USER_STATUS_LABELS,
+  VERIFICATION_DECISIONS,
+  VERIFICATION_DECISION_LABELS,
 } from "@/lib/api/admin-contract";
 import {
   DISPUTE_RESOLUTION_LABELS,
@@ -102,6 +105,38 @@ export function ResolveReportForm({ reportId }: { reportId: string }) {
       />
       <button type="submit" className="button" data-variant="primary" disabled={pending}>
         {pending ? "جارٍ التسوية…" : "احسم البلاغ"}
+      </button>
+      <StateMessage state={state} />
+    </form>
+  );
+}
+
+/**
+ * Review one PENDING residency verification — the lifecycle's own
+ * command (PR #483). The decision select carries the backend's
+ * two-value vocabulary with Arabic labels; APPROVE lands the trust
+ * mark («جار موثق»), REJECT denies the member's writes and new direct
+ * chats while keeping every read open (D-N3's own split).
+ */
+export function ReviewVerificationForm({ membershipId }: { membershipId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    reviewVerificationAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="stack-form">
+      <input type="hidden" name="membershipId" value={membershipId} />
+      <label htmlFor={`verify-decision-${membershipId}`}>قرار المراجعة</label>
+      <select id={`verify-decision-${membershipId}`} name="decision" required>
+        {VERIFICATION_DECISIONS.map((value) => (
+          <option key={value} value={value}>
+            {VERIFICATION_DECISION_LABELS[value]}
+          </option>
+        ))}
+      </select>
+      <button type="submit" className="button" data-variant="primary" disabled={pending}>
+        {pending ? "جارٍ البتّ…" : "احسم التوثيق"}
       </button>
       <StateMessage state={state} />
     </form>

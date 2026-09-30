@@ -32,6 +32,7 @@
 import { backendGet, backendSend, type BackendResult } from "./server";
 import type { PagedResponse } from "./types";
 import type { PaymentIntentView } from "./booking-contract";
+import type { NeighborhoodMembership } from "./community-contract";
 import type { DisputeResolution, DisputeView } from "./disputes-contract";
 import type { GeoNode } from "./geo";
 import type { ProviderProfileView } from "./provider-contract";
@@ -52,6 +53,8 @@ import type {
   UserStatusValue,
   UserRoleValue,
   UserSummaryView,
+  VerificationDecision,
+  VerificationQueueState,
 } from "./admin-contract";
 
 /**
@@ -88,6 +91,51 @@ export function resolveReport(
     "POST",
     `/api/v1/admin/reports/${encodeURIComponent(reportId)}/resolve`,
     note === null ? { action } : { action, note },
+  );
+}
+
+/**
+ * The residency-verification queue — `GET /api/v1/admin/
+ * neighborhood-memberships?state=&page=&size=` (PR #483, the
+ * lifecycle's review surface): the ACTIVE membership ledger by
+ * verification state on the state's own drain clock (updatedAt ASC,
+ * id ASC — oldest pending claim first). The optional state axis
+ * filters the four-value vocabulary; absent = the whole ledger. Every
+ * read and write below sits behind the class-level ADMIN gate — a
+ * non-admin caller answers 403 AUTHZ-001 problem+json (the same
+ * three-layer authority as the moderation queue).
+ */
+export function getVerificationQueue(
+  state?: VerificationQueueState,
+  page = 0,
+  size = 20,
+): Promise<BackendResult<PagedResponse<NeighborhoodMembership>>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+  if (state) params.set("state", state);
+  return backendGet(`/api/v1/admin/neighborhood-memberships?${params.toString()}`);
+}
+
+/**
+ * Review one pending verification — `POST /api/v1/admin/
+ * neighborhood-memberships/{membershipId}/verification?decision=`. The
+ * decision parses BEFORE any service call (APPROVE|REJECT — anything
+ * else answers the house 400 listing the vocabulary); a non-PENDING
+ * membership answers 409 with the entity's own transition words (the
+ * one-directional state machine's honesty, the report resolve's twin).
+ */
+export function reviewVerification(
+  membershipId: string,
+  decision: VerificationDecision,
+): Promise<BackendResult<NeighborhoodMembership>> {
+  const params = new URLSearchParams({ decision });
+  return backendSend(
+    "POST",
+    `/api/v1/admin/neighborhood-memberships/${encodeURIComponent(
+      membershipId,
+    )}/verification?${params.toString()}`,
   );
 }
 
