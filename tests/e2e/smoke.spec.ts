@@ -153,6 +153,10 @@ test("neighborhood renders the anonymous gate without a feed fetch", async ({ pa
   await expect(page.getByText("هذا القسم لأعضاء الحارات")).toBeVisible();
   const robots = await page.locator('meta[name="robots"]').first().getAttribute("content");
   expect(robots).toContain("noindex");
+  // L47: the reaction affordance is community-private with the rest of
+  // the feed — a visitor never sees a thank button (the Nextdoor privacy
+  // model: nothing community is public, the gate renders BEFORE the feed).
+  await expect(page.locator(".hy-react-btn")).toHaveCount(0);
 });
 
 test("register renders as a public surface — no gate, the J1 form contract", async ({

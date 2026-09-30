@@ -4319,6 +4319,39 @@ a.hood-tab:focus-visible {
 .hy-real-body { margin: 0; font-size: 0.875rem; line-height: 1.5rem; color: var(--hy-on-surface-variant); }
 .hy-real-actions { display: flex; align-items: center; gap: var(--hy-space-xs); flex-wrap: wrap; padding-block-start: var(--hy-space-xs); border-block-start: 1px solid color-mix(in srgb, var(--hy-outline-variant) 20%, transparent); }
 
+/* L47 — «شكرًا»: the reaction toggle on the feed's action bar. The wing's
+   own pill anatomy (the hy-btn bones) with the heart leading: idle is the
+   soft container tone (the owner's tertiary family — the design's thanks
+   chip), the live voice fills the container itself (data-reacted — the
+   filled heart icon carries the filled state with it), and the count
+   rides the label in the app's Arabic numerals. */
+.hy-react-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.375rem var(--hy-space-md);
+  border-radius: var(--hy-radius-full);
+  border: 1px solid color-mix(in srgb, var(--hy-primary-container) 30%, transparent);
+  background: color-mix(in srgb, var(--hy-primary-container) 8%, transparent);
+  color: var(--hy-primary-container);
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.hy-react-btn .material-symbols-outlined { font-size: 1rem; line-height: 1; }
+.hy-react-btn:hover { background: color-mix(in srgb, var(--hy-primary-container) 16%, transparent); }
+.hy-react-btn:disabled { opacity: 0.6; cursor: wait; }
+.hy-react-btn[data-reacted] {
+  background: var(--hy-primary-container);
+  border-color: var(--hy-primary-container);
+  color: var(--hy-on-primary);
+}
+.hy-react-btn[data-reacted] .material-symbols-outlined { color: var(--hy-tertiary-fixed); }
+
 /* The pager under the real feed. */
 .hy-pager { display: flex; align-items: center; gap: var(--hy-space-sm); }
 

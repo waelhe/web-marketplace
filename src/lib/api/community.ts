@@ -30,6 +30,7 @@ import type {
   NeighborhoodPost,
   PostCategory,
   PostComment,
+  PostReaction,
   ReportReason,
   ReportTargetType,
 } from "./community-contract";
@@ -141,6 +142,34 @@ export function createPostComment(
  */
 export function deleteNeighborhoodPost(postId: string): Promise<BackendResult<null>> {
   return backendSend<null>("DELETE", `/api/v1/posts/${encodeURIComponent(postId)}`);
+}
+
+/**
+ * Thank a post — `POST /api/v1/posts/{postId}/reactions` (L47). The
+ * backend's gate order is the comment's own verbatim: an unknown,
+ * hidden or deleted post answers the honest 404 (a hidden post's
+ * reactions are absent exactly as the post itself is); an active
+ * membership in the post's OWN neighborhood is required (403
+ * otherwise — a reaction is a community contribution like a comment);
+ * and one voice per member is the product's own law — a second thank
+ * answers 409 with the backend's words. The post's author is notified
+ * (POST_REACTED) after commit — unless the reactor IS the author. The
+ * feed read carries the live count and the caller's own voice
+ * (`reactionsCount` / `reactedByMe`) — no second read needed.
+ */
+export function reactToPost(postId: string): Promise<BackendResult<PostReaction>> {
+  return backendSend("POST", `/api/v1/posts/${encodeURIComponent(postId)}/reactions`);
+}
+
+/**
+ * Remove my thank — `DELETE /api/v1/posts/{postId}/reactions` (L47).
+ * The same gates as the thank (the post's honest 404, then the
+ * membership 403); a member with no LIVE thank answers the honest 404
+ * (there is nothing to remove). 204 on success — the voice is free
+ * for a fresh one (the soft-deleted row stays for the audit trail).
+ */
+export function removePostReaction(postId: string): Promise<BackendResult<null>> {
+  return backendSend<null>("DELETE", `/api/v1/posts/${encodeURIComponent(postId)}/reactions`);
 }
 
 /**

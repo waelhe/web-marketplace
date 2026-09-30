@@ -26,6 +26,8 @@ import {
   deleteNeighborhoodPost,
   joinNeighborhood,
   leaveNeighborhood,
+  reactToPost,
+  removePostReaction,
 } from "@/lib/api/community";
 import { openDirectConversation } from "@/lib/api/inbox";
 import {
@@ -277,6 +279,51 @@ export async function deletePostAction(
   }
 
   redirect("/neighborhood");
+}
+
+/**
+ * Thank / un-thank a post (L47 — the reactions layer). ONE key, ONE
+ * action, TWO directions: the form carries the post id plus the
+ * caller's own live voice (reactedByMe — the feed read's own field),
+ * and the action sends the backend the OPPOSITE of what the caller
+ * currently holds. The backend owns every gate either way (the post's
+ * honest 404, the membership 403, the one-voice 409 on a double
+ * thank); success refreshes the server render so the count and the
+ * filled heart re-render from the feed's own read — the contract is
+ * the display's single source of truth.
+ */
+export async function reactAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const postId = text(formData, "postId");
+  const currentlyReacted = text(formData, "reactedByMe") === "true";
+  if (!isUuid(postId)) {
+    return { status: "error", message: "معرّف المنشور غير صالح." };
+  }
+
+  const result = currentlyReacted
+    ? await removePostReaction(postId)
+    : await reactToPost(postId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(result.problem, `تعذّر تحديث شكرك (رمز ${result.status}).`),
+    };
+  }
+
+  // refresh() (not redirect): the feed's server render IS the count's
+  // source of truth — the re-read carries the new reactionsCount and
+  // the flipped reactedByMe, and the button re-renders in place.
+  refresh();
+  return {
+    status: "success",
+    message: currentlyReacted ? "أُلغي شكرك." : "شكرت هذا المنشور.",
+  };
 }
 
 /**

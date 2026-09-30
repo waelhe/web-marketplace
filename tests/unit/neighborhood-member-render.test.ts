@@ -50,6 +50,8 @@ const fixtures = vi.hoisted(() => ({
         title: "مفقودات: مفتاح سيارة",
         body: "فقدت مفتاح السيارة أمام الصيدلية.",
         status: "VISIBLE",
+        reactionsCount: 3,
+        reactedByMe: false,
         createdAt: "2026-03-05T12:00:00Z",
         updatedAt: "2026-03-05T12:00:00Z",
       },
@@ -126,6 +128,7 @@ vi.mock("@/app/neighborhood/forms", () => ({
   DeletePostButton: () => "delete-post-button-stub",
   LeaveForm: () => "leave-form-stub",
   MessageNeighborButton: () => "message-neighbor-button-stub",
+  ReactButton: () => "react-button-stub",
 }));
 
 vi.mock("@/app/neighborhood/comments", () => ({
@@ -157,11 +160,15 @@ test("the member branch renders the two-column feed with per-post identity", asy
   expect(markup).toContain("create-post-form-stub");
   expect(markup).toContain("leave-form-stub");
   expect(markup).toContain("message-neighbor-button-stub");
+  // L47: the reaction toggle rides the REAL feed row's action bar (the
+  // stub proves the wiring; the dedicated post-reactions.test.ts pins
+  // the button's own contract).
+  const realItem = markup.match(/<li class="hy-real-item"[\s\S]*?<\/li>/)?.[0];
+  expect(realItem ?? "").toContain("react-button-stub");
   expect(markup).not.toContain('id="post-title"');
 
   // The opaque author id shows its first two characters, uppercased —
   // inside the REAL feed row (the hy-real-item), the design's own card.
-  const realItem = markup.match(/<li class="hy-real-item"[\s\S]*?<\/li>/)?.[0];
   expect(realItem).toBeDefined();
   const avatar = (realItem ?? "").match(/<span class="hy-avatar"[^>]*>([^<]*)<\/span>/)?.[1];
   expect(avatar).toBeDefined();

@@ -16,6 +16,7 @@ import {
   joinAction,
   leaveAction,
   messageNeighborAction,
+  reactAction,
 } from "./actions";
 import type { ActionState } from "./actions";
 import { POST_CATEGORIES } from "@/lib/api/community-contract";
@@ -223,6 +224,58 @@ export function MessageNeighborButton({ authorId }: { authorId: string }) {
       <input type="hidden" name="recipientId" value={authorId} />
       <button type="submit" className="button" disabled={pending}>
         {pending ? "جارٍ الفتح…" : "راسل الجار"}
+      </button>
+      {state.status === "error" ? <StateMessage state={state} /> : null}
+    </form>
+  );
+}
+
+/**
+ * «شكرًا» — L47's reaction toggle (the Nextdoor-2026 gap #1 surface):
+ * ONE form carrying the post id plus the caller's own live voice
+ * (reactedByMe — the feed read's own field, never client-invented
+ * state); the action sends the backend the OPPOSITE direction. The
+ * count rides the button itself (the feed's own reactionsCount, in the
+ * owner design's own Latin-digit convention — the «832 عائلة» rule),
+ * the heart fills when the caller's voice is live (data-reacted), and
+ * the backend's own words (409 on a double thank, 403 non-member, the
+ * honest 404) surface verbatim on failure.
+ */
+export function ReactButton({
+  postId,
+  reactionsCount,
+  reactedByMe,
+}: {
+  postId: string;
+  reactionsCount: number;
+  reactedByMe: boolean;
+}) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    reactAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="inline-action">
+      <input type="hidden" name="postId" value={postId} />
+      <input type="hidden" name="reactedByMe" value={reactedByMe ? "true" : "false"} />
+      <button
+        type="submit"
+        className="hy-react-btn"
+        data-reacted={reactedByMe || undefined}
+        disabled={pending}
+        aria-pressed={reactedByMe}
+      >
+        <span className="material-symbols-outlined" aria-hidden="true">
+          {reactedByMe ? "favorite" : "favorite_border"}
+        </span>
+        <span>
+          {pending
+            ? "جارٍ التحديث…"
+            : reactionsCount > 0
+              ? `${reactionsCount} شكرًا`
+              : "شكرًا"}
+        </span>
       </button>
       {state.status === "error" ? <StateMessage state={state} /> : null}
     </form>

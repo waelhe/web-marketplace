@@ -85,11 +85,11 @@ change preserves the system, and no patch-work that leaves debt.
 |---|---|
 | Owner | GitHub **waelhe** (local token at `.creds/gh_token` — may survive collapses) |
 | Frontend | `waelhe/web-marketplace` — Next.js 16.3.5 + React 19.3 + Better Auth 1.7.5 (stateless Generic OAuth, BFF), Node 26.8.2 pinned, zero CSS framework (RTL logical tokens), TypeScript |
-| Backend | `waelhe/app-java-v3` — Java 25 / Spring Boot 4.1.1 / Modulith, 22 modules, Flyway V70 (last sync). **Owned by the backend team — read and measure it, never write it** |
-| Frontend prod | `web-marketplace-production-5cc1.up.railway.app` — auto-deploy from `main` (RAILPACK) — **so pushing to origin IS the production deploy trigger** |
-| Backend prod | `app-java-v3-production.up.railway.app` — the live service URL per AGENTS.md + the backend runbook (measured 200 on /v3/api-docs 2026-09-28). The old `-d020` domain is a retired remnant of a deleted service: dead, never probe it |
+| Backend | `waelhe/app-java-v3` — Java 25 / Spring Boot 4.1.1 / Modulith, 22 modules, Flyway V75 (last sync). **Owned by the backend team — read and measure it, never write it** (measured exception, 2026-09-30: the owner's own «بمهارة مطور فول ستاك» directive authorized the platform agent to BUILD the missing backend contracts itself — L47 reactions was the first such wave; the backend repo's own discipline still governs its PRs) |
+| Frontend prod | `web-marketplace-production-f9d3.up.railway.app` — the v4 account's service (Railway account `successful-simplicity`, env 2f49b83a, service 26810a9e), deployed MANUALLY via `serviceInstanceDeployV2(serviceId, envId, commitSha)` — the GraphQL response nests under `data` (measured 2026-09-30). **The 2026-09-30 N2 push proved the deploy is manual: the word «ادفع» pushes origin AND the agent deploys the same commit explicitly**. The old `5cc1` URL is the DEAD old-account service (project app-java-v3, latest dep FAILED 2026-09-20, edge answers "Application not found") — never probe it |
+| Backend prod | `app-java-v3-production-59bf.up.railway.app` — the v4 account's service (service object id 221b33de), deployed manually the same way (measured running 3945b3c 2026-09-30). The old `-d020` domain is a retired remnant of a deleted service: dead, never probe it |
 | Backend staging | `app-java-v3-staging-staging.up.railway.app` — the default dev backend for `.env.local` |
-| OpenAPI | `GET /v3/api-docs` (128 ops at last sync; the two environments byte-identical when healthy) |
+| OpenAPI | `GET /v3/api-docs` (128 ops at last sync before L47; L47 adds `POST/DELETE /posts/{id}/reactions` + the two feed fields — additive). The two environments byte-identical when healthy |
 | Toolchain | Installed tools only: `../.tools/node-v26.8.2-win-x64` from the project root (AGENTS.md's exact pinned path; wiped by rollbacks twice — absent again 2026-09-28, so the measured fallback in §7 is the live reality) |
 | Language | Owner + users: **Arabic**. Skill, code, commits: English. PR bodies: Arabic with measured numbers (see §1) |
 

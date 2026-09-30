@@ -36,7 +36,7 @@ import {
   ownerCount,
   type OwnerFeedPost,
 } from "@/lib/neighborhood-design";
-import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton } from "./forms";
+import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton, ReactButton } from "./forms";
 import { CommentsSection, ReportContentForm } from "./comments";
 import { AlertCard } from "./alert-card";
 import { PollCard } from "./poll-card";
@@ -340,6 +340,17 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                             costs the feed render nothing. */}
                         <CommentsSection postId={post.id} />
                         <div className="hy-real-actions">
+                          {/* L47 — the reaction toggle, FIRST on the action
+                              bar (Nextdoor's own signature): the count and
+                              the caller's own voice ride the feed read
+                              itself (reactionsCount / reactedByMe — the
+                              backend's widened projection), the backend's
+                              409-one-voice gate stays the authority. */}
+                          <ReactButton
+                            postId={post.id}
+                            reactionsCount={post.reactionsCount}
+                            reactedByMe={post.reactedByMe}
+                          />
                           {/* L44 entry: message the author (hidden on my own
                               posts via the measured /me identity chain — the
                               backend's 400-self guard remains the authority). */}

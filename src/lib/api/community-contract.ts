@@ -22,7 +22,9 @@ export interface NeighborhoodMembership {
   updatedAt: string;
 }
 
-/** L42 feed read model (NeighborhoodPostView). */
+/** L42 feed read model (NeighborhoodPostView) — widened by L47 with
+ *  the two reaction facts the feed read carries (measured 2026-09-30:
+ *  reactionsCount + reactedByMe ride every row of the paged body). */
 export interface NeighborhoodPost {
   id: string;
   /** Opaque by contract — display layers must not invent an author identity. */
@@ -32,6 +34,25 @@ export interface NeighborhoodPost {
   title: string;
   body: string;
   status: string;
+  /** L47: the post's LIVE thanks — the grouped count over the page's ids. */
+  reactionsCount: number;
+  /**
+   * L47: the caller's own LIVE voice on this post — the filled heart
+   * renders from the contract alone, no second read.
+   */
+  reactedByMe: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * L47 reaction read model (PostReactionView) — the member stays an
+ * opaque UUID by the same projection discipline as the comments.
+ */
+export interface PostReaction {
+  id: string;
+  postId: string;
+  memberId: string;
   createdAt: string;
   updatedAt: string;
 }
