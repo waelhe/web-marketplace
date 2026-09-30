@@ -157,6 +157,12 @@ test("neighborhood renders the anonymous gate without a feed fetch", async ({ pa
   // the feed — a visitor never sees a thank button (the Nextdoor privacy
   // model: nothing community is public, the gate renders BEFORE the feed).
   await expect(page.locator(".hy-react-btn")).toHaveCount(0);
+  // L48: the photo affordance is community-private the same way — the
+  // composer (with its photo picker) never renders for a visitor, and no
+  // presigned photo URL ever reaches an anonymous DOM (the feed read
+  // itself is behind the gate).
+  await expect(page.locator("#post-photos")).toHaveCount(0);
+  await expect(page.locator(".hy-real-media")).toHaveCount(0);
 });
 
 test("register renders as a public surface — no gate, the J1 form contract", async ({

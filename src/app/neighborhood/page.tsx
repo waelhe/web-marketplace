@@ -95,6 +95,18 @@ function parsePage(raw: string | string[] | undefined): number {
   return parsed - 1;
 }
 
+/**
+ * L48: parse ?photoFailures= — the composer's honest partial-success note
+ * (the action redirects with it when the post's TEXT went live but some
+ * photos failed their presigned round). Any non-positive garbage drops to
+ * null — the note renders only for a real count.
+ */
+function parsePhotoFailures(raw: string | string[] | undefined): number | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : null;
+}
+
 /** The category chip's tone — the design's four colored vocabularies
  * (shared from the contract module — the S10 mapping, N1's home). */
 
@@ -102,6 +114,7 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
   const sp = await searchParams;
   const category = parseCategory(sp?.category);
   const page = parsePage(sp?.page);
+  const photoFailures = parsePhotoFailures(sp?.photoFailures);
 
   const session = await getSession();
   if (!session) {
@@ -285,7 +298,7 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
 
           {/* THE REAL FEED — the L42 read under the owner's skin: real
               posts, real comments, real neighbor DMs, real reports. */}
-          <section className="hy-card" aria-labelledby="feed-heading">
+          <section className="hy-card" id="feed" aria-labelledby="feed-heading">
             <div className="hy-real-head">
               <h2 id="feed-heading" className="hy-section-title">
                 <span className="material-symbols-outlined" aria-hidden="true">
@@ -299,6 +312,18 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                 </span>
               ) : null}
             </div>
+            {/* L48: the composer's partial-success note — the post's text
+                IS live (the action redirected after the write); the count
+                of photos that failed their presigned round rides the URL,
+                never an invented state. One honest line, then the feed. */}
+            {photoFailures !== null ? (
+              <p className="hy-photo-note" role="status">
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  photo_camera
+                </span>
+                نُشر منشورك نصًّا، لكن {photoFailures === 1 ? "صورة واحدة تعذّر رفعها" : `${new Intl.NumberFormat("ar").format(photoFailures)} صور تعذّر رفعها`} — أعد المحاولة من منشور جديد أو لاحقًا.
+              </p>
+            ) : null}
             {feed.ok ? (
               feed.data.content.length === 0 ? (
                 page > 0 && feed.data.totalElements > 0 ? (
@@ -335,6 +360,43 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
                         </header>
                         <h3 className="hy-real-title">{post.title}</h3>
                         <p className="hy-real-body">{post.body}</p>
+                        {/* L48 — post images (gap #2): the REAL photos the
+                            feed row itself carries (the backend's widened
+                            projection — one grouped read, no second call).
+                            The gallery renders only when the contract has
+                            entries: a photo-less post keeps the honest
+                            card the L42 feed always drew. The thumbnail is
+                            the feed's own cheap read (L28: null until
+                            processed → fall back to the original — the
+                            contract's documented fallback, no invented
+                            placeholder pixels). */}
+                        {post.media.length > 0 ? (
+                          <div className="hy-real-media" data-count={post.media.length}>
+                            {post.media.map((photo) => (
+                              <a
+                                key={photo.mediaId}
+                                href={photo.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hy-real-photo"
+                                aria-label="افتح الصورة بالحجم الأصلي"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element --
+                                    presigned storage URLs, not the image
+                                    optimization pipeline (the asset lives on
+                                    Backblaze B2 with its own signature;
+                                    next/image would proxy and re-sign what
+                                    the backend already signed) */}
+                                <img
+                                  src={photo.thumbUrl ?? photo.url}
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
                         {/* L42's conversational layer: the comments
                             disclosure — an on-demand read, so a closed post
                             costs the feed render nothing. */}

@@ -181,6 +181,27 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
           maxLength={200}
           placeholder="عنوان موجز يجذب جيرانك…"
         />
+        {/* L48 — post images (gap #2): the composer's photo picker. The
+            accept list mirrors the backend's allowlist (image/jpeg, png,
+            webp, gif — MediaProperties.Limits); the count cap (٤) and the
+            10MB per-photo bound are validated in the action with the
+            backend's own 400s as the authority. A photo-less submit stays
+            the same L42 text post — the input is optional, no fake
+            requirement. */}
+        <label className="hy-composer-photos" htmlFor="post-photos">
+          <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.9375rem" }}>
+            photo_camera
+          </span>
+          <span>أضف صورًا (حتى ٤ — JPEG/PNG/WebP/GIF، ١٠ ميغابايت للصورة)</span>
+        </label>
+        <input
+          id="post-photos"
+          name="photos"
+          type="file"
+          multiple
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hy-composer-file"
+        />
         <div className="hy-composer-foot">
           <label className="hy-composer-scope">
             <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.875rem" }}>

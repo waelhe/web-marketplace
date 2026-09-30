@@ -1,10 +1,18 @@
 /**
- * The listing media channel (roadmap stage 4 — the L28/L34 presigned
- * upload surface completing the provider manage page's fourth quarter).
+ * The media upload channel (roadmap stage 4 — the L28/L34 presigned
+ * upload surface completing the provider manage page's fourth quarter),
+ * widened by L48 to the post target (the Nextdoor-2026 gap #2 surface:
+ * post images on the SAME single channel).
  *
- * Measured contract (backend source + live OpenAPI 2026-09-22):
- * - POST   /api/v1/media/uploads           (PROVIDER role + listing ownership;
- *                                          type allowlist + size cap BEFORE signing)
+ * Measured contract (backend source + live OpenAPI 2026-09-22; L48
+ * measured from the backend source 2026-10-01):
+ * - POST   /api/v1/media/uploads           (discriminated target since
+ *                                          L48: listingId OR postId —
+ *                                          exactly one; the listing flow:
+ *                                          PROVIDER role + ownership;
+ *                                          the post flow: the author
+ *                                          alone; type allowlist + size
+ *                                          cap BEFORE signing)
  * - POST   /api/v1/media/{id}/complete     (HeadObject verification → UPLOADED)
  * - GET    /api/v1/media/listings/{id}     (UPLOADED assets in display order)
  * - DELETE /api/v1/media/{id}              (soft-delete + best-effort removal, 204)
@@ -28,6 +36,25 @@ export async function requestUpload(
 ): Promise<ReturnType<typeof backendSend<MediaUploadView>>> {
   return backendSend<MediaUploadView>("POST", "/api/v1/media/uploads", {
     listingId,
+    contentType,
+    sizeBytes,
+  });
+}
+
+/**
+ * L48: the post-targeted declare — the SAME single upload channel with
+ * the postId discriminator (the backend's type gate: exactly one of
+ * listingId/postId; the author gate lives server-side). The composer's
+ * photos ride it after the post exists (create → declare → PUT →
+ * complete → refresh).
+ */
+export async function requestPostUpload(
+  postId: string,
+  contentType: string,
+  sizeBytes: number,
+): Promise<ReturnType<typeof backendSend<MediaUploadView>>> {
+  return backendSend<MediaUploadView>("POST", "/api/v1/media/uploads", {
+    postId,
     contentType,
     sizeBytes,
   });

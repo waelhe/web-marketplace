@@ -52,6 +52,7 @@ const fixtures = vi.hoisted(() => ({
         status: "VISIBLE",
         reactionsCount: 3,
         reactedByMe: false,
+        media: [],
         createdAt: "2026-03-05T12:00:00Z",
         updatedAt: "2026-03-05T12:00:00Z",
       },

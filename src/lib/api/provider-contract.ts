@@ -313,14 +313,20 @@ export interface MediaUploadView {
   urlLifetime: string;
 }
 
-/** One media asset as the listing's media surface returns it (display order). */
+/** One media asset as the listing's media surface returns it (display order).
+ *  L48: exactly one of listingId/postId is non-null — the asset's
+ *  target (the backend's exactly-one-target invariant surfaced on the
+ *  read model). */
 export interface MediaAssetView {
   id: string;
-  listingId: string;
+  /** The listing this asset belongs to — null for a post-targeted asset. */
+  listingId: string | null;
+  /** The neighborhood post this asset belongs to — null for a listing-targeted asset (L48). */
+  postId: string | null;
   contentType: string;
   sizeBytes: number;
   status: string;
-  /** 1-based display order within the listing. */
+  /** 1-based display order within the target. */
   position: number;
   /** Presigned GET URL of the original object. */
   downloadUrl: string;

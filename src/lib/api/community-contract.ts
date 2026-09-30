@@ -24,7 +24,9 @@ export interface NeighborhoodMembership {
 
 /** L42 feed read model (NeighborhoodPostView) — widened by L47 with
  *  the two reaction facts the feed read carries (measured 2026-09-30:
- *  reactionsCount + reactedByMe ride every row of the paged body). */
+ *  reactionsCount + reactedByMe ride every row of the paged body), then
+ *  by L48 with the post's photos (media rides the same row — one
+ *  grouped read, no second call). */
 export interface NeighborhoodPost {
   id: string;
   /** Opaque by contract — display layers must not invent an author identity. */
@@ -41,8 +43,30 @@ export interface NeighborhoodPost {
    * renders from the contract alone, no second read.
    */
   reactedByMe: boolean;
+  /**
+   * L48: the post's photos, in display order (position 1-based). Empty
+   * for every photo-less post — an honest list, never undefined. The
+   * URLs are time-limited presigned GETs computed for THIS feed read
+   * (the media module owns storage; no object key crosses the
+   * contract).
+   */
+  media: PostMedia[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * L48 media read model (PostMediaView) — one photo of a post as the
+ * feed row carries it. thumbUrl follows the backend's L28 contract:
+ * null until background processing has run (fall back to url), equal
+ * to url when the original is its own thumbnail by design.
+ */
+export interface PostMedia {
+  mediaId: string;
+  url: string;
+  thumbUrl: string | null;
+  contentType: string;
+  position: number;
 }
 
 /**

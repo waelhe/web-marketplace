@@ -29,6 +29,7 @@ import {
   reactToPost,
   removePostReaction,
 } from "@/lib/api/community";
+import { completeUpload, putToPresignedUrl, requestPostUpload } from "@/lib/api/media";
 import { openDirectConversation } from "@/lib/api/inbox";
 import {
   MAX_REPORT_NOTE_LENGTH,
@@ -52,6 +53,21 @@ export type ActionState =
 /** The backend's own authored-text bounds (NeighborhoodPostController). */
 const MAX_TITLE_LENGTH = 200;
 const MAX_BODY_LENGTH = 2000;
+
+/**
+ * L48: the composer's photo policy — the frontend's own UX mirror of the
+ * backend's media limits (MediaProperties.Limits defaults, measured from
+ * the backend source 2026-10-01): the four-type allowlist and the 10MB
+ * per-object cap. The backend re-validates and stays the authority (its
+ * 400s answer before anything is signed); these mirrors keep the form's
+ * failure messages in the owner's Arabic instead of a raw problem JSON.
+ * MAX_POST_PHOTOS is the composer's own count cap — a product bound the
+ * feed card's gallery renders well (the backend imposes none; it only
+ * allocates display positions).
+ */
+const MAX_POST_PHOTOS = 4;
+const POST_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_POST_PHOTO_BYTES = 10_485_760;
 
 const REAUTH_MESSAGE = "جلستك انتهت — سجّل الدخول من جديد ثم أعد المحاولة.";
 
@@ -155,6 +171,33 @@ export async function createPostAction(
     return { status: "error", message: "نص المنشور مطلوب (٢٠٠٠ حرف كحد أقصى)." };
   }
 
+  // L48: the composer's photos — validated up front so a bad pick never
+  // creates a post that cannot carry it (the post write itself stays
+  // photo-independent: a photo-less submit is the same L42 write).
+  const photos = formData
+    .getAll("photos")
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+  if (photos.length > MAX_POST_PHOTOS) {
+    return {
+      status: "error",
+      message: `لا أكثر من ${MAX_POST_PHOTOS} صور لكل منشور — أزل بعض الصور.`,
+    };
+  }
+  for (const photo of photos) {
+    if (!POST_PHOTO_TYPES.includes(photo.type)) {
+      return {
+        status: "error",
+        message: `نوع الصورة غير مدعوم (${photo.type || "غير معروف"}) — المسموح: JPEG أو PNG أو WebP أو GIF.`,
+      };
+    }
+    if (photo.size > MAX_POST_PHOTO_BYTES) {
+      return {
+        status: "error",
+        message: `حجم الصورة يتجاوز الحد (${Math.round(MAX_POST_PHOTO_BYTES / 1048576)} ميغابايت) — اضغط الصورة أولاً.`,
+      };
+    }
+  }
+
   const result = await createNeighborhoodPost({
     locationId,
     category: category as PostCategory,
@@ -169,9 +212,49 @@ export async function createPostAction(
     };
   }
 
+  // L48: the photos ride the post after it exists (the backend's
+  // target-first discipline — the listing flow's own shape): declare →
+  // PUT bytes to the presigned storage URL → confirm (HeadObject) → the
+  // feed read carries them. The post's TEXT is already live — a photo
+  // failure never destroys the post, it surfaces honestly: the member
+  // sees the published post with a note about whichever photos failed.
+  const postId = result.data.id;
+  let failedPhotos = 0;
+  for (const photo of photos) {
+    const uploaded = await uploadPostPhoto(postId, photo);
+    if (!uploaded) failedPhotos += 1;
+  }
+
   // redirect (not refresh): a fresh navigation remounts the form empty —
   // the new post at the top of the feed is itself the success feedback.
-  redirect("/neighborhood");
+  // A partial photo failure redirects too (the text post is live), with
+  // the note riding the fragment the feed renders from the real read.
+  redirect(
+    failedPhotos > 0
+      ? `/neighborhood?photoFailures=${failedPhotos}#feed`
+      : "/neighborhood",
+  );
+}
+
+/**
+ * L48: one photo's full presigned round — declare (the author gate +
+ * server-generated key live backend-side), PUT the bytes with the
+ * signature-pinned Content-Type, then the server-side HeadObject
+ * confirm. Returns false on ANY step's failure — the caller counts and
+ * surfaces honestly; the backend's own words ride the ActionState only
+ * for the FIRST photo (the common single-photo case keeps a precise
+ * message).
+ */
+async function uploadPostPhoto(postId: string, photo: File): Promise<boolean> {
+  const declared = await requestPostUpload(postId, photo.type, photo.size);
+  if (!declared.ok || !declared.data) return false;
+
+  const bytes = await photo.arrayBuffer();
+  const put = await putToPresignedUrl(declared.data.uploadUrl, photo.type, bytes);
+  if (!put.ok) return false;
+
+  const confirmed = await completeUpload(declared.data.mediaId);
+  return confirmed.ok;
 }
 
 /**
