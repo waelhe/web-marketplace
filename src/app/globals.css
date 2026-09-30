@@ -2774,7 +2774,9 @@ a.hood-tab:focus-visible {
   line-height: 1.75rem;
   font-weight: 700;
   color: var(--hy-primary);
-  letter-spacing: -0.01em;
+  /* No letter-spacing: «حيّنا» is connected Arabic script — tracking
+     breaks glyph joining (the design's tracking-tight was a Latin-only
+     habit carried in the Tailwind config). */
 }
 .hy-brand-sub {
   font-size: 0.6875rem;
@@ -2864,10 +2866,13 @@ a.hood-tab:focus-visible {
   gap: 0.125rem;
 }
 
-/* The fixed sidebar (right side in RTL) — the design's 6-item nav. */
+/* The fixed sidebar — the design's 6-item nav. The design pins it
+   physically RIGHT in the RTL document (`fixed right-0` + `md:pr-72`
+   in code.md); inline-START is the logical spelling of that same
+   side in RTL, so the nav sits on the reading-start edge. */
 .hy-aside {
   position: fixed;
-  inset-inline-end: 0;
+  inset-inline-start: 0;
   top: 5rem;
   bottom: 0;
   inline-size: 18rem;
@@ -2954,9 +2959,10 @@ a.hood-tab:focus-visible {
   font-weight: 600;
 }
 
-/* The main column — offset for header height + sidebar width. */
-.hy-main-col { padding-inline-end: 0; }
-@media (min-width: 48rem) { .hy-main-col { padding-inline-end: 18rem; } }
+/* The main column — offset for header height + sidebar width (the
+   sidebar's inline-START offset, mirroring the design's `md:pr-72`). */
+.hy-main-col { padding-inline-start: 0; }
+@media (min-width: 48rem) { .hy-main-col { padding-inline-start: 18rem; } }
 .hy-main {
   padding-block-start: 5rem;
   padding-inline: var(--hy-margin-md);
@@ -3606,7 +3612,9 @@ a.hood-tab:focus-visible {
 .hy-poll-fill {
   position: absolute;
   inset-block: 0;
-  inset-inline-end: 0;
+  /* The design anchors the fill physically RIGHT (`right-0`) — the
+     reading-start edge in RTL: the bar grows leftward as it fills. */
+  inset-inline-start: 0;
   background: color-mix(in srgb, var(--hy-primary) 15%, transparent);
   transition: inline-size 0.7s ease;
   pointer-events: none;
@@ -4282,4 +4290,57 @@ a.hood-tab:focus-visible {
   .hy-main { padding-inline: var(--hy-space-md); }
   .hy-image-block { block-size: 9rem; }
   .hy-market-thumb { block-size: 7rem; }
+}
+
+/* ============ THE MOBILE SHELL (< 48rem) ============
+   The design hides its fixed sidebar below md (hidden md:flex), which
+   would leave the wing's six sections unreachable on a phone. The
+   mobile shell keeps them one gesture away using the app-wide mobile
+   navigation pattern (the site header's horizontally scrollable,
+   scroll-snap nav row — commit 9e20622's own convention) dressed in
+   the wing's design language:
+   - the header turns STICKY (in flow — no fixed-header offset math,
+     and the section strip stays reachable while scrolling);
+   - the neighborhood chip and the member's name column collapse at
+     the design's own responsive points (`hidden md:flex` chip /
+     `hidden sm:flex` name column) so the 5rem header row fits 390px
+     without overflow (measured before: 602px of content in ~406px);
+   - the six sections ride a scrollable pill strip pinned under the
+     header, visible only below 48rem where the sidebar is hidden. */
+
+.hy-nav-mobile {
+  display: flex;
+  align-items: center;
+  gap: var(--hy-space-xs);
+  padding-inline: var(--hy-space-md);
+  padding-block-end: var(--hy-space-sm);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.hy-nav-mobile::-webkit-scrollbar { display: none; }
+.hy-nav-mobile a {
+  scroll-snap-align: start;
+  white-space: nowrap;
+}
+@media (min-width: 48rem) { .hy-nav-mobile { display: none; } }
+
+@media (max-width: 47.99rem) {
+  /* Sticky + in-flow: the header keeps its 5rem row (and the section
+     strip under it) without the fixed-offset arithmetic. */
+  .hy-header { position: sticky; inset-inline: auto; }
+  .hy-header-inner {
+    padding-inline: var(--hy-space-md);
+    gap: var(--hy-space-sm);
+    min-inline-size: 0;
+  }
+  .hy-main { padding-block-start: 0; }
+  /* The design's own collapse points, transplanted: the hood chip is
+     hidden md:flex in code.md; the member name column hidden sm:flex. */
+  .hy-hood-chip { display: none; }
+  .hy-brand, .hy-notif, .hy-me { flex-shrink: 0; }
+}
+@media (max-width: 39.99rem) {
+  .hy-me-id { display: none; }
 }

@@ -103,9 +103,12 @@ export default async function NeighborhoodLayout({ children }: { children: React
             </span>
           </div>
           {/* The neighborhood chip — the membership's own resolved name
-              (the honest anonymous/absent state is the sign-in itself). */}
+              (the honest anonymous/absent state is the sign-in itself).
+              hy-hood-chip carries the design's own responsive point
+              (hidden md:flex): the chip collapses below 48rem so the
+              5rem header row fits a phone. */}
           {neighborhoodName ? (
-            <span className="hy-pill" title="حارتك المسجّلة">
+            <span className="hy-pill hy-hood-chip" title="حارتك المسجّلة">
               <span className="material-symbols-outlined" aria-hidden="true">
                 location_on
               </span>
@@ -150,6 +153,18 @@ export default async function NeighborhoodLayout({ children }: { children: React
             )}
           </div>
         </div>
+        {/* The mobile section strip — the design hides its sidebar below
+            48rem (hidden md:flex); this scrollable pill strip keeps the
+            six sections reachable on phones (the app-wide mobile nav
+            pattern, in the wing's own skin). Hidden ≥ 48rem where the
+            sidebar itself takes over. */}
+        <nav className="hy-nav-mobile" aria-label="أقسام حيّنا">
+          {NAV_ITEMS.map((item) => (
+            <a key={item.href} href={item.href} className="hy-pill">
+              {item.label}
+            </a>
+          ))}
+        </nav>
       </header>
 
       <aside className="hy-aside">

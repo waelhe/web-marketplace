@@ -75,6 +75,25 @@ test("no horizontal overflow at 375px (RTL shell)", async ({ page }) => {
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test("no horizontal overflow at 375px on the neighborhood wing (RTL mobile shell)", async ({
+  page,
+}) => {
+  // The حيّنا shell replaces its hidden sidebar with a scrollable
+  // section strip below 48rem — the guard keeps the wing overflow-free
+  // at the design's own narrowest tested width.
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto("/neighborhood");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  // The mobile section strip is present and scrollable (the sidebar's
+  // phone replacement), and its six sections are links.
+  const strip = page.locator("nav.hy-nav-mobile").first();
+  await expect(strip).toBeVisible();
+  await expect(strip.locator("a")).toHaveCount(6);
+});
+
 test("booking and profile forms remain gated from anonymous smoke coverage", async ({
   page,
 }) => {
