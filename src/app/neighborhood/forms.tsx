@@ -17,9 +17,10 @@ import {
   leaveAction,
   messageNeighborAction,
   reactAction,
+  requestVerificationAction,
 } from "./actions";
 import type { ActionState } from "./actions";
-import { POST_CATEGORIES } from "@/lib/api/community-contract";
+import { POST_CATEGORIES, VERIFICATION_LABELS, VERIFICATION_NOTES, type VerificationState } from "@/lib/api/community-contract";
 
 function StateMessage({ state }: { state: ActionState }) {
   if (state.status === "error") {
@@ -69,6 +70,38 @@ export function LeaveForm() {
       </button>
       <StateMessage state={state} />
     </form>
+  );
+}
+
+/**
+ * The verification state's honest card — the label, the one-line note,
+ * and (for the requestable states) the review request itself. The
+ * backend's own contract gates who may ask (UNVERIFIED/REJECTED — the
+ * transitional pre-lifecycle SELF_DECLARED rides the same honest
+ * floor); VERIFIED/PENDING render their state alone, no dead action.
+ */
+export function VerificationCard({ state }: { state: VerificationState }) {
+  const [formState, action, pending] = useActionState<ActionState, FormData>(
+    requestVerificationAction,
+    { status: "idle" },
+  );
+  const requestable = state === "UNVERIFIED" || state === "REJECTED" || state === "SELF_DECLARED";
+
+  return (
+    <div className="hy-me-verify">
+      <p className="hy-me-fact">
+        <strong>حالة العضوية:</strong> {VERIFICATION_LABELS[state]}
+      </p>
+      <p className="hy-me-note">{VERIFICATION_NOTES[state]}</p>
+      {requestable ? (
+        <form action={action}>
+          <button type="submit" className="button" disabled={pending}>
+            {pending ? "جارٍ إرسال الطلب…" : "اطلب توثيق السكن"}
+          </button>
+          <StateMessage state={formState} />
+        </form>
+      ) : null}
+    </div>
   );
 }
 

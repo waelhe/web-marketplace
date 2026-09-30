@@ -15,6 +15,7 @@ import {
   CATEGORY_TONES,
   FEED_PAGE_SIZE,
   POST_CATEGORIES,
+  parseVerificationState,
   type PostCategory,
 } from "@/lib/api/community-contract";
 import { ListingCard } from "@/components/ui/card";
@@ -36,7 +37,7 @@ import {
   ownerCount,
   type OwnerFeedPost,
 } from "@/lib/neighborhood-design";
-import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton, ReactButton } from "./forms";
+import { CreatePostForm, DeletePostButton, LeaveForm, MessageNeighborButton, ReactButton, VerificationCard } from "./forms";
 import { CommentsSection, ReportContentForm } from "./comments";
 import { AlertCard } from "./alert-card";
 import { PollCard } from "./poll-card";
@@ -509,13 +510,11 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
             <h2 id="member-heading" className="hy-widget-title">
               عضويتك
             </h2>
-            <p className="hy-screen-sub">
-              {/* SELF_DECLARED is the measured verificationState — the
-                  verification method itself is a pending backend product gate. */}
-              {membership.data.verificationState === "SELF_DECLARED"
-                ? "عضوية معلَنة ذاتياً — التحقق من السكان بوابة منتج لاحقة."
-                : `حالة التحقق: ${membership.data.verificationState}`}
-            </p>
+            {/* The verification lifecycle's own render (gap #3): the
+                MEASURED vocabulary — «جار موثق» only for VERIFIED, the
+                honest «عضو» floor for everything else, and the review
+                request where the backend's contract allows it. */}
+            <VerificationCard state={parseVerificationState(membership.data.verificationState)} />
             <p className="hy-post-meta">عضو منذ {formatDate(membership.data.memberSince)}</p>
             <LeaveForm />
           </section>

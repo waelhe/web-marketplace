@@ -4605,6 +4605,17 @@ a.hood-tab:focus-visible {
   line-height: 1.25rem;
 }
 
+/* The verification lifecycle's honest card (gap #3): the state label +
+   one-line note + the review request where the contract allows it. */
+.hy-me-verify {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--hy-space-xs);
+  margin-block: var(--hy-space-2xs);
+}
+.hy-me-verify .hy-me-note { margin: 0; }
+
 /* The quick-surfaces links row. */
 .hy-me-links { flex-wrap: wrap; }
 .hy-me-links .hy-btn { gap: var(--hy-space-xs); }

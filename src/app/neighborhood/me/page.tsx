@@ -6,7 +6,8 @@ import { formatDate } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
 import { getMyBackendUser, getMyUnreadNotificationCount } from "@/lib/api/inbox";
 import { getMyMembership, getMyFeed } from "@/lib/api/community";
-import { CATEGORY_LABELS, CATEGORY_TONES, type PostCategory } from "@/lib/api/community-contract";
+import { VerificationCard } from "../forms";
+import { CATEGORY_LABELS, CATEGORY_TONES, parseVerificationState, type PostCategory } from "@/lib/api/community-contract";
 import { findGeoNodeById } from "@/lib/api/geo";
 
 /**
@@ -17,10 +18,11 @@ import { findGeoNodeById } from "@/lib/api/geo";
  * Honesty rules this page end to end:
  * - The display name/email ride the session (the BFF's own identity
  *   seam) — the backend id renders as an opaque tail only.
- * - The membership's verificationState renders as MEASURED
- *   (SELF_DECLARED = «إقرار ذاتي») — never the unmeasured «موثق»
- *   (the verification contract is gap #3 in
- *   docs/nextdoor-gap-analysis.md).
+ * - The membership's verificationState renders as MEASURED through the
+ *   verification lifecycle's own vocabulary (VERIFIED = «جار موثق»،
+ *   PENDING = «توثيق قيد المراجعة»، the honest «عضو» floor otherwise)
+ *   — gap #3 in docs/nextdoor-gap-analysis.md is now a served contract
+ *   (PR #483); the review request rides the same card.
  * - «منشوراتي» is THIS page of the neighborhood feed filtered to the
  *   caller's authorId — the backend exposes no author-scoped read
  *   (gap #12); the honest note says exactly that.
@@ -147,13 +149,9 @@ export default async function MePage({ searchParams }: MePageProps) {
             <p className="hy-me-fact">
               <strong>عضو منذ:</strong> {formatDate(membershipOk.memberSince)}
             </p>
-            <p className="hy-me-fact">
-              <strong>حالة التحقق:</strong> إقرار ذاتي
-              <span className="hy-me-note">
-                («SELF_DECLARED» كما يقيسها العقد — توثيق السكن عقدٌ مستقبلي،
-                انظر <Link href="/neighborhood">خلاصة الحي</Link> ووثيقة فجوات العقود)
-              </span>
-            </p>
+            <VerificationCard
+              state={parseVerificationState(membershipOk.verificationState)}
+            />
           </div>
         ) : membership && !membership.ok && membership.unauthenticated ? (
           <p className="hy-state" role="status">

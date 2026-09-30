@@ -15,12 +15,88 @@ export interface NeighborhoodMembership {
   id: string;
   userId: string;
   locationId: string;
-  /** The enum name — measured: SELF_DECLARED (verification is a pending product gate). */
+  /**
+   * The enum name — measured from the verification lifecycle (PR #483):
+   * UNVERIFIED | PENDING | VERIFIED | REJECTED. The pre-lifecycle
+   * SELF_DECLARED (V77 migrates every existing member to UNVERIFIED)
+   * renders through the transitional fallback below — never an
+   * invented «موثق».
+   */
   verificationState: string;
   memberSince: string;
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * The MEASURED verification vocabulary (NeighborhoodVerificationState
+ * — the residency-trust lifecycle, D-N3). The values and their gates are
+ * the backend's own; the Arabic labels are this surface's rendering of
+ * them. SELF_DECLARED rides the array as the TRANSITIONAL pre-V77 state
+ * (an honest render for a not-yet-migrated membership — softened to
+ * «عضو», exactly the gap-analysis discipline).
+ */
+export const VERIFICATION_STATES = [
+  "UNVERIFIED",
+  "PENDING",
+  "VERIFIED",
+  "REJECTED",
+  "SELF_DECLARED",
+] as const;
+export type VerificationState = (typeof VERIFICATION_STATES)[number];
+
+/** Arabic UI labels of the MEASURED verification vocabulary. */
+export const VERIFICATION_LABELS: Record<VerificationState, string> = {
+  UNVERIFIED: "عضو",
+  PENDING: "توثيق قيد المراجعة",
+  VERIFIED: "جار موثق",
+  REJECTED: "عضو",
+  SELF_DECLARED: "عضو",
+};
+
+/**
+ * The chip tone per verification state — «جار موثق» earns the design's
+ * verified look (tertiary); PENDING is primary (in flight); everything
+ * else renders neutral (the honest member floor).
+ */
+export const VERIFICATION_TONES: Record<VerificationState, string> = {
+  VERIFIED: "tertiary",
+  PENDING: "primary",
+  UNVERIFIED: "neutral",
+  REJECTED: "neutral",
+  SELF_DECLARED: "neutral",
+};
+
+/**
+ * The honest one-line explanation under the badge — what the state means
+ * for the member themselves (the write block lives on REJECTED only,
+ * D-N3's own split).
+ */
+export const VERIFICATION_NOTES: Record<VerificationState, string> = {
+  UNVERIFIED: "عضوية سارية — يمكنك طلب توثيق السكن من مسؤولي الحي.",
+  PENDING: "طلبك عند مسؤولي الحي — ستظهر حالته هنا عند البتّ.",
+  VERIFIED: "سكنك موثّق بمراجعة إدارية — علامة الثقة كاملة.",
+  REJECTED: "طلب توثيق سكنك مرفوض — النشر والتعليق معطّلان، والقراءة كاملة.",
+  SELF_DECLARED: "حالة توثيق قديمة تُحدّث مع الترحيلة — كل الوصول كما هو.",
+};
+
+/**
+ * Parse any backend verificationState into the render vocabulary —
+ * unknown values (a future state this surface has not learned) render
+ * the honest «عضو» floor, never an invented label.
+ */
+export function parseVerificationState(raw: string): VerificationState {
+  return (VERIFICATION_STATES as readonly string[]).includes(raw)
+    ? (raw as VerificationState)
+    : "UNVERIFIED";
+}
+
+/** The states that may ASK for a review (the request contract's own gate). */
+export const VERIFICATION_REQUESTABLE: readonly VerificationState[] = [
+  "UNVERIFIED",
+  "REJECTED",
+  "SELF_DECLARED",
+];
 
 /** L42 feed read model (NeighborhoodPostView) — widened by L47 with
  *  the two reaction facts the feed read carries (measured 2026-09-30:

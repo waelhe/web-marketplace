@@ -28,6 +28,7 @@ import {
   leaveNeighborhood,
   reactToPost,
   removePostReaction,
+  requestNeighborhoodVerification,
 } from "@/lib/api/community";
 import { completeUpload, putToPresignedUrl, requestPostUpload } from "@/lib/api/media";
 import { openDirectConversation } from "@/lib/api/inbox";
@@ -136,6 +137,42 @@ export async function leaveAction(
   // state; refresh() reruns the server render (packaged guide).
   refresh();
   return { status: "success", message: "غادرت الحارة." };
+}
+
+/**
+ * Request a manual residency-verification review (the verification
+ * lifecycle, gap #3). The backend owns every gate: UNVERIFIED/REJECTED
+ * moves to PENDING, an already-PENDING or VERIFIED membership answers
+ * 409 with the backend's own words, and no external provider is ever
+ * contacted (D-N3's manual-first flow — an administrator reviews the
+ * claim). Success refreshes the server render: the membership's own
+ * read is the state's single source of truth, and the sidebar's honest
+ * state re-renders from it.
+ */
+export async function requestVerificationAction(
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const result = await requestNeighborhoodVerification();
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر إرسال طلب التوثيق (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  refresh();
+  return {
+    status: "success",
+    message: "وصل طلبك — سيراجع مسؤولو الحي توثيق سكنك وسترى الحالة هنا.",
+  };
 }
 
 /**

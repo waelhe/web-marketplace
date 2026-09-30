@@ -67,6 +67,19 @@ export function leaveNeighborhood(): Promise<BackendResult<null>> {
 }
 
 /**
+ * Request a manual residency-verification review —
+ * `POST /api/v1/me/neighborhood/verification-requests` (the verification
+ * lifecycle, PR #483). Measured semantics: an UNVERIFIED or REJECTED
+ * membership moves to PENDING (the echoed view carries it); an already
+ * PENDING or VERIFIED membership answers 409 with the backend's words.
+ * No SMS/email/postal provider is contacted — the first runnable verifier
+ * is an administrator (D-N3's documented manual-first flow).
+ */
+export function requestNeighborhoodVerification(): Promise<BackendResult<NeighborhoodMembership>> {
+  return backendSend("POST", "/api/v1/me/neighborhood/verification-requests");
+}
+
+/**
  * Read the caller's OWN neighborhood feed —
  * `GET /api/v1/neighborhood/posts?category&page&size`. VISIBLE posts
  * newest-first (createdAt DESC, id DESC — deterministic pagination).
