@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { getSession } from "@/lib/dal";
 import { getMyMembership } from "@/lib/api/community";
+import { getMyUnreadNotificationCount } from "@/lib/api/inbox";
 import { findGeoNodeById } from "@/lib/api/geo";
 import { SignInButton } from "@/app/auth-buttons";
+import { WingTabBar } from "./wing-tab-bar";
 
 /**
  * حيّنا — the app shell of the neighborhood wing (slice S10: the
@@ -65,11 +68,17 @@ const NAV_ITEMS: ReadonlyArray<{ href: string; label: string }> = [
 
 export default async function NeighborhoodLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
-  const membership = session ? await getMyMembership() : null;
+  const [membership, unread] = session
+    ? await Promise.all([getMyMembership(), getMyUnreadNotificationCount()])
+    : [null, null];
   const membershipOk = membership?.ok ? membership.data : null;
   const neighborhoodName = membershipOk
     ? (await findGeoNodeById(membershipOk.locationId))?.nameAr ?? null
     : null;
+  /* The bell's badge rides the backend's own unread count (N1: the
+   * notifications channel is LIVE — the earlier disabled bell awaited
+   * a service that already existed; measured 2026-09-30, gap doc §2/3). */
+  const unreadCount = unread?.ok ? unread.data.unreadCount : 0;
 
   // The member's avatar initials — the session's own display name,
   // no invented identity (the honest signed-in projection).
@@ -129,11 +138,43 @@ export default async function NeighborhoodLayout({ children }: { children: React
           <div className="hy-header-actions">
             {session ? (
               <>
-                <button type="button" className="hy-notif" aria-label="الإشعارات — قريبًا مع خدمة إشعارات الباك اند" disabled>
+                {/* N1: the REAL notifications bell — the backend's own
+                    unread-count drives the badge; the page behind the
+                    link carries the feed + the L22 matrix. */}
+                <Link
+                  href="/neighborhood/notifications"
+                  className="hy-notif"
+                  aria-label={
+                    unreadCount > 0
+                      ? `الإشعارات — ${new Intl.NumberFormat("ar").format(unreadCount)} غير مقروء`
+                      : "الإشعارات"
+                  }
+                >
                   <span className="material-symbols-outlined" aria-hidden="true">notifications</span>
-                  <span className="hy-notif-dot" aria-hidden="true" />
-                </button>
-                <span className="hy-me">
+                  {unreadCount > 0 ? (
+                    <span className="hy-notif-badge" aria-hidden="true">
+                      {new Intl.NumberFormat("ar").format(
+                        unreadCount > 99 ? 99 : unreadCount,
+                      )}
+                      {unreadCount > 99 ? "+" : ""}
+                    </span>
+                  ) : (
+                    <span className="hy-notif-dot" aria-hidden="true" />
+                  )}
+                </Link>
+                {/* N1: the messages entry — Nextdoor's header chat
+                    affordance, linking to the REAL inbox (no badge: the
+                    backend exposes no conversation-list read — gap #11). */}
+                <Link
+                  href="/inbox"
+                  className="hy-notif"
+                  aria-label="الرسائل وطلبات التواصل — الصندوق"
+                  >
+                  <span className="material-symbols-outlined" aria-hidden="true">chat</span>
+                </Link>
+                {/* N1: the member chip becomes the member's own page
+                    entry — Nextdoor's profile affordance in the header. */}
+                <Link href="/neighborhood/me" className="hy-me">
                   <span className="hy-me-avatar" aria-hidden="true">
                     {initials ?? "؟"}
                   </span>
@@ -143,29 +184,23 @@ export default async function NeighborhoodLayout({ children }: { children: React
                       <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.6875rem" }}>
                         verified
                       </span>
-                      جار موثق
+                      جارك في حيّنا
                     </span>
                   </span>
-                </span>
+                </Link>
               </>
             ) : (
               <SignInButton callbackURL="/neighborhood" />
             )}
           </div>
         </div>
-        {/* The mobile section strip — the design hides its sidebar below
-            48rem (hidden md:flex); this scrollable pill strip keeps the
-            six sections reachable on phones (the app-wide mobile nav
-            pattern, in the wing's own skin). Hidden ≥ 48rem where the
-            sidebar itself takes over. */}
-        <nav className="hy-nav-mobile" aria-label="أقسام حيّنا">
-          {NAV_ITEMS.map((item) => (
-            <a key={item.href} href={item.href} className="hy-pill">
-              {item.label}
-            </a>
-          ))}
-        </nav>
+        {/* N1: the mobile navigation is the Nextdoor-2026 bottom tab
+            bar (wing-tab-bar.tsx — fixed bottom, icons + short labels,
+            path-segment active matching). It replaces S10's scrollable
+            pill strip below 48rem; the sidebar takes over ≥ 48rem. */}
       </header>
+
+      <WingTabBar />
 
       <aside className="hy-aside">
         <div className="hy-aside-status">

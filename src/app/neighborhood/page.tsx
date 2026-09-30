@@ -12,6 +12,7 @@ import { getMyBackendUser } from "@/lib/api/inbox";
 import { searchListings } from "@/lib/api/public";
 import {
   CATEGORY_LABELS,
+  CATEGORY_TONES,
   FEED_PAGE_SIZE,
   POST_CATEGORIES,
   type PostCategory,
@@ -94,13 +95,8 @@ function parsePage(raw: string | string[] | undefined): number {
   return parsed - 1;
 }
 
-/** The category chip's tone — the design's four colored vocabularies. */
-const CATEGORY_TONES: Record<PostCategory, string> = {
-  RECOMMENDATION: "tertiary",
-  LOST_FOUND: "primary",
-  CLASSIFIED: "secondary",
-  GENERAL: "neutral",
-};
+/** The category chip's tone — the design's four colored vocabularies
+ * (shared from the contract module — the S10 mapping, N1's home). */
 
 export default async function NeighborhoodPage({ searchParams }: NeighborhoodPageProps) {
   const sp = await searchParams;

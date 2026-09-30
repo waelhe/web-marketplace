@@ -48,6 +48,18 @@ export const CATEGORY_LABELS: Record<PostCategory, string> = {
   RECOMMENDATION: "توصيات",
 };
 
+/**
+ * The category chip's tone — the design's four colored vocabularies
+ * (the S10 owner design's own mapping; shared by every wing surface
+ * that renders a category chip — the feed, and N1's member profile).
+ */
+export const CATEGORY_TONES: Record<PostCategory, string> = {
+  RECOMMENDATION: "tertiary",
+  LOST_FOUND: "primary",
+  CLASSIFIED: "secondary",
+  GENERAL: "neutral",
+};
+
 /** The my-neighborhood feed page size. */
 export const FEED_PAGE_SIZE = 10;
 

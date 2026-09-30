@@ -78,20 +78,52 @@ test("no horizontal overflow at 375px (RTL shell)", async ({ page }) => {
 test("no horizontal overflow at 375px on the neighborhood wing (RTL mobile shell)", async ({
   page,
 }) => {
-  // The حيّنا shell replaces its hidden sidebar with a scrollable
-  // section strip below 48rem — the guard keeps the wing overflow-free
-  // at the design's own narrowest tested width.
+  // The حيّنا shell replaces its hidden sidebar with the Nextdoor-2026
+  // bottom tab bar below 48rem (N1) — the guard keeps the wing
+  // overflow-free at the design's own narrowest tested width.
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto("/neighborhood");
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
-  // The mobile section strip is present and scrollable (the sidebar's
-  // phone replacement), and its six sections are links.
-  const strip = page.locator("nav.hy-nav-mobile").first();
-  await expect(strip).toBeVisible();
-  await expect(strip.locator("a")).toHaveCount(6);
+  // The mobile bottom tab bar is present and fixed (the sidebar's phone
+  // replacement), and its six sections are links with short labels.
+  const bar = page.locator("nav.hy-tabbar").first();
+  await expect(bar).toBeVisible();
+  await expect(bar.locator("a.hy-tab")).toHaveCount(6);
+  // The reserved clearance keeps the main column's content flow out of
+  // the fixed bar's band (the shell reserves ~3.5rem + safe-area below
+  // 48rem — the guard proves the reservation is applied at all, not the
+  // exact pixel arithmetic that rendering rounds).
+  const clearance = await page.evaluate(() => {
+    const bar = document.querySelector("nav.hy-tabbar");
+    const main = document.querySelector(".hy-main-col");
+    if (!(bar instanceof HTMLElement) || !(main instanceof HTMLElement)) return -1;
+    return parseInt(getComputedStyle(main).paddingBlockEnd, 10);
+  });
+  expect(clearance).toBeGreaterThanOrEqual(48);
+});
+
+test("the wing's notifications surface renders its anonymous gate honestly", async ({ page }) => {
+  // N1: /neighborhood/notifications is a session-scoped surface — the
+  // anonymous render is the sign-in gate (never a probe that would 401),
+  // inside the design's shell, noindex.
+  const res = await page.goto("/neighborhood/notifications");
+  expect(res?.status()).toBe(200);
+  await expect(page.getByText("الإشعارات للأعضاء المسجّلين")).toBeVisible();
+  const robots = await page.locator('meta[name="robots"]').first().getAttribute("content");
+  expect(robots).toContain("noindex");
+});
+
+test("the wing's member profile renders its anonymous gate honestly", async ({ page }) => {
+  // N1: /neighborhood/me is a session-scoped surface — the anonymous
+  // render is the sign-in gate, inside the design's shell, noindex.
+  const res = await page.goto("/neighborhood/me");
+  expect(res?.status()).toBe(200);
+  await expect(page.getByText("الملف للأعضاء المسجّلين")).toBeVisible();
+  const robots = await page.locator('meta[name="robots"]').first().getAttribute("content");
+  expect(robots).toContain("noindex");
 });
 
 test("booking and profile forms remain gated from anonymous smoke coverage", async ({
