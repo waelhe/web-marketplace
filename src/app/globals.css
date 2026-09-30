@@ -2963,6 +2963,19 @@ a.hood-tab:focus-visible {
    sidebar's inline-START offset, mirroring the design's `md:pr-72`). */
 .hy-main-col { padding-inline-start: 0; }
 @media (min-width: 48rem) { .hy-main-col { padding-inline-start: 18rem; } }
+
+/* The app-wide bare `main` rule (container-max + inline padding) serves
+   the warm app pages; inside the wing it DOUBLE-pads the design's own
+   .hy-main geometry — measured: the content grid squeezed to 326px in
+   a 358px interior — and its 24px block padding stacks on .hy-main's
+   own gap. Neutralized: the wing's main carries no padding of its own
+   (keeps flex:1 for the column's fill). */
+.hy main {
+  max-width: none;
+  margin-inline: 0;
+  padding: 0;
+}
+.hy main { flex: 1 0 auto; }
 .hy-main {
   padding-block-start: 5rem;
   padding-inline: var(--hy-margin-md);
@@ -3081,9 +3094,9 @@ a.hood-tab:focus-visible {
   align-items: start;
 }
 @media (min-width: 64rem) { .hy-grid { grid-template-columns: repeat(12, 1fr); } }
-.hy-grid-main { display: flex; flex-direction: column; gap: var(--hy-space-lg); }
+.hy-grid-main { display: flex; flex-direction: column; gap: var(--hy-space-lg); min-inline-size: 0; }
 @media (min-width: 64rem) { .hy-grid-main { grid-column: span 8; } }
-.hy-grid-side { display: flex; flex-direction: column; gap: var(--hy-space-lg); }
+.hy-grid-side { display: flex; flex-direction: column; gap: var(--hy-space-lg); min-inline-size: 0; }
 @media (min-width: 64rem) { .hy-grid-side { grid-column: span 4; } }
 
 /* ============ Cards & widgets (the design's surfaces) ============ */
@@ -3852,6 +3865,12 @@ a.hood-tab:focus-visible {
 }
 .hy-group-row:hover { background: var(--hy-surface-container); }
 .hy-group-id { display: flex; align-items: center; gap: var(--hy-space-sm); min-inline-size: 0; }
+/* The name/meta column needs the min-width hand-off too — without it the
+   nowrap .hy-group-name's intrinsic width rides up the min-content chain,
+   widens the grid track past the container, and pokes the whole column
+   16px past the inline-end viewport edge (measured). With it, the name's
+   own overflow:hidden + ellipsis actually engages. */
+.hy-group-id > div { min-inline-size: 0; }
 .hy-group-icon {
   inline-size: 2.5rem;
   block-size: 2.5rem;
