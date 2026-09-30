@@ -205,6 +205,20 @@ pre {
   outline-offset: 2px;
 }
 
+/* The approved browse-card cover (spec §2 «صورة 4:3 + شارات»): the
+   backend's own 480px 4:3 thumbnail, object-fit so aspect never
+   distorts, logical radius. Absent for photo-less listings — the card
+   degrades to its original text-first shape, never a broken image. */
+.listing-card-cover {
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  margin-block-end: var(--space-3);
+  background: var(--color-surface);
+}
+
 .listing-card h2 {
   font-size: var(--text-lg);
   margin: 0 0 var(--space-2);

@@ -5,6 +5,7 @@ import {
   getListingCategories,
   searchListings,
   browseListingsByCategory,
+  resolveCoverUrls,
   LISTINGS_PAGE_SIZE,
   type SearchCriteria,
 } from "@/lib/api/public";
@@ -377,6 +378,15 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   // results area carries the loud failure state.
   const categories = await getListingCategories();
 
+  // Card covers on the S5 public media read (restored 2026-09-30): one
+  // distinct-id GET per render pass for THIS page's twelve cards — the
+  // 4:3 image the approved card design always specified, honest
+  // text-first fallback per listing when its media read fails or is
+  // empty. The browse read above stays the page's authority.
+  const coverUrls = await resolveCoverUrls(
+    result.ok ? result.data.content : [],
+  );
+
   // ---- L35 (spec §2): the session-aware saved-searches strip ----
   // Anonymous visitors (and crawlers) get the exact page they got
   // before — the strip is personal state rendered only for a session;
@@ -665,7 +675,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
               <ul className="listing-grid">
                 {result.data.content.map((listing) => (
                   <li key={listing.id}>
-                    <ListingCard listing={listing} />
+                    <ListingCard listing={listing} coverUrl={coverUrls.get(listing.id)} />
                   </li>
                 ))}
               </ul>

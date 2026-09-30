@@ -44,7 +44,10 @@ session cookie.
   idle → no backend read. Unknown categories answer 200 empty envelopes
   (reads never 400) — data via `src/lib/api/public.ts`
 - `/listings` — PUBLIC active-listing browse (paginated; anonymous GETs —
-  the SEO-indexable surface, data via `src/lib/api/public.ts`; the
+  the SEO-indexable surface, data via `src/lib/api/public.ts`; cards
+  carry the S5 public-media cover — `resolveCoverUrls`, one distinct-id
+  `GET /api/v1/media/listings/{id}` per render pass, 4:3 thumbnail,
+  honest text-first fallback for photo-less listings); the
   category-ONLY state — no other criterion, no sort — rides the
   backend's dedicated `GET /listings/category/{c}` op: measured
   byte-identical to the criteria op's category branch, and the category
@@ -74,7 +77,13 @@ session cookie.
   template + canonical + OpenGraph via `metadataBase`) and the
   backend-composed schema.org JSON-LD embedded verbatim (the backend's
   L39 `listing-path` contract defaults to this exact route); unknown ids
-  → not-found boundary + `noindex` (documented streamed-404)
+  → not-found boundary + `noindex` (documented streamed-404); the S5
+  PUBLIC gallery (restored 2026-09-30): `GET /api/v1/media/listings/{id}`
+  went public on the backend ("same visibility as the listing endpoints")
+  dissolving the old R23/R33 authenticated-only premise — one anonymous
+  `cache()`-memoized read renders the thumb-first `.media-gallery`, zero
+  photos → the honest EmptyState, 503 → the backend's own S3-gate words
+  (same honesty as the provider manage page, minus upload/delete)
 - `/neighborhoods` — PUBLIC geo picker (roadmap stage 2): `?parent=`
   drill-down + `?q=` autocomplete (2-char floor) over the backend's
   administrative tree via `src/lib/api/geo.ts`; the `/geo/tree` read is
