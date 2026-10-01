@@ -149,7 +149,8 @@ idempotency حتمي مشتق من معرّف الحجز (قراءة-أو-إنش
   يجيب **401 AUTHN-001** للمجهول (قياس 2026-09-22 بعد دفع المستندات —
   تغيّر من طرف الباك اند، سببه غير مقيس من هنا). تفعيلها **خطوة في
   الباك اند**: ربط الأصل بـ
-  `https://web-marketplace-production-5cc1.up.railway.app`.
+  `https://web-marketplace-production-f9d3.up.railway.app` (نطاق الحساب
+  v4 الحي؛ نطاق `5cc1` السابق لحساب قديم ميّت — بروتوكول الوكيل §2).
 - كتلة JSON-LD (`RealEstateListing` النمطية: name/description/url/
   dateModified/offers/address) توجد فقط للإعلانات ذات كتلة عقار (L31)؛
   تضمَّها الواجهة **حرفيًا** كما أرسلت (الدليل المحزوم: وسم
@@ -384,12 +385,14 @@ idempotency حتمي مشتق من معرّف الحجز (قراءة-أو-إنش
 `agent-browser` 0.38.1، و`/_next/mcp`):
 
 - **نشر الإنتاج حي ومقيس (2026-09-22، بعد الدفع بكلمة صريحة):**
-  Railway نشرت `19b8fa4` تلقائيًا (الربط GitHub/main/auto-deploy
-  الموثّق في AGENTS.md)؛ `/listings` و`/listings/[id]` تخدم على
-  `web-marketplace-production-5cc1.up.railway.app` ببيانات الإنتاج
-  الحقيقية، وقياس متصفح حقيقي على صفحة التفاصيل الإنتاجية أعطى العنوان
-  بقالب الجذر وcanonical بأصل الإنتاج وog:title، والنقر الفعلي
-  تصفّح→تفاصيل يعمل — بنفس القياسات على dev.
+  Railway نشرت `19b8fa4` (الربط GitHub/main الموثّق آنذاك على حساب
+  auto-deploy القديم)؛ `/listings` و`/listings/[id]` تخدم على
+  `web-marketplace-production-f9d3.up.railway.app` (نطاق الحساب v4 الحي
+  بعد الترحيل؛ القياس الأصلي أُجري على نطاق `5cc1` القديم الميّت) ببيانات
+  الإنتاج الحقيقية، وقياس متصفح حقيقي على صفحة التفاصيل الإنتاجية أعطى
+  العنوان بقالب الجذر وcanonical بأصل الإنتاج وog:title، والنقر الفعلي
+  تصفّح→تفاصيل يعمل — بنفس القياسات على dev. منذ الترحيل إلى حساب v4
+  النشر **يدوي** عبر `serviceInstanceDeployV2` (بروتوكول الوكيل §2).
 - `get_compilation_issues` → `{"issues":[]}` (نظيف) و`get_routes` يعدّ
   `/listings` و`/listings/[id]`.
 - `/listings` يعرض إعلان الإنتاج الحقيقي («إعلان تحقق هيكلي — e2e»،

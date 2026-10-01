@@ -237,7 +237,7 @@ rows, `retries: 0` (flakes must fail loudly).
 
 | Environment | Service | URL | Backend it points at |
 |---|---|---|---|
-| production | `web-marketplace` (RAILPACK, auto-deploy from main) | `web-marketplace-production-5cc1.up.railway.app` | `app-java-v3-production.up.railway.app` |
+| production | `web-marketplace` (RAILPACK, deployed **manually** via `serviceInstanceDeployV2` — protocol §2, measured 2026-09-30) | `web-marketplace-production-f9d3.up.railway.app` | `app-java-v3-production-59bf.up.railway.app` |
 | local dev | `next dev` :3000 | — | staging backend (shared, never a local checkout) |
 
 Env facts live only in Railway variables (`BETTER_AUTH_SECRET`,
@@ -247,9 +247,10 @@ in the Railway deployment record (the auto-deploy of `5972dbd` was
 confirmed exactly this way) — chunk fingerprints are a build artifact,
 not a deploy proof (a lesson measured the hard way).
 
-> **لماذا يهم فريق الباك اند:** النشر التلقائي من main يعني أن أي دمج
-> للواجهة يصل الإنتاج خلال دقائق — توقيت دمج PR للواجهة يقرر توقيت
-> الظهور الحي، تمامًا كما عندكم.
+> **لماذا يهم فريق الباك اند:** النشر يدوي بالأمر الصريح
+> (`serviceInstanceDeployV2` على الـcommit المدفوع — بروتوكول الوكيل
+> §2)؛ أي دمج للواجهة يصل الإنتاج فقط عندما ينشره الوكيل صراحةً —
+> الكلمة «ادفع» تدفع origin وتنشر الـcommit نفسه.
 
 ## 8. Contract-change protocol (how the frontend meets a backend move)
 
