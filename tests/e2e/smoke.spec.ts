@@ -339,18 +339,19 @@ test("no horizontal overflow at 375px on the control panels (RTL console shell)"
   page,
 }) => {
   // N2: the console's mobile shell — the sticky pill strip under the
-  // 5rem header carries the eight panels below 48rem (eight
-  // destinations do not fit a bottom tab bar). The guard keeps the
-  // console overflow-free at the design's own narrowest tested width.
+  // 5rem header carries the panels below 48rem (N5 grew the console to
+  // nine destinations: the verification review door joined the shell;
+  // nine destinations do not fit a bottom tab bar). The guard keeps
+  // the console overflow-free at the design's own narrowest tested width.
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto("/admin");
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
-  // The strip is present, sticky, and carries the console's eight
+  // The strip is present, sticky, and carries the console's nine
   // destinations as pills.
   const strip = page.locator("nav.hy-adm-strip").first();
   await expect(strip).toBeVisible();
-  await expect(strip.locator("a.hy-pill")).toHaveCount(8);
+  await expect(strip.locator("a.hy-pill")).toHaveCount(9);
 });
