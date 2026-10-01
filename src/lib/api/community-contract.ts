@@ -238,3 +238,121 @@ export interface ContentReportView {
   createdAt: string;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// L49 — the neighborhood events board + RSVP (gap #4, served 2026-10-01)
+// ---------------------------------------------------------------------------
+
+/**
+ * The event category vocabulary — the product's own five filter chips,
+ * measured verbatim from the backend's EventCategory enum (V83's CHECK
+ * pins the same membership on the SQL side; src/lib/neighborhood-events.ts
+ * carried these chips as display data since S9 — one vocabulary, zero
+ * translation).
+ */
+export const EVENT_CATEGORIES = [
+  "SPORTS_FAMILY",
+  "VOLUNTEER",
+  "SOCIAL",
+  "MARKET",
+  "WORKSHOP",
+] as const;
+export type EventCategory = (typeof EVENT_CATEGORIES)[number];
+
+/** Arabic UI labels of the event category vocabulary. */
+export const EVENT_CATEGORY_LABELS: Record<EventCategory, string> = {
+  SPORTS_FAMILY: "رياضية وعائلية",
+  VOLUNTEER: "تطوعية",
+  SOCIAL: "اجتماعية",
+  MARKET: "سوق ومقايضة",
+  WORKSHOP: "ورش تعليمية",
+};
+
+/**
+ * The registration vocabulary — the design's own three states. The
+ * registration and the capacity are ONE rule: OPEN carries no capacity
+ * (the whole neighborhood may come), the two seated states carry a
+ * strictly positive one the RSVP gate counts seats against.
+ */
+export const EVENT_REGISTRATIONS = ["OPEN", "LIMITED_SEATS", "TABLE_RESERVATION"] as const;
+export type EventRegistration = (typeof EVENT_REGISTRATIONS)[number];
+
+/** Arabic UI labels of the registration states. */
+export const EVENT_REGISTRATION_LABELS: Record<EventRegistration, string> = {
+  OPEN: "مفتوح للجميع",
+  LIMITED_SEATS: "مقاعد محدودة",
+  TABLE_RESERVATION: "حجز طاولات",
+};
+
+/** The events board's page size — the feed's own discipline. */
+export const EVENTS_PAGE_SIZE = 20;
+
+/**
+ * L49 board read model (NeighborhoodEventView): the stored facts plus
+ * the two caller-scoped attendance facts — attending (the live seat
+ * count, grouped over the page's ids) and rsvpedByMe (the caller's own
+ * live seat, so the joined state renders from the contract alone, no
+ * second read — the L47 reaction shape verbatim).
+ */
+export interface NeighborhoodEvent {
+  id: string;
+  /** Opaque by contract — display layers must not invent an organizer identity. */
+  authorId: string;
+  locationId: string;
+  category: EventCategory;
+  title: string;
+  description: string;
+  /** ISO timestamp — strictly in the future at creation (the board is forward-looking). */
+  startsAt: string;
+  /** ISO timestamp — optional (a gathering may be open-ended). */
+  endsAt: string | null;
+  /** The in-neighborhood meeting spot's display label, as the organizer wrote it. */
+  locationLabel: string;
+  /** The organizing body's display label. */
+  organizerLabel: string;
+  /** Seats (or tables) — null = OPEN to all. */
+  capacity: number | null;
+  registration: EventRegistration;
+  /**
+   * The weekly-initiative flag — a read-side fact the create contract
+   * does NOT accept (surfacing a curation write is a documented product
+   * decision); the board's «مبادرة الأسبوع» takes the first featured
+   * row and renders nothing when none is.
+   */
+  featured: boolean;
+  /** The live seat count on this event (the same number for every reader). */
+  attending: number;
+  /** The caller's own live seat — the joined state's one per-reader fact. */
+  rsvpedByMe: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** The RSVP write's echo (EventRsvpView) — the stored facts, nothing else. */
+export interface EventRsvp {
+  id: string;
+  eventId: string;
+  memberId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** The organize input — the backend's own type gates are the bounds. */
+export interface CreateNeighborhoodEventInput {
+  locationId: string;
+  category: EventCategory;
+  title: string;
+  description: string;
+  startsAt: string;
+  endsAt: string | null;
+  locationLabel: string;
+  organizerLabel: string;
+  capacity: number | null;
+  registration: EventRegistration;
+}
+
+/** The backend's own authored bounds (NeighborhoodEventController). */
+export const MAX_EVENT_TITLE_LENGTH = 200;
+export const MAX_EVENT_DESCRIPTION_LENGTH = 2000;
+export const MAX_EVENT_LABEL_LENGTH = 200;
+export const MAX_EVENT_CAPACITY = 500;

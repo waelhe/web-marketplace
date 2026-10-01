@@ -79,7 +79,8 @@ export function EventCalendar({ events }: { events: readonly NeighborhoodEvent[]
     <section className="card hood-widget" aria-labelledby="calendar-heading">
       <div className="hood-widget-head">
         <h2 id="calendar-heading">تقويم الحي</h2>
-        <span className="badge badge-muted">بيانات عرض</span>
+        {/* N6: the dots ride the REAL board's rows now — the display
+            badge retired with the demo dataset it labeled. */}
       </div>
       <div className="calendar-nav" role="group" aria-label="تنقّل الأشهر">
         <button type="button" className="calendar-nav-btn" onClick={() => move(-1)} aria-label="الشهر السابق">

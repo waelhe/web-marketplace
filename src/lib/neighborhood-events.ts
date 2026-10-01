@@ -51,35 +51,24 @@ export interface NeighborhoodEvent {
   featured: boolean;
 }
 
-/** The event category vocabulary (the product's filter chips). */
-export const EVENT_CATEGORIES = [
-  "SPORTS_FAMILY",
-  "VOLUNTEER",
-  "SOCIAL",
-  "MARKET",
-  "WORKSHOP",
-] as const;
-export type NeighborhoodEventCategory = (typeof EVENT_CATEGORIES)[number];
+/** The event category vocabulary (the product's filter chips) — ONE
+ * source: the served contract re-exported here (community-contract.ts
+ * measured it from the backend's EventCategory enum; the display
+ * dataset and the served rows share the same membership, zero drift). */
+export {
+  EVENT_CATEGORIES,
+  EVENT_CATEGORY_LABELS,
+  EVENT_REGISTRATIONS,
+  EVENT_REGISTRATION_LABELS,
+} from "@/lib/api/community-contract";
+import type {
+  EventCategory,
+  EventRegistration,
+} from "@/lib/api/community-contract";
 
-/** Arabic labels of the event category vocabulary. */
-export const EVENT_CATEGORY_LABELS: Record<NeighborhoodEventCategory, string> = {
-  SPORTS_FAMILY: "رياضية وعائلية",
-  VOLUNTEER: "تطوعية",
-  SOCIAL: "اجتماعية",
-  MARKET: "سوق ومقايضة",
-  WORKSHOP: "ورش تعليمية",
-};
-
-/** The registration vocabulary (the design's three states). */
-export const EVENT_REGISTRATIONS = ["OPEN", "LIMITED_SEATS", "TABLE_RESERVATION"] as const;
-export type NeighborhoodEventRegistration = (typeof EVENT_REGISTRATIONS)[number];
-
-/** Arabic labels of the registration states. */
-export const EVENT_REGISTRATION_LABELS: Record<NeighborhoodEventRegistration, string> = {
-  OPEN: "مفتوح للجميع",
-  LIMITED_SEATS: "مقاعد محدودة",
-  TABLE_RESERVATION: "حجز طاولات",
-};
+/** The display-layer aliases (the S9 module's historical names). */
+export type NeighborhoodEventCategory = EventCategory;
+export type NeighborhoodEventRegistration = EventRegistration;
 
 /** The demo events dataset — the design's five gatherings on real
  * upcoming dates (seeded 2026-09-29; the week of Oct 2–12, 2026). */

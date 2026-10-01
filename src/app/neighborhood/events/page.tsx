@@ -4,14 +4,18 @@ import { SignInButton } from "@/app/auth-buttons";
 import { getSession } from "@/lib/dal";
 import { formatDate } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
-import { getMyMembership } from "@/lib/api/community";
+import {
+  getMyMembership,
+  getMyNeighborhoodEvents,
+} from "@/lib/api/community";
+import { EVENTS_PAGE_SIZE } from "@/lib/api/community-contract";
 import { findGeoNodeById } from "@/lib/api/geo";
 import { neighborhoodDemoEnabled } from "@/lib/neighborhood-product";
 import {
   DEMO_ACTIVITY,
-  DEMO_EVENTS,
   DEMO_IDEAS,
   featuredEvent,
+  type NeighborhoodEvent,
 } from "@/lib/neighborhood-events";
 import { EventBoard } from "./event-board";
 import { EventCalendar } from "./event-calendar";
@@ -104,8 +108,44 @@ export default async function EventsPage({}: EventsPageProps) {
   const node = await findGeoNodeById(membership.data.locationId);
   const neighborhoodName = node?.nameAr ?? null;
 
+  // N6 (gap #4 served): the board read went REAL — the backend's own
+  // GET /api/v1/neighborhood/events (L49), membership-scoped,
+  // forward-looking, every row carrying attending + rsvpedByMe. The
+  // display widgets that have no served contract yet (the ideas box,
+  // the activity badge) stay the labeled display layers; the events
+  // themselves are the real rows now — the seam's ONE adaptation maps
+  // the backend's locationLabel/organizerLabel into the S9 display
+  // shape the board/calendar components speak (zero visual change).
+  const board = await getMyNeighborhoodEvents(0, EVENTS_PAGE_SIZE);
+  let events: readonly NeighborhoodEvent[] = [];
+  let boardError: string | null = null;
+  if (board.ok) {
+    events = board.data.content.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      category: row.category,
+      startsAt: row.startsAt,
+      endsAt: row.endsAt,
+      location: row.locationLabel,
+      organizer: row.organizerLabel,
+      capacity: row.capacity,
+      attending: row.attending,
+      registration: row.registration,
+      featured: row.featured,
+    }));
+  } else {
+    boardError = board.unauthenticated
+      ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
+      : problemMessage(board.problem, `تعذّرت قراءة فعاليات حارتك (رمز ${board.status}).`);
+  }
+  // The LIVE seat flags — the board's joined state rides the read's
+  // own rsvpedByMe per row (never client-invented state).
+  const mine = new Set(
+    board.ok ? board.data.content.filter((row) => row.rsvpedByMe).map((row) => row.id) : [],
+  );
+
   const demoOn = neighborhoodDemoEnabled();
-  const events = demoOn ? DEMO_EVENTS : [];
   const ideas = demoOn ? DEMO_IDEAS : [];
   const activity = demoOn ? DEMO_ACTIVITY[0] ?? null : null;
   const featured = featuredEvent(events);
@@ -143,9 +183,10 @@ export default async function EventsPage({}: EventsPageProps) {
           </a>
         </nav>
         {/* The prominent create launcher rides the band (the design's
-            always-visible «+»). */}
+            always-visible «+») — N6: the submission is the real organize
+            write into the caller's own neighborhood. */}
         <div className="hood-hero-cta">
-          <EventCreateLauncher />
+          <EventCreateLauncher locationId={membership.data.locationId} />
         </div>
       </header>
 
@@ -154,13 +195,17 @@ export default async function EventsPage({}: EventsPageProps) {
           <section className="hood-section" aria-labelledby="events-heading">
             <div className="hood-section-head">
               <h2 id="events-heading">تجمعات ومبادرات الحي</h2>
-              {demoOn ? <span className="badge badge-muted">بيانات عرض</span> : null}
             </div>
-            {events.length > 0 ? (
-              <EventBoard events={events} />
+            {boardError ? (
+              <p className="page-note" role="status">
+                {boardError}
+              </p>
+            ) : events.length > 0 ? (
+              <EventBoard events={events} mine={mine} />
             ) : (
               <p className="page-note" role="status">
-                لا فعاليات معروضة الآن — طبقة العرض مطفأة أو بانتظار عقود الباك اند.
+                لا فعاليات معروضة الآن — كن أول من ينظّم تجمّعًا لجيرانك من زر «تنظيم فعالية
+                جديدة».
               </p>
             )}
           </section>

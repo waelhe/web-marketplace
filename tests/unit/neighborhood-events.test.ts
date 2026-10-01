@@ -18,11 +18,14 @@ import { isUuid } from "@/lib/api/geo";
 /**
  * The events product layer's honesty contracts + the /neighborhood/
  * events surface's structure (slice S9, the owner-supplied design
- * «إدارة الفعاليات وتجمعات الحي»). The discipline is the S7/S8
- * discipline restated: demo ids never UUIDs, bounded vocabularies,
- * exactly one featured initiative, seats math bounded, display
- * interactions never links, and the page's privacy gates mirror the
- * feed's own branches.
+ * «إدارة الفعاليات وتجمعات الحي»; re-pinned N6 2026-10-01 — gap #4
+ * served: the board read went REAL through the backend's own L49
+ * contract, so the page pins now ride the served rows: UUID ids, the
+ * live attending counts, the read's own rsvpedByMe, the RSVP write
+ * forms, and the real organize submission. The demo discipline stays
+ * for the layers that have no served contract yet (the ideas box, the
+ * activity badge): demo ids never UUIDs, bounded vocabularies, display
+ * interactions never links.)
  */
 
 const fixtures = vi.hoisted(() => ({
@@ -41,6 +44,92 @@ const fixtures = vi.hoisted(() => ({
     createdAt: "2026-02-01T08:30:00Z",
     updatedAt: "2026-02-01T08:30:00Z",
   },
+  // The served board (L49's NeighborhoodEventView shape — UUID ids,
+  // the two attendance facts, the backend's own label fields).
+  board: {
+    content: [
+      {
+        id: "aaaaaaaa-0000-4000-8000-000000000001",
+        authorId: "00000000-0000-4000-8000-000000000002",
+        locationId: "33333333-3333-4333-8333-333333333301",
+        category: "VOLUNTEER",
+        title: "حملة تشجير حديقة الحي الحقيقية",
+        description: "غرس شتلات زيتون على الممشى الرئيسي.",
+        startsAt: "2026-10-02T08:00:00Z",
+        endsAt: "2026-10-02T11:00:00Z",
+        locationLabel: "حديقة الحي — البوابة الرئيسية",
+        organizerLabel: "لجنة تطوير الحي",
+        capacity: null,
+        attending: 28,
+        registration: "OPEN",
+        featured: true,
+        rsvpedByMe: true,
+        createdAt: "2026-09-28T08:00:00Z",
+        updatedAt: "2026-09-28T08:00:00Z",
+      },
+      {
+        id: "bbbbbbbb-0000-4000-8000-000000000002",
+        authorId: "00000000-0000-4000-8000-000000000003",
+        locationId: "33333333-3333-4333-8333-333333333301",
+        category: "SPORTS_FAMILY",
+        title: "دوري كرة القدم الحقيقي",
+        description: "أربع فرق، نظام دوري من جولتين.",
+        startsAt: "2026-10-03T16:30:00Z",
+        endsAt: "2026-10-03T18:00:00Z",
+        locationLabel: "ملعب الحي الشرقي",
+        organizerLabel: "نادي شباب الحي",
+        capacity: 16,
+        attending: 4,
+        registration: "LIMITED_SEATS",
+        featured: false,
+        rsvpedByMe: false,
+        createdAt: "2026-09-28T08:00:00Z",
+        updatedAt: "2026-09-28T08:00:00Z",
+      },
+      {
+        id: "cccccccc-0000-4000-8000-000000000003",
+        authorId: "00000000-0000-4000-8000-000000000004",
+        locationId: "33333333-3333-4333-8333-333333333301",
+        category: "MARKET",
+        title: "سوق مقايضة حقيقي",
+        description: "اطرح ما كبر عنه أطفالك وخذ ما يناسبهم.",
+        startsAt: "2026-10-10T10:00:00Z",
+        endsAt: "2026-10-10T12:00:00Z",
+        locationLabel: "ساحة المسجد — الظل الشمالي",
+        organizerLabel: "صباح الأمهات",
+        capacity: 12,
+        attending: 7,
+        registration: "TABLE_RESERVATION",
+        featured: false,
+        rsvpedByMe: false,
+        createdAt: "2026-09-28T08:00:00Z",
+        updatedAt: "2026-09-28T08:00:00Z",
+      },
+      {
+        id: "dddddddd-0000-4000-8000-000000000004",
+        authorId: "00000000-0000-4000-8000-000000000005",
+        locationId: "33333333-3333-4333-8333-333333333301",
+        category: "SOCIAL",
+        title: "ديوانية الحي الحقيقية",
+        description: "لقاء الجيران الشهري — قهوة وتمر على حساب الديوانية.",
+        startsAt: "2026-10-08T20:30:00Z",
+        endsAt: null,
+        locationLabel: "ديوانية البوابة الجنوبية",
+        organizerLabel: "ديوانية الحي",
+        capacity: null,
+        attending: 19,
+        registration: "OPEN",
+        featured: false,
+        rsvpedByMe: false,
+        createdAt: "2026-09-28T08:00:00Z",
+        updatedAt: "2026-09-28T08:00:00Z",
+      },
+    ],
+    totalElements: 4,
+    pageNumber: 0,
+    pageSize: 20,
+    totalPages: 1,
+  },
 }));
 
 vi.mock("@/lib/dal", () => ({
@@ -48,6 +137,11 @@ vi.mock("@/lib/dal", () => ({
 }));
 vi.mock("@/lib/api/community", () => ({
   getMyMembership: vi.fn(async () => ({ ok: true, status: 200, data: fixtures.membership })),
+  getMyNeighborhoodEvents: vi.fn(async () => ({
+    ok: true,
+    status: 200,
+    data: fixtures.board,
+  })),
 }));
 vi.mock("@/lib/api/geo", () => ({
   findGeoNodeById: vi.fn(async () => ({
@@ -167,8 +261,8 @@ describe("the board's filters (the design's chips)", () => {
   });
 });
 
-describe("the events page (the member branch)", () => {
-  test("renders the product surface: launcher, filters, featured, grid, calendar, activity, ideas, safety", async () => {
+describe("the events page (the member branch — the served board)", () => {
+  test("renders the product surface: launcher, filters, featured, grid, calendar, activity, ideas, safety — on the REAL rows", async () => {
     const markup = await renderMember();
 
     // The sanctuary identity + the product tabs with الفعاليات active
@@ -178,23 +272,42 @@ describe("the events page (the member branch)", () => {
     expect(markup).toContain('href="/neighborhood"');
     expect(markup).toContain('href="/listings"');
 
-    // The prominent create launcher (the design's «+») and its modal.
+    // The prominent create launcher (the design's «+») and its modal —
+    // N6: the submission is the REAL organize write (the form carries
+    // the caller's own neighborhood id as the write's target).
     expect(markup).toContain("تنظيم فعالية جديدة");
     expect(markup).toContain("<dialog");
+    expect(markup).toContain(`name="locationId" value="${fixtures.locationId}"`);
 
-    // The board: filter chips, the featured initiative, the grid.
+    // The board: filter chips, the featured initiative, the grid — on
+    // the served rows (the backend's own titles and labels, verbatim).
     expect(markup).toContain("لوحة فعاليات الحي");
     expect(markup).toContain("هذا الأسبوع");
     expect(markup).toContain("فعالياتي");
     expect(markup).toContain("مبادرة الأسبوع");
-    expect(markup).toContain(DEMO_EVENTS[0].title);
+    expect(markup).toContain(fixtures.board.content[0].title);
+    expect(markup).toContain(fixtures.board.content[1].title);
+    expect(markup).toContain(fixtures.board.content[0].locationLabel);
+    expect(markup).toContain(fixtures.board.content[0].organizerLabel);
     expect(markup).toContain("مقاعد محدودة");
     expect(markup).toContain("مفتوح للجميع");
     expect(markup).toContain("حجز طاولات");
 
-    // The sidebar: calendar with dots, activity badge, ideas, safety.
+    // The RSVP write forms: every card carries the real seat toggle —
+    // the read's own rsvpedByMe flag rides the hidden field (never
+    // client-invented state), and the server's own attending count
+    // renders (28 — no client arithmetic on top). Latin digits are the
+    // owner design's own convention (the «832 عائلة» rule).
+    expect(markup).toContain('name="rsvpedByMe" value="true"');
+    expect(markup).toContain('name="rsvpedByMe" value="false"');
+    expect(markup).toContain("حضورك مؤكّد ✓");
+    expect(markup).toContain("أكّد حضورك");
+    expect(markup).toContain("<strong>28</strong> جارًا");
+
+    // The sidebar: calendar with dots on the REAL rows, activity
+    // badge, ideas, safety.
     expect(markup).toContain("تقويم الحي");
-    expect(markup).toContain('data-dots');
+    expect(markup).toContain("data-dots");
     expect(markup).toContain("نشاطك الاجتماعي");
     expect(DEMO_ACTIVITY[0].badge.length).toBeGreaterThan(0);
     expect(markup).toContain(DEMO_ACTIVITY[0].badge);
@@ -203,12 +316,29 @@ describe("the events page (the member branch)", () => {
     expect(markup).toContain("سلامة الفعاليات");
   });
 
-  test("the display labels ride every demo zone (rule 2)", async () => {
+  test("the served rows are the backend's own — UUID ids and the read's own counts (rule 3, inverted)", async () => {
+    const markup = await renderMember();
+    // The real contract's ids ARE UUIDs (the demo prefix retired with
+    // the demo dataset) — the honesty rule flips: a served row MUST
+    // carry its backend id verbatim (the RSVP form targets it).
+    for (const row of fixtures.board.content) {
+      expect(markup).toContain(`name="eventId" value="${row.id}"`);
+      expect(isUuid(row.id)).toBe(true);
+    }
+    // The demo-prefixed ids never render on the events surface again.
+    for (const demo of DEMO_EVENTS) {
+      expect(markup).not.toContain(`value="${demo.id}"`);
+    }
+  });
+
+  test("the display labels ride the REMAINING display zones only (rule 2, re-pinned)", async () => {
     const markup = await renderMember();
     const labels = markup.match(/بيانات عرض/g) ?? [];
-    // The zones: the board head, the featured card, the calendar, the
-    // activity, the ideas box — every display layer carries its label.
-    expect(labels.length).toBeGreaterThanOrEqual(5);
+    // N6: the board, the featured card, and the calendar went REAL —
+    // the badge survives only on the layers with no served contract
+    // yet (the activity widget + the ideas box).
+    expect(labels.length).toBeGreaterThanOrEqual(2);
+    expect(labels.length).toBeLessThan(5);
   });
 
   test("no display row is ever a link (rule 4)", async () => {
@@ -223,6 +353,18 @@ describe("the events page (the member branch)", () => {
     const ideas = markup.match(/<ul class="ideas-list"[\s\S]*?<\/ul>/)?.[0];
     expect(ideas).toBeDefined();
     expect(ideas).not.toContain("<a ");
+  });
+
+  test("a board read failure renders the honest problem note — never a fake empty board", async () => {
+    const { getMyNeighborhoodEvents } = await import("@/lib/api/community");
+    vi.mocked(getMyNeighborhoodEvents).mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      problem: null,
+    } as never);
+    const markup = await renderMember();
+    expect(markup).toContain("تعذّرت قراءة فعاليات حارتك (رمز 503)");
+    expect(markup).not.toContain("event-grid");
   });
 });
 
@@ -244,12 +386,19 @@ describe("the events page (the privacy gates)", () => {
   });
 });
 
-describe("the create modal's honest gate", () => {
-  test("the form renders the registered-contract note BEFORE any submission", async () => {
+describe("the create modal's real submission", () => {
+  test("the form carries the REAL organize contract — every design field plus the hidden neighborhood target", async () => {
     const { EventCreateLauncher } = await import("@/app/neighborhood/events/event-create");
-    const markup = renderToStaticMarkup(createElement(EventCreateLauncher));
+    const markup = renderToStaticMarkup(
+      createElement(EventCreateLauncher, { locationId: fixtures.locationId }),
+    );
     expect(markup).toContain("نظّم تجمّعًا لجيرانك");
-    expect(markup).toContain("الإنشاء الحقيقي بانتظار عقد الباك اند");
+    // N6: the registered-pending note retired with the served contract —
+    // the submit is the real write now.
+    expect(markup).not.toContain("بانتظار عقد الباك اند");
+    expect(markup).not.toContain("بانتظار عقود الباك اند");
+    // The write's target: the caller's own neighborhood id.
+    expect(markup).toContain(`name="locationId" value="${fixtures.locationId}"`);
     // The full product form is present — every field the design lists.
     expect(markup).toContain('id="event-title"');
     expect(markup).toContain('id="event-category"');
@@ -258,5 +407,6 @@ describe("the create modal's honest gate", () => {
     expect(markup).toContain('id="event-location"');
     expect(markup).toContain('id="event-description"');
     expect(markup).toContain('id="event-capacity"');
+    expect(markup).toContain("سجّل الفعالية");
   });
 });

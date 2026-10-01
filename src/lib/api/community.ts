@@ -26,6 +26,10 @@ import { backendGet, backendSend, type BackendResult } from "./server";
 import type { PagedResponse } from "./types";
 import type {
   ContentReportView,
+  CreateNeighborhoodEventInput,
+  EventCategory,
+  EventRsvp,
+  NeighborhoodEvent,
   NeighborhoodMembership,
   NeighborhoodPost,
   PostCategory,
@@ -202,4 +206,87 @@ export function createContentReport(input: {
   note?: string;
 }): Promise<BackendResult<ContentReportView>> {
   return backendSend("POST", "/api/v1/reports", input);
+}
+
+// ---------------------------------------------------------------------------
+// L49 — the events board + RSVP (gap #4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Read my neighborhood's events board —
+ * `GET /api/v1/neighborhood/events?category=&page=&size=`. The board is
+ * MEMBERSHIP-scoped like the feed (G-N1/G-N3: "one membership, one
+ * board — there is no location parameter to read anyone else's") and
+ * FORWARD-LOOKING: only events whose start is still to come ride the
+ * read, soonest first on the complete sort key (startsAt ASC, id ASC).
+ * Every row carries the two attendance facts (attending / rsvpedByMe)
+ * — the joined state renders from the contract alone, no second read.
+ * The optional category filter is the board's one server-side axis;
+ * THIS_WEEK and MINE stay the product's client-side view chips over
+ * the loaded board (startsAt and rsvpedByMe ride every row).
+ */
+export function getMyNeighborhoodEvents(
+  page: number,
+  size: number,
+  category?: EventCategory,
+): Promise<BackendResult<PagedResponse<NeighborhoodEvent>>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (category) params.set("category", category);
+  return backendGet(`/api/v1/neighborhood/events?${params.toString()}`);
+}
+
+/**
+ * Organize an event — `POST /api/v1/neighborhood/events` (L49). The
+ * backend's gate order (before any write): the location resolves
+ * through the geo port (404 unknown), must be level-3 (400), the
+ * caller's own active membership (403), the start strictly in the
+ * future (400 — the board is forward-looking), endsAt after startsAt
+ * when present (400), and the ONE registration/capacity rule (OPEN
+ * carries no capacity; the two seated states a strictly positive
+ * one). Title/labels ≤ 200, description ≤ 2000 — the type gate
+ * answers 400 before any write.
+ */
+export function createNeighborhoodEvent(
+  input: CreateNeighborhoodEventInput,
+): Promise<BackendResult<NeighborhoodEvent>> {
+  return backendSend("POST", "/api/v1/neighborhood/events", input);
+}
+
+/**
+ * Take a seat on an event — `POST /api/v1/events/{eventId}/rsvp`
+ * (L49). The gate order is the L47 reaction order verbatim: the
+ * event's honest 404 (a deleted event's seats are absent exactly as
+ * the event itself is), the active-membership gate in the event's OWN
+ * neighborhood (403), one seat per member (409 — «مقعد واحد لكل عضو»),
+ * and only then the capacity count (409 when the seated states'
+ * capacity is full — OPEN events never capacity-gate). The seat
+ * serializes on the event row, so concurrent seats queue in order.
+ */
+export function rsvpEvent(eventId: string): Promise<BackendResult<EventRsvp>> {
+  return backendSend("POST", `/api/v1/events/${encodeURIComponent(eventId)}/rsvp`);
+}
+
+/**
+ * Free my seat — `DELETE /api/v1/events/{eventId}/rsvp` (L49). The
+ * same gates as the RSVP; a member with no LIVE seat answers the
+ * honest 404 (there is nothing to free). 204 on success — the seat is
+ * free for a fresh one (the soft-deleted row stays for the audit
+ * trail).
+ */
+export function unrsvpEvent(eventId: string): Promise<BackendResult<null>> {
+  return backendSend<null>("DELETE", `/api/v1/events/${encodeURIComponent(eventId)}/rsvp`);
+}
+
+/**
+ * Delete my event — `DELETE /api/v1/neighborhood/events/{eventId}`
+ * (L49). The organizer's own soft delete: the row stays (the audit
+ * trail keeps every revision), the reads stop returning it, and the
+ * seats follow in the read path. Only the organizer — anyone else
+ * answers 403; an unknown event answers 404. 204 on success.
+ */
+export function deleteNeighborhoodEvent(eventId: string): Promise<BackendResult<null>> {
+  return backendSend<null>(
+    "DELETE",
+    `/api/v1/neighborhood/events/${encodeURIComponent(eventId)}`,
+  );
 }
