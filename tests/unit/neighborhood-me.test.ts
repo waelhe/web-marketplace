@@ -5,10 +5,12 @@ import MePage from "@/app/neighborhood/me/page";
 /**
  * The N1 member profile — the automated net over the wing's own honest
  * identity projection: the member branch (the session's identity seams,
- * the measured SELF_DECLARED membership state — never «موثق» — the
- * «منشوراتي» page-filter with its gap note, and the quick surfaces)
- * and the anonymous branch (the sign-in gate). The same proven pattern
- * as neighborhood-member-render.test.ts.
+ * the verification lifecycle's own card — the SELF_DECLARED fixture
+ * rides the transitional «عضو» floor with its note and the review
+ * request, never the unmeasured «جار موثق» — the «منشوراتي»
+ * page-filter with its gap note, and the quick surfaces) and the
+ * anonymous branch (the sign-in gate). The same proven pattern as
+ * neighborhood-member-render.test.ts.
  */
 
 const MY_ID = "ab7c1d90-2f4e-4a6b-9c8d-1e2f3a4b5c6d";
@@ -117,11 +119,14 @@ test("the member branch renders the honest identity + membership projection", as
   // The initials avatar renders the name's own two leading initials.
   expect(markup).toContain("W H");
 
-  // Membership: the hood's resolved name + the measured state —
-  // «إقرار ذاتي», NEVER the unmeasured «موثق».
+  // Membership: the hood's resolved name + the verification lifecycle's
+  // own honest card — the SELF_DECLARED fixture rides the transitional
+  // floor («عضو», never the unmeasured «جار موثق») with its update note
+  // and the review request the contract allows for that state.
   expect(markup).toContain("حي القدس");
-  expect(markup).toContain("إقرار ذاتي");
-  expect(markup).toContain("SELF_DECLARED");
+  expect(markup).toContain("<strong>حالة العضوية:</strong> عضو");
+  expect(markup).toContain("حالة توثيق قديمة تُحدّث مع الترحيلة");
+  expect(markup).toContain("اطلب توثيق السكن");
   expect(markup).not.toContain("جار موثق");
   expect(markup).toContain("عضو منذ");
 

@@ -148,6 +148,7 @@ vi.mock("@/app/neighborhood/forms", () => ({
   LeaveForm: () => "leave-form-stub",
   MessageNeighborButton: () => "message-neighbor-button-stub",
   ReactButton: () => "react-button-stub",
+  VerificationCard: () => "verification-card-stub",
 }));
 
 vi.mock("@/app/neighborhood/comments", () => ({
