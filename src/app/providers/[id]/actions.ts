@@ -68,12 +68,19 @@ export async function organicReviewAction(
   }
 
   // refresh(): the page's server render IS the reviews block's source
-  // of truth — the re-read carries the new row (or its pending state
-  // when the account's first organic reviews await moderation).
+  // of truth — the re-read carries the new row (or stays without it
+  // while the account's first organic reviews await moderation).
   refresh();
+  // The served moderationStatus is the truth: the first-N organic
+  // reviews of an account queue for review BEFORE they publish — the
+  // message must not claim a publication the visibility gate holds back.
+  const moderation = result.data?.moderationStatus;
   return {
     status: "success",
-    message: "نُشرت مراجعتك العامة — شكرًا لمشاركة تجربتك مع الجيران.",
+    message:
+      moderation === "PENDING_REVIEW"
+        ? "وصلت مراجعتك إلى طابور الإشراف — تنشر بعد قبولها."
+        : "نُشرت مراجعتك العامة — شكرًا لمشاركة تجربتك مع الجيران.",
   };
 }
 

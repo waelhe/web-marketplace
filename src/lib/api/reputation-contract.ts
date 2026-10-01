@@ -123,7 +123,7 @@ export interface PublishedReviewView {
 /** ReviewResponse — one published review (V37 two-way reviews). */
 export interface ReviewView {
   id: string;
-  bookingId: string;
+  bookingId: string | null;
   /** 1..5 (the V6 CHECK constraint's own bounds). */
   rating: number;
   comment: string | null;
@@ -133,6 +133,16 @@ export interface ReviewView {
   repliedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** W1 §4.2: BOOKING (موثّقة) or ORGANIC (عامة). */
+  origin: ReviewOrigin;
+  /** W1 §4.5: PENDING_REVIEW / PUBLISHED / HIDDEN_BY_MODERATOR. */
+  moderationStatus: string;
+  /** W1 §4.2: the organic review's optional listing target. */
+  listingId: string | null;
+  /** W1 §4.4: the pseudonym-honouring display name. */
+  reviewerName: string;
+  reviewerReviewCount: number;
+  helpfulCount: number;
 }
 
 /**

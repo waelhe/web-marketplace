@@ -110,7 +110,7 @@ test("the organic action sends the PROFILE id and the bounded rating", async () 
   vi.mocked(createOrganicReview).mockResolvedValue({
     ok: true,
     status: 201,
-    data: {},
+    data: { id: "r", moderationStatus: "PUBLISHED" },
   } as never);
 
   const bare = new FormData();
@@ -175,5 +175,25 @@ test("the backend's own words surface verbatim — the 409 duplicate vote", asyn
   expect(state).toEqual({
     status: "error",
     message: "You already marked this review as helpful",
+  });
+});
+
+test("the first-N pending review tells the queue, not a publication", async () => {
+  vi.mocked(createOrganicReview).mockResolvedValue({
+    ok: true,
+    status: 201,
+    data: { id: "r", moderationStatus: "PENDING_REVIEW" },
+  } as never);
+
+  const form = new FormData();
+  form.set("providerId", "22222222-2222-4222-8222-222222222222");
+  form.set("rating", "5");
+  form.set("comment", "");
+
+  const state = await organicReviewAction({ status: "idle" }, form);
+
+  expect(state).toEqual({
+    status: "success",
+    message: "وصلت مراجعتك إلى طابور الإشراف — تنشر بعد قبولها.",
   });
 });
