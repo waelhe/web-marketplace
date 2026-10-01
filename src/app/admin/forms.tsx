@@ -23,6 +23,8 @@ import {
   resolveDisputeAction,
   resolveReportAction,
   reviewVerificationAction,
+  moderateReviewAction,
+  updateReviewsModeAction,
   setListingPromotionAction,
   setPricingRuleActiveAction,
   archiveListingAction,
@@ -40,6 +42,10 @@ import {
   MAX_RESOLUTION_NOTE_LENGTH,
   MODERATION_ACTIONS,
   MODERATION_ACTION_LABELS,
+  REVIEWS_MODE_VALUES,
+  REVIEWS_MODE_SETTING_LABELS,
+  REVIEW_MODERATION_DECISIONS,
+  REVIEW_MODERATION_DECISION_LABELS,
   RULE_CATEGORY_MAX_LENGTH,
   RULE_NAME_MAX_LENGTH,
   USER_ROLES,
@@ -714,6 +720,69 @@ export function GeoDeleteForm() {
       </p>
       <button type="submit" className="button" data-variant="danger" disabled={pending}>
         {pending ? "جارٍ الحذف…" : "احذف الموقع"}
+      </button>
+      <StateMessage state={state} />
+    </form>
+  );
+}
+
+
+/**
+ * The owner's reviews-mode switch (W0 yelp plan §4.1/§4.6): one select
+ * over the contract's own three-value vocabulary — the flip is live
+ * (audited + broadcast, no redeploy), so the form's success state says
+ * exactly that. The current value arrives as the served setting's own
+ * words, not a client guess.
+ */
+export function ReviewsModeForm({ current }: { current: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    updateReviewsModeAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="stack-form">
+      <label htmlFor="reviews-mode">نمط المراجعات المفعّل</label>
+      <select id="reviews-mode" name="mode" required defaultValue={current}>
+        {REVIEWS_MODE_VALUES.map((value) => (
+          <option key={value} value={value}>
+            {REVIEWS_MODE_SETTING_LABELS[value]}
+          </option>
+        ))}
+      </select>
+      <button type="submit" className="button" data-variant="primary" disabled={pending}>
+        {pending ? "جارٍ التبديل…" : "بدّل النمط"}
+      </button>
+      <StateMessage state={state} />
+    </form>
+  );
+}
+
+/**
+ * Moderate one queued review (W1 yelp plan §4.5): the decision select
+ * over the contract's own APPROVE|REJECT axis. The queue row carries
+ * the review's own words (rating, comment, the fraud flags) — the form
+ * adds only the decision.
+ */
+export function ModerateReviewForm({ reviewId }: { reviewId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    moderateReviewAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="stack-form">
+      <input type="hidden" name="reviewId" value={reviewId} />
+      <label htmlFor={`moderate-${reviewId}`}>قرار الإشراف</label>
+      <select id={`moderate-${reviewId}`} name="action" required defaultValue="APPROVE">
+        {REVIEW_MODERATION_DECISIONS.map((value) => (
+          <option key={value} value={value}>
+            {REVIEW_MODERATION_DECISION_LABELS[value]}
+          </option>
+        ))}
+      </select>
+      <button type="submit" className="button" data-variant="primary" disabled={pending}>
+        {pending ? "جارٍ البتّ…" : "احسم المراجعة"}
       </button>
       <StateMessage state={state} />
     </form>

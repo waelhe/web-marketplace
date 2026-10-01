@@ -23,4 +23,6 @@ export const PANEL_ITEMS: ReadonlyArray<{
   { href: "/admin/finance", label: "المالية", short: "المالية", icon: "payments" },
   { href: "/admin/catalog", label: "الفهرس والقواعد", short: "الفهرس", icon: "category" },
   { href: "/admin/audit", label: "التدقيق", short: "التدقيق", icon: "history" },
+  { href: "/admin/reviews", label: "إشراف المراجعات", short: "المراجعات", icon: "rate_review" },
+  { href: "/admin/settings", label: "إعدادات المنصة", short: "الإعدادات", icon: "settings" },
 ];

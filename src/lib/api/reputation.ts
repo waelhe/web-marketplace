@@ -37,6 +37,7 @@ import { backendSend, type BackendResult } from "./server";
 import { publicGet } from "./public";
 import type { PagedResponse } from "./types";
 import type { ProviderPublicPageView, ReviewView } from "./reputation-contract";
+import { PROVIDER_PAGE_REVIEWS_SIZE } from "./reputation-contract";
 
 /**
  * The L36 public provider page — `GET /api/v1/providers/{id}/public`.
@@ -49,9 +50,12 @@ export const getProviderPublicPage = cache(
     profileId: string,
     page: number,
     size: number,
+    reviewsPage = 0,
+    reviewsSize = PROVIDER_PAGE_REVIEWS_SIZE,
   ): Promise<BackendResult<ProviderPublicPageView>> =>
     publicGet(
-      `/api/v1/providers/${encodeURIComponent(profileId)}/public?page=${page}&size=${size}`,
+      `/api/v1/providers/${encodeURIComponent(profileId)}/public?page=${page}&size=${size}`
+      + `&reviewsPage=${reviewsPage}&reviewsSize=${reviewsSize}`,
     ),
 );
 
@@ -176,4 +180,55 @@ export function updateReview(
     rating,
     comment,
   });
+}
+
+/**
+ * The organic review — `POST /api/v1/reviews/organic` (W1, yelp-level
+ * plan §4.1/§4.5): a general review with no booking, enabled in the
+ * OPEN/HYBRID reviews mode only. The path's provider id is the PUBLIC
+ * PROFILE id (the provider page's own key — the server resolves the
+ * user-id space). The backend's own gates teach the caller (measured,
+ * ReviewsService.createOrganic): 400 "Organic reviews are not enabled in
+ * the current reviews mode (VERIFIED_ONLY)", 400 on the provider itself
+ * ("You cannot review your own business"), 400 under the 7-day account
+ * age floor, 429 on the daily organic cap, 409 "You already reviewed
+ * this provider" (one organic review per reviewer-provider, forever),
+ * 400 when an optional listingId belongs to another provider.
+ */
+export function createOrganicReview(
+  providerId: string,
+  rating: number,
+  comment: string | null,
+  listingId?: string,
+): Promise<BackendResult<ReviewView>> {
+  return backendSend("POST", "/api/v1/reviews/organic", {
+    providerId,
+    listingId: listingId ?? null,
+    rating,
+    comment,
+  });
+}
+
+/**
+ * Mark a review helpful — `POST /api/v1/reviews/{id}/votes` (W1 §4.5).
+ * The backend's own gates teach the caller: 404 a non-published review
+ * (the visibility rule), 400 the author's own review ("You cannot mark
+ * your own review as helpful"), 409 a duplicate vote. Anonymous
+ * callers answer 401 AUTHN-001.
+ */
+export function voteReviewHelpful(
+  reviewId: string,
+): Promise<BackendResult<void>> {
+  return backendSend("POST", `/api/v1/reviews/${encodeURIComponent(reviewId)}/votes`);
+}
+
+/**
+ * Remove my helpful vote — `DELETE /api/v1/reviews/{id}/votes` (W1
+ * §4.5). 404 when no live vote exists (the soft delete frees the pair,
+ * so a re-vote is legal by construction).
+ */
+export function unvoteReviewHelpful(
+  reviewId: string,
+): Promise<BackendResult<void>> {
+  return backendSend("DELETE", `/api/v1/reviews/${encodeURIComponent(reviewId)}/votes`);
 }

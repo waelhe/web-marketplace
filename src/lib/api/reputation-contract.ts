@@ -55,10 +55,69 @@ export interface ProviderPublicPageView {
   agencyName: string | null;
   licenseNumber: string | null;
   createdAt: string;
-  /** The fresh aggregate — null when no reviews exist (never 0-invented). */
+  /**
+   * W1 (yelp-level plan §4.1, PR #487): the active reviews mode — the
+   * owner's runtime key, served read-only so the surface renders
+   * honestly (a HYBRID page with zero general reviews is
+   * indistinguishable from VERIFIED_ONLY by the rating fields alone).
+   */
+  reviewsMode: ReviewsMode;
+  /** The verified (booking-anchored) aggregate — null when none exist. */
   ratingAverage: number | null;
   reviewCount: number;
+  /** The general (organic) aggregate — served in HYBRID mode only. */
+  ratingGeneralAverage: number | null;
+  ratingGeneralCount: number;
+  /**
+   * W1 (§4.4/§4.5): the provider's PUBLISHED forward reviews, composed
+   * by the backend through the shared PublishedReviewsPort — the
+   * declared §10 ID-space seam closed server-side (the
+   * profile-to-user mapping never leaves the backend; the rows carry
+   * no user id).
+   */
+  reviews: PagedResponse<PublishedReviewView>;
   listings: PagedResponse<ListingSummary>;
+}
+
+/** The reviews mode — the W0 owner-keyed switch (yelp plan §4.1). */
+export type ReviewsMode = "VERIFIED_ONLY" | "OPEN" | "HYBRID";
+
+/** Arabic labels of the reviews modes (the owner's switch vocabulary). */
+export const REVIEWS_MODE_LABELS: Record<ReviewsMode, string> = {
+  VERIFIED_ONLY: "المراجعات الموثّقة فقط",
+  OPEN: "المراجعات العامة",
+  HYBRID: "الهجين — موثّقة وعامة",
+};
+
+/** The review origin — the V85 provenance column (yelp plan §4.2). */
+export type ReviewOrigin = "BOOKING" | "ORGANIC";
+
+/** Arabic labels of the review origins (the trust badge vocabulary). */
+export const REVIEW_ORIGIN_LABELS: Record<ReviewOrigin, string> = {
+  BOOKING: "موثّقة",
+  ORGANIC: "عامة",
+};
+
+/**
+ * PublishedReviewView — one PUBLISHED review row on the provider public
+ * page (the shared-api projection the backend composes). No bookingId,
+ * no direction, no moderationStatus, no listingId: the block is the
+ * forward PUBLISHED surface by construction — the projection cannot
+ * leak what it does not declare.
+ */
+export interface PublishedReviewView {
+  id: string;
+  /** 1..5 (the V6 CHECK bounds). */
+  rating: number;
+  comment: string | null;
+  /** The reviewed provider's one public reply — null until written. */
+  reply: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+  origin: ReviewOrigin;
+  reviewerName: string;
+  reviewerReviewCount: number;
+  helpfulCount: number;
 }
 
 /** ReviewResponse — one published review (V37 two-way reviews). */
@@ -90,6 +149,13 @@ export const PROVIDER_PAGE_LISTINGS_SIZE = 12;
  * backend's own default page.
  */
 export const PROVIDER_REVIEWS_PAGE_SIZE = 20;
+
+/**
+ * The public provider page's REVIEWS block page size — mirrors the
+ * backend's own default (reviewsSize=10 on the controller): the
+ * identity-rich public rows are denser than the dashboard's plain ones.
+ */
+export const PROVIDER_PAGE_REVIEWS_SIZE = 10;
 
 /**
  * The /profile my-reviews page size — one page of "what I wrote" and

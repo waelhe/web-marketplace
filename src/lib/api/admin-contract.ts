@@ -310,3 +310,101 @@ export interface RevisionEntryView {
  * rename bodies (2-120 lowercase latin letters, digits or dashes).
  */
 export const GEO_SLUG_PATTERN = "[a-z0-9-]{2,120}";
+
+/**
+ * SystemSettingResponse (AdminController, W0 yelp plan §4.6) — one
+ * runtime control row: key, its native JSON value, description, and the
+ * who/when bookkeeping. The value rides as the RAW JSON node the
+ * backend served (an arbitrary JSON value — never reshaped here).
+ */
+export interface SystemSettingView {
+  key: string;
+  value: unknown;
+  description: string | null;
+  version: number;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+
+/** The owner's reviews-mode switch key (W0's first seeded control). */
+export const REVIEWS_MODE_SETTING_KEY = "reviews.mode";
+
+/** The legal reviews-mode values (the W0 contract's own vocabulary). */
+export const REVIEWS_MODE_VALUES = [
+  "VERIFIED_ONLY",
+  "OPEN",
+  "HYBRID",
+] as const;
+
+export type ReviewsModeSetting = (typeof REVIEWS_MODE_VALUES)[number];
+
+/** Arabic labels of the reviews-mode values (the switch's own display). */
+export const REVIEWS_MODE_SETTING_LABELS: Record<ReviewsModeSetting, string> = {
+  VERIFIED_ONLY: "الموثّقة فقط (الوضع الراهن)",
+  OPEN: "العامة المفتوحة",
+  HYBRID: "الهجين — الاثنان معًا",
+};
+
+/**
+ * ModerationQueueItem (ReviewsService, W1 yelp plan §4.5) — one queued
+ * review with its internal fraud signals: the reviewer and provider ids
+ * (the admin surface renders them as opaque UUIDs — identity seams own
+ * resolution), the rating/comment/origin/listing target, the drain
+ * clock (createdAt — oldest first), and the recorded abuse flags
+ * (BURST_ON_PROVIDER / NEW_ACCOUNT_ACTIVITY / TEXT_SIMILARITY).
+ */
+export interface ReviewModerationItemView {
+  id: string;
+  reviewerId: string;
+  providerId: string;
+  rating: number;
+  comment: string | null;
+  origin: "BOOKING" | "ORGANIC";
+  listingId: string | null;
+  createdAt: string;
+  flags: string[];
+}
+
+/** The moderation queue's status axis (the backend's own vocabulary). */
+export const REVIEW_MODERATION_STATES = [
+  "PENDING_REVIEW",
+  "PUBLISHED",
+  "HIDDEN_BY_MODERATOR",
+] as const;
+
+export type ReviewModerationState = (typeof REVIEW_MODERATION_STATES)[number];
+
+/** Arabic labels of the moderation states. */
+export const REVIEW_MODERATION_STATE_LABELS: Record<
+  ReviewModerationState,
+  string
+> = {
+  PENDING_REVIEW: "قيد المراجعة",
+  PUBLISHED: "منشورة",
+  HIDDEN_BY_MODERATOR: "مخفية بإشراف",
+};
+
+/** The moderation decision (APPROVE|REJECT — the contract's own axis). */
+export const REVIEW_MODERATION_DECISIONS = ["APPROVE", "REJECT"] as const;
+
+export type ReviewModerationDecision =
+  (typeof REVIEW_MODERATION_DECISIONS)[number];
+
+/** Arabic labels of the moderation decisions. */
+export const REVIEW_MODERATION_DECISION_LABELS: Record<
+  ReviewModerationDecision,
+  string
+> = {
+  APPROVE: "قبول — انشر المراجعة",
+  REJECT: "رفض — أخفها",
+};
+
+/** The reviews moderation queue's page size (the drain-clock surface). */
+export const REVIEW_MODERATION_PAGE_SIZE = 20;
+
+/** Arabic labels of the recorded abuse-signal flags (the queue's evidence). */
+export const REVIEW_FLAG_LABELS: Record<string, string> = {
+  BURST_ON_PROVIDER: "دفقة مراجعات على مزوّد واحد",
+  NEW_ACCOUNT_ACTIVITY: "حساب حديث النشاط",
+  TEXT_SIMILARITY: "تشابه نصي مع مراجعة أخرى للمُرقّم نفسه",
+};

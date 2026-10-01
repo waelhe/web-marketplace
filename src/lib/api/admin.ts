@@ -49,13 +49,18 @@ import type {
   ProviderBalanceView,
   ProviderListingSummaryView,
   ReportStatusFilter,
+  ReviewModerationDecision,
+  ReviewModerationItemView,
+  ReviewModerationState,
   RevisionEntryView,
+  SystemSettingView,
   UserStatusValue,
   UserRoleValue,
   UserSummaryView,
   VerificationDecision,
   VerificationQueueState,
 } from "./admin-contract";
+import { REVIEW_MODERATION_PAGE_SIZE } from "./admin-contract";
 
 /**
  * The moderation report queue — `GET /api/v1/admin/reports?status=&page=&size=`
@@ -136,6 +141,71 @@ export function reviewVerification(
     `/api/v1/admin/neighborhood-memberships/${encodeURIComponent(
       membershipId,
     )}/verification?${params.toString()}`,
+  );
+}
+
+/**
+ * The platform settings list — `GET /api/v1/admin/settings` (W0 yelp
+ * plan §4.6): every runtime control the platform reads without a
+ * redeploy, ordered by key.
+ */
+export function getSystemSettings(
+  page = 0,
+  size = 20,
+): Promise<BackendResult<PagedResponse<SystemSettingView>>> {
+  return backendGet(`/api/v1/admin/settings?page=${page}&size=${size}`);
+}
+
+/**
+ * Change a platform setting — `PATCH /api/v1/admin/settings/{key}`
+ * (W0 §4.6): PATCH semantics pinned at the boundary — at least one of
+ * value/description required, a supplied value replaces the stored one
+ * in its native JSON type, the change is audited (Envers) and broadcast
+ * through the cache invalidation relay (a live flip, no redeploy).
+ */
+export function updateSystemSetting(
+  key: string,
+  value: unknown,
+): Promise<BackendResult<SystemSettingView>> {
+  return backendSend("PATCH", `/api/v1/admin/settings/${encodeURIComponent(key)}`, {
+    value,
+  });
+}
+
+/**
+ * The review moderation queue — `GET /api/v1/admin/reviews/moderation`
+ * (W1 yelp plan §4.5): the complete FIFO drain order (oldest first),
+ * each item carrying its internal fraud flags. The optional status axis
+ * filters PENDING_REVIEW (the default) / PUBLISHED / HIDDEN_BY_MODERATOR.
+ */
+export function getReviewModerationQueue(
+  status?: ReviewModerationState,
+  page = 0,
+  size = REVIEW_MODERATION_PAGE_SIZE,
+): Promise<BackendResult<PagedResponse<ReviewModerationItemView>>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+  if (status) params.set("status", status);
+  return backendGet(`/api/v1/admin/reviews/moderation?${params.toString()}`);
+}
+
+/**
+ * Moderate one queued review — `POST /api/v1/admin/reviews/{id}/moderate`
+ * (W1 §4.5): APPROVE flips PENDING_REVIEW → PUBLISHED (the stored
+ * provider averages recompute with it); REJECT flips to
+ * HIDDEN_BY_MODERATOR (the averages recompute without it). Any other
+ * stored state answers 409; an unknown review answers 404.
+ */
+export function moderateReview(
+  reviewId: string,
+  action: ReviewModerationDecision,
+): Promise<BackendResult<unknown>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/reviews/${encodeURIComponent(reviewId)}/moderate`,
+    { action },
   );
 }
 

@@ -328,7 +328,7 @@ test("the control panels render their anonymous gate honestly (N2)", async ({
   expect(robots).toContain("noindex");
 
   // Every panel route answers the same gate (deep links included).
-  for (const panel of ["/admin/moderation", "/admin/finance", "/admin/audit"]) {
+  for (const panel of ["/admin/moderation", "/admin/finance", "/admin/audit", "/admin/reviews", "/admin/settings"]) {
     const r = await page.goto(panel);
     expect(r?.status()).toBe(200);
     await expect(page.getByText("سجّل الدخول أولًا", { exact: false })).toBeVisible();
@@ -350,8 +350,8 @@ test("no horizontal overflow at 375px on the control panels (RTL console shell)"
   );
   expect(overflow).toBeLessThanOrEqual(0);
   // The strip is present, sticky, and carries the console's nine
-  // destinations as pills.
+  // destinations as pills (11 after W1: the reviews-moderation and settings doors).
   const strip = page.locator("nav.hy-adm-strip").first();
   await expect(strip).toBeVisible();
-  await expect(strip.locator("a.hy-pill")).toHaveCount(9);
+  await expect(strip.locator("a.hy-pill")).toHaveCount(11);
 });

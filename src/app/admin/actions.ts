@@ -22,7 +22,14 @@ import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
 import { isUuid } from "@/lib/api/geo";
 import type { DisputeResolution } from "@/lib/api/disputes-contract";
-import { GEO_SLUG_PATTERN } from "@/lib/api/admin-contract";
+import {
+  GEO_SLUG_PATTERN,
+  REVIEWS_MODE_SETTING_KEY,
+  REVIEWS_MODE_VALUES,
+  type ReviewModerationDecision,
+  type ReviewsModeSetting,
+} from "@/lib/api/admin-contract";
+import { moderateReview, updateSystemSetting } from "@/lib/api/admin";
 import {
   MODERATION_ACTIONS,
   MAX_RESOLUTION_NOTE_LENGTH,
@@ -980,4 +987,100 @@ export async function deleteGeoLocationAction(
 
   await refresh();
   return { status: "success", message: "حُذف الموقع." };
+}
+
+
+/**
+ * The owner's reviews-mode switch — `PATCH /api/v1/admin/settings/
+ * reviews.mode` (W0 yelp plan §4.6, the governing key of §4.1): the
+ * value parses against the contract's own vocabulary BEFORE any call
+ * (VERIFIED_ONLY|OPEN|HYBRID — anything else answers the house 400),
+ * the flip is audited (Envers) and broadcast through the cache
+ * invalidation relay — a live runtime change, no redeploy.
+ */
+export async function updateReviewsModeAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const mode = text(formData, "mode");
+  if (!REVIEWS_MODE_VALUES.includes(mode as ReviewsModeSetting)) {
+    return {
+      status: "error",
+      message: "نمط المراجعات غير معروف — اختر واحدة من القيم الثلاث.",
+    };
+  }
+
+  // The value rides as the JSON string node itself (the V84 seed's own
+  // shape: '"VERIFIED_ONLY"'::jsonb) — backendSend serializes the body,
+  // so the raw string becomes the TextNode Jackson stores, never a
+  // double-encoded one.
+  const result = await updateSystemSetting(REVIEWS_MODE_SETTING_KEY, mode);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر تبديل نمط المراجعات (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  await refresh();
+  return {
+    status: "success",
+    message: "بُدّل نمط المراجعات — التغيير حيّ فورًا عبر كل النسخ.",
+  };
+}
+
+/**
+ * Moderate one queued review — `POST /api/v1/admin/reviews/{id}/moderate`
+ * (W1 yelp plan §4.5): APPROVE publishes (the stored provider averages
+ * recompute with it), REJECT hides (they recompute without it). A
+ * non-pending review answers 409 with the entity's own words — the
+ * backend remains the authority.
+ */
+export async function moderateReviewAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const reviewId = text(formData, "reviewId");
+  if (!isUuid(reviewId)) {
+    return { status: "error", message: "معرّف المراجعة غير صالح." };
+  }
+
+  const action = text(formData, "action");
+  if (action !== "APPROVE" && action !== "REJECT") {
+    return {
+      status: "error",
+      message: "قرار الإشراف غير معروف — اقبل المراجعة أو ارفضها.",
+    };
+  }
+
+  const result = await moderateReview(reviewId, action as ReviewModerationDecision);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر البتّ في المراجعة (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  await refresh();
+  return {
+    status: "success",
+    message:
+      action === "APPROVE"
+        ? "قُبلت المراجعة — نُشرت وأُعيد حساب المتوسطات."
+        : "رُفضت المراجعة — أُخفيت وأُعيد حساب المتوسطات.",
+  };
 }
