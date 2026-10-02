@@ -466,7 +466,10 @@ export async function reportAction(
   const reason = text(formData, "reason");
   const note = text(formData, "note");
 
-  if (targetType !== "POST" && targetType !== "COMMENT") {
+  // W1 (V86): REVIEW joined the measured vocabulary — the review flag
+  // rides the SAME report channel (the backend's own error words now
+  // read "POST, COMMENT, REVIEW").
+  if (targetType !== "POST" && targetType !== "COMMENT" && targetType !== "REVIEW") {
     return { status: "error", message: "نوع المحتوى المُبلَّغ عنه غير صالح." };
   }
   if (!isUuid(targetId)) {

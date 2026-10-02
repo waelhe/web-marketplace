@@ -207,7 +207,13 @@ export interface PostComment {
  * INAPPROPRIATE|OTHER. The backend parses both BEFORE any service call
  * and answers the house 400 listing the valid values for anything else.
  */
-export const REPORT_TARGET_TYPES = ["POST", "COMMENT"] as const;
+/**
+ * W1 (V86 — content_reports.target_type widened by REVIEW, the two-phase
+ * NOT VALID → VALIDATE pair): a REVIEW target reports the review itself
+ * (the flag surface — the backend's own error vocabulary now reads
+ * "POST, COMMENT, REVIEW").
+ */
+export const REPORT_TARGET_TYPES = ["POST", "COMMENT", "REVIEW"] as const;
 export type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
 
 export const REPORT_REASONS = ["SPAM", "HARASSMENT", "INAPPROPRIATE", "OTHER"] as const;

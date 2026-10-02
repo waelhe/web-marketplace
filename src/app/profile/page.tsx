@@ -13,6 +13,8 @@ import {
 import {
   MY_REVIEWS_PAGE_SIZE,
   REVIEW_DIRECTION_LABELS,
+  REVIEW_MODERATION_LABELS,
+  REVIEW_ORIGIN_LABELS,
   type ReviewView,
 } from "@/lib/api/reputation-contract";
 import { SignOutButton } from "../auth-buttons";
@@ -52,16 +54,39 @@ function ReviewRow({
           {new Intl.NumberFormat("ar").format(review.rating)} / ٥
         </span>
         <span>·</span>
+        {/* W1: the origin badge — «موثّقة» rides the BOOKING origin,
+            «عامة» the ORGANIC one (the V85 provenance column). */}
+        <span className="listing-category">
+          {REVIEW_ORIGIN_LABELS[review.origin] ?? review.origin}
+        </span>
+        <span>·</span>
         <span>{REVIEW_DIRECTION_LABELS[review.direction] ?? review.direction}</span>
         <span>·</span>
         <span>{formatDate(review.createdAt)}</span>
       </p>
+      {/* W1: the honest moderation state — the author sees every state
+          on his own reviewer read (the visibility gate's author path);
+          a non-PUBLISHED badge is the queue's own words, never a guess.
+          helpfulCount rides the row too (the votes the review earned). */}
+      {review.moderationStatus && review.moderationStatus !== "PUBLISHED" ? (
+        <p className="page-note" role="status">
+          حالة المراجعة: {REVIEW_MODERATION_LABELS[review.moderationStatus] ?? review.moderationStatus}
+          {review.moderationStatus === "PENDING_REVIEW"
+            ? " — ستظهر للجميع بعد موافقة الإشراف"
+            : " — أخفاها الإشراف فلا تظهر للجميع"}
+        </p>
+      ) : null}
       {review.comment ? <p className="post-body">{review.comment}</p> : null}
       {review.reply ? (
         <p className="listing-meta">
           <span>ردّ المزوّد:</span>
           <span> </span>
           <span>{review.reply}</span>
+        </p>
+      ) : null}
+      {typeof review.helpfulCount === "number" && review.helpfulCount > 0 ? (
+        <p className="listing-meta">
+          <span>وسمها {new Intl.NumberFormat("ar").format(review.helpfulCount)} من الجيران بمفيدة</span>
         </p>
       ) : null}
       {children}

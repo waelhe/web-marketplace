@@ -9,7 +9,17 @@
  */
 
 import { useActionState } from "react";
-import { organicReviewAction, voteReviewAction, type ActionState } from "./actions";
+import {
+  organicReviewAction,
+  reportReviewAction,
+  voteReviewAction,
+  type ActionState,
+} from "./actions";
+import {
+  MAX_REPORT_NOTE_LENGTH,
+  REPORT_REASON_LABELS,
+  REPORT_REASONS,
+} from "@/lib/api/community-contract";
 import { REVIEWS_MODE_LABELS, type ReviewsMode } from "@/lib/api/reputation-contract";
 
 function StateMessage({ state }: { state: ActionState }) {
@@ -73,6 +83,22 @@ export function OrganicReviewForm({
         rows={3}
         placeholder="ما الذي يستحق أن يعرفه جيرانك عن هذا المزوّد؟"
       />
+      {/* The completion slice (§4.4): the composer's photo picker — the
+          SAME accept list and per-photo bound as the neighborhood
+          composer (the backend's allowlist), up to ٤ photos, optional; a
+          photo-less submit stays the pure text review (no fake
+          requirement). A failed photo never destroys the review (the
+          N4 discipline — the failure count rides the success message). */}
+      <label className="page-note" htmlFor={fieldId("photos")}>
+        أضف صورًا (حتى ٤ — JPEG/PNG/WebP/GIF، ١٠ ميغابايت للصورة)
+      </label>
+      <input
+        id={fieldId("photos")}
+        name="photos"
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/webp,image/gif"
+      />
       <button type="submit" className="button" data-variant="primary" disabled={pending}>
         {pending ? "جارٍ النشر…" : "انشر مراجعتك العامة"}
       </button>
@@ -128,5 +154,48 @@ export function HelpfulVoteButton({
       </button>
       {state.status !== "idle" ? <StateMessage state={state} /> : null}
     </form>
+  );
+}
+
+/**
+ * «أبلغ عن هذه المراجعة» — the completion slice (V86): the SAME L45
+ * report channel with the REVIEW target, the same disclosure pattern
+ * as the neighborhood's ReportContentForm (details/summary — the
+ * affordance stays closed until asked for; the backend's own gates
+ * surface verbatim: own-content 409, duplicate 409, unknown 404).
+ */
+export function ReviewFlagForm({ reviewId }: { reviewId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    reportReviewAction,
+    { status: "idle" },
+  );
+
+  return (
+    <details className="report-details">
+      <summary className="link-like">أبلغ عن هذه المراجعة</summary>
+      <form action={action} className="report-form">
+        <input type="hidden" name="reviewId" value={reviewId} />
+        <label htmlFor={`review-flag-reason-${reviewId}`}>السبب</label>
+        <select id={`review-flag-reason-${reviewId}`} name="reason" required defaultValue="SPAM">
+          {REPORT_REASONS.map((reason) => (
+            <option key={reason} value={reason}>
+              {REPORT_REASON_LABELS[reason]}
+            </option>
+          ))}
+        </select>
+        <label htmlFor={`review-flag-note-${reviewId}`}>ملاحظة (اختياري)</label>
+        <input
+          id={`review-flag-note-${reviewId}`}
+          name="note"
+          type="text"
+          maxLength={MAX_REPORT_NOTE_LENGTH}
+          placeholder="تفاصيل تساعد فريق الإشراف"
+        />
+        <button type="submit" className="button" disabled={pending}>
+          {pending ? "جارٍ الإرسال…" : "أرسل الإبلاغ"}
+        </button>
+        <StateMessage state={state} />
+      </form>
+    </details>
   );
 }

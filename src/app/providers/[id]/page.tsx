@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProviderPublicPage } from "@/lib/api/reputation";
+import { getProviderPublicPage, getReviewMedia } from "@/lib/api/reputation";
 import {
   PROVIDER_PAGE_LISTINGS_SIZE,
   PROVIDER_PAGE_REVIEWS_SIZE,
   REVIEWS_MODE_LABELS,
   REVIEW_ORIGIN_LABELS,
   type PublishedReviewView,
+  type ReviewMediaView,
   type ReviewsMode,
 } from "@/lib/api/reputation-contract";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@/lib/api/provider-contract";
 import { formatDate, formatDateTime, formatPrice } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
-import { HelpfulVoteButton, OrganicReviewForm } from "./forms";
+import { HelpfulVoteButton, OrganicReviewForm, ReviewFlagForm } from "./forms";
 
 // The L36 public provider page — the app's SECOND SEO surface (roadmap
 // stage 5, السمعة). The backend composes the whole page in one read
@@ -173,9 +174,16 @@ function RatingBlock({
 /**
  * One published review row (W1 §4.4/§4.5): the origin badge
  * («موثّقة»/«عامة»), the reviewer identity block, the provider reply,
- * and the helpful vote.
+ * the helpful vote, the photos (the completion slice — the by-review
+ * public read, honest per-review degradation), and the flag (V86).
  */
-function ReviewRow({ review }: { review: PublishedReviewView }) {
+function ReviewRow({
+  review,
+  photos,
+}: {
+  review: PublishedReviewView;
+  photos: ReviewMediaView[] | null;
+}) {
   return (
     <li className="card post-card">
       <p className="listing-meta">
@@ -199,6 +207,19 @@ function ReviewRow({ review }: { review: PublishedReviewView }) {
       {review.comment ? (
         <p className="listing-description">{review.comment}</p>
       ) : null}
+      {photos && photos.length > 0 ? (
+        <ul className="review-media" aria-label="صور المراجعة">
+          {photos.map((photo) => (
+            <li key={photo.id}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- a
+                  presigned storage URL, not a local asset: next/image
+                  would demand remote-pattern config for an ephemeral
+                  signed host (the listing gallery's own measured call). */}
+              <img src={photo.url} alt="صورة مرفقة بالمراجعة" loading="lazy" />
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {review.reply ? (
         <blockquote className="post-reply">
           <p className="listing-description">{review.reply}</p>
@@ -211,6 +232,7 @@ function ReviewRow({ review }: { review: PublishedReviewView }) {
         reviewId={review.id}
         helpfulCount={review.helpfulCount}
       />
+      <ReviewFlagForm reviewId={review.id} />
     </li>
   );
 }
@@ -259,6 +281,20 @@ export default async function ProviderPublicPage({
   const provider = result.data;
   const listings = provider.listings;
   const reviews = provider.reviews;
+
+  // The completion slice (§4.4): each review's photos — one public read
+  // per row (the by-review channel is public for PUBLISHED rows),
+  // fetched in parallel and degrading HONESTLY per review (a failed
+  // read renders no gallery — the N4 lesson: a review without photos
+  // must not die on an unreachable channel). The React cache keeps the
+  // read memoized per render pass (generateMetadata shares nothing
+  // here — the page body's own read).
+  const photosPerReview = await Promise.all(
+    reviews.content.map(async (review) => {
+      const media = await getReviewMedia(review.id);
+      return media.ok ? media.data : null;
+    }),
+  );
 
   return (
     <main>
@@ -314,8 +350,12 @@ export default async function ProviderPublicPage({
               {new Intl.NumberFormat("ar").format(Math.max(reviews.totalPages, 1))}
             </p>
             <ul className="feed-list">
-              {reviews.content.map((review) => (
-                <ReviewRow key={review.id} review={review} />
+              {reviews.content.map((review, index) => (
+                <ReviewRow
+                  key={review.id}
+                  review={review}
+                  photos={photosPerReview[index]}
+                />
               ))}
             </ul>
             <nav className="listing-pager" aria-label="تصفّح مراجعات المزوّد">

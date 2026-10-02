@@ -36,7 +36,12 @@ import { cache } from "react";
 import { backendSend, type BackendResult } from "./server";
 import { publicGet } from "./public";
 import type { PagedResponse } from "./types";
-import type { ProviderPublicPageView, ReviewView } from "./reputation-contract";
+import type {
+  ProviderPublicPageView,
+  ReviewMediaUploadView,
+  ReviewMediaView,
+  ReviewView,
+} from "./reputation-contract";
 import { PROVIDER_PAGE_REVIEWS_SIZE } from "./reputation-contract";
 
 /**
@@ -231,4 +236,56 @@ export function unvoteReviewHelpful(
   reviewId: string,
 ): Promise<BackendResult<void>> {
   return backendSend("DELETE", `/api/v1/reviews/${encodeURIComponent(reviewId)}/votes`);
+}
+
+/**
+ * W1 §4.4 (the completion slice): a review's photos — `GET /api/v1/media/
+ * reviews/by-review/{id}`. Every UPLOADED asset in display order, each
+ * with a fresh presigned GET URL. PUBLIC for a PUBLISHED review (the same
+ * visibility the review endpoints grant it) — an anonymous publicGet, so
+ * the provider page's galleries crawl-render identically; a non-published
+ * review's photos answer the author/admin path instead (the caller's
+ * session decides server-side, never the client).
+ *
+ * Honest degradation: a failed read renders NO gallery (the N4 lesson —
+ * a review without photos must not die on an unreachable channel).
+ */
+export const getReviewMedia = cache(
+  async (reviewId: string): Promise<BackendResult<ReviewMediaView[]>> =>
+    publicGet(`/api/v1/media/reviews/by-review/${encodeURIComponent(reviewId)}`),
+);
+
+/**
+ * W1 §4.4: declare a review-photo upload — `POST /api/v1/media/reviews/
+ * uploads` (the review's AUTHOR only; the same mediaUpload rate-limiter
+ * budget as every upload — an upload is an upload).
+ */
+export function requestReviewMediaUpload(input: {
+  reviewId: string;
+  contentType: string;
+  sizeBytes: number;
+}): Promise<BackendResult<ReviewMediaUploadView>> {
+  return backendSend("POST", "/api/v1/media/reviews/uploads", input);
+}
+
+/**
+ * W1 §4.4: confirm the upload — `POST /api/v1/media/reviews/{id}/
+ * complete` (server-side HeadObject verification: exactly the declared
+ * type and size; the asset becomes readable on the review).
+ */
+export function confirmReviewMediaUpload(
+  mediaId: string,
+): Promise<BackendResult<ReviewMediaView>> {
+  return backendSend("POST", `/api/v1/media/reviews/${encodeURIComponent(mediaId)}/complete`);
+}
+
+/**
+ * W1 §4.4: delete a review-photo — `DELETE /api/v1/media/reviews/{id}`
+ * (the review's author or an admin; soft-delete + best-effort storage
+ * removal after commit; 204).
+ */
+export function deleteReviewMedia(
+  mediaId: string,
+): Promise<BackendResult<void>> {
+  return backendSend("DELETE", `/api/v1/media/reviews/${encodeURIComponent(mediaId)}`);
 }

@@ -186,3 +186,57 @@ export const REVIEW_DIRECTION_LABELS: Record<string, string> = {
  * mirrors the blank gate only; the backend remains the authority.
  */
 export const REVIEW_REPLY_REQUIRED = true;
+
+/**
+ * W1 §4.5 (the completion slice): Arabic labels of the review moderation
+ * states (the soft state column — served on the reviewer's own read where
+ * the author sees every state; the public surfaces carry PUBLISHED rows
+ * only). One set of words for one set of states, shared by the profile's
+ * «مراجعاتي» and the admin queue's state axis.
+ */
+export const REVIEW_MODERATION_LABELS: Record<string, string> = {
+  PUBLISHED: "منشورة",
+  PENDING_REVIEW: "قيد المراجعة",
+  HIDDEN_BY_MODERATOR: "مخفية بالإشراف",
+};
+
+/**
+ * W1 §4.4 (the completion slice): ReviewMediaUploadView — the presign
+ * response (ReviewMediaService): mediaId + the server-generated
+ * objectKey + the presigned PUT URL and its lifetime (PT15M in the
+ * schema's own example).
+ */
+export interface ReviewMediaUploadView {
+  mediaId: string;
+  objectKey: string;
+  uploadUrl: string;
+  /** The presigned URL's lifetime as an ISO-8601 duration (e.g. "PT15M"). */
+  urlLifetime: string;
+}
+
+/**
+ * W1 §4.4: ReviewMediaView — one review-photo asset (ReviewMediaService):
+ * the fresh presigned GET URL rides every row of the by-review read
+ * (public for a PUBLISHED review; the author/admin otherwise).
+ */
+export interface ReviewMediaView {
+  id: string;
+  reviewId: string;
+  contentType: string;
+  sizeBytes: number;
+  /** The asset lifecycle status (UPLOADED on the confirmed read). */
+  status: string;
+  /** Display order within the review (1-based). */
+  displayOrder: number;
+  /** The freshly presigned GET URL. */
+  url: string;
+}
+
+/**
+ * The review-photo upload's declared bounds — the ReviewMediaController's
+ * own request contract (@NotNull @Min(1) sizeBytes + the declared content
+ * type from the server allowlist, the same allowlist as the listing twin
+ * — image/jpeg and image/png are the measured live pair).
+ */
+export const REVIEW_MEDIA_CONTENT_TYPES = ["image/jpeg", "image/png"] as const;
+export type ReviewMediaContentType = (typeof REVIEW_MEDIA_CONTENT_TYPES)[number];
