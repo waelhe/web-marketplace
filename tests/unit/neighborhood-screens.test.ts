@@ -55,6 +55,87 @@ const fixtures = vi.hoisted(() => ({
       empty: false,
     },
   },
+  // N8: the SERVED market board (L50) — the caller's own neighborhood,
+  // the honest badge mix (one earned, one floor), the caller's own row
+  // (mine — the withdraw button's gate), and both product states.
+  marketBoard: {
+    ok: true,
+    status: 200,
+    data: {
+      content: [
+        {
+          id: "55555555-5555-4555-8555-555555550001",
+          authorId: "00000000-0000-4000-8000-000000000002",
+          locationId: "33333333-3333-4333-8333-333333333301",
+          category: "FREE",
+          title: "مكتب دراسي خشبي بحالة ممتازة — إهداء لأسرة طلاب",
+          condition: "LIKE_NEW",
+          priceCents: null,
+          priceCurrency: null,
+          status: "ACTIVE",
+          locationLabel: "شارع المسجد - مربع 2",
+          sellerVerified: true,
+          mine: false,
+          createdAt: "2026-10-01T20:15:00Z",
+          updatedAt: "2026-10-01T20:15:00Z",
+        },
+        {
+          id: "55555555-5555-4555-8555-555555550002",
+          authorId: "00000000-0000-4000-8000-000000000001",
+          locationId: "33333333-3333-4333-8333-333333333301",
+          category: "FURNITURE",
+          title: "أريكة جلسة عائلية 7 مقاعد — قماش قابل للغسل",
+          condition: "GOOD",
+          priceCents: 48000,
+          priceCurrency: "SAR",
+          status: "ACTIVE",
+          locationLabel: "شارع الأمير - قرب المخبز",
+          sellerVerified: false,
+          mine: true,
+          createdAt: "2026-10-01T18:30:00Z",
+          updatedAt: "2026-10-01T18:30:00Z",
+        },
+        {
+          id: "55555555-5555-4555-8555-555555550003",
+          authorId: "00000000-0000-4000-8000-000000000003",
+          locationId: "33333333-3333-4333-8333-333333333301",
+          category: "ELECTRONICS",
+          title: "مكيف هوائي شباكي 1.5 طن يعمل بكفاءة — صيانته حديثة",
+          condition: "GOOD",
+          priceCents: 35000,
+          priceCurrency: "SAR",
+          status: "SOLD",
+          locationLabel: "الشارع العام - قرب الصيدلية",
+          sellerVerified: true,
+          mine: false,
+          createdAt: "2026-10-01T22:40:00Z",
+          updatedAt: "2026-10-01T22:40:00Z",
+        },
+        {
+          id: "55555555-5555-4555-8555-555555550004",
+          authorId: "00000000-0000-4000-8000-000000000004",
+          locationId: "33333333-3333-4333-8333-333333333301",
+          category: "FREE",
+          title: "شتلات نعناع وريحان وزعتر — إهداء لبستنة الجيران",
+          condition: "LIKE_NEW",
+          priceCents: null,
+          priceCurrency: null,
+          status: "ACTIVE",
+          locationLabel: "مدخل الحديقة الصغيرة",
+          sellerVerified: false,
+          mine: false,
+          createdAt: "2026-10-01T12:10:00Z",
+          updatedAt: "2026-10-01T12:10:00Z",
+        },
+      ],
+      pageNumber: 0,
+      pageSize: 20,
+      totalElements: 4,
+      totalPages: 1,
+      last: true,
+      empty: false,
+    },
+  },
 }));
 
 vi.mock("@/lib/dal", () => ({
@@ -63,6 +144,7 @@ vi.mock("@/lib/dal", () => ({
 
 vi.mock("@/lib/api/community", () => ({
   getMyMembership: vi.fn(async () => ({ ok: true, status: 200, data: fixtures.membership })),
+  getMyNeighborhoodMarket: vi.fn(async () => fixtures.marketBoard),
 }));
 
 vi.mock("@/lib/api/public", () => ({
@@ -82,47 +164,73 @@ async function renderScreen(
 
 /* ─────────────────── SCREEN ② — سوق الحي والحراج ─────────────────── */
 
-test("the market screen: hero + free-gifts rail + REAL bridge + the display grid, never links", async () => {
+test("the market screen: hero + free-gifts rail + REAL bridge + the SERVED board, never links", async () => {
   const markup = await renderScreen(MarketPage);
 
-  // The page hero with the design's title + the free-gifts rail.
+  // The page hero with the design's title + the free-gifts rail (the
+  // served board's own gifts: 2 of 4).
   expect(markup).toContain("سوق الحي والحراج");
-  expect(markup).toContain("ركن الإهداء: 3 مقتنيات مجانية");
+  expect(markup).toContain("ركن الإهداء: 2 مقتنيات مجانية");
 
   // THE REAL BRIDGE — the location-scoped read with a real detail link.
   expect(markup).toContain("إعلانات جيرانك الحقيقية");
   expect(markup).toContain('href="/listings/fa528602-2ab0-4867-b7fc-3d7e2a912eba"');
 
-  // The display grid: the owner's own items, labeled, never links.
+  // THE SERVED BOARD (N8): the real rows over the backend's contract —
+  // the gift band's own words, the measured price labels, both badge
+  // states (earned + the honest floor), and the SOLD chip.
   expect(markup).toContain("معروضات الجيران");
-  expect(markup).toContain("بيانات عرض");
   const grid = markup.match(/<ul class="hy-market-grid"[\s\S]*?<\/ul>/)?.[0];
   expect(grid).toBeDefined();
   expect(grid ?? "").toContain("مكتب دراسي خشبي بحالة ممتازة");
   expect(grid ?? "").toContain("مجاني — إهداء");
+  expect(grid ?? "").toContain("480 ريالاً");
+  expect(grid ?? "").toContain("350 ريالاً");
+  expect(grid ?? "").toContain("جار موثق");
+  expect(grid ?? "").toContain(">جار<");
+  expect(grid ?? "").toContain("تم البيع");
+  // The cards are never links (the item ids are backend UUIDs with no
+  // public detail route — a fake link would poison trust).
   expect(grid ?? "").not.toContain("href=");
 
-  // The five category chips + the search box ride the REAL ?cat=/?q= reads.
+  // The withdraw button rides ONLY the caller's own row (mine) — one
+  // button for one owned item in the fixture.
+  expect((grid ?? "").match(/اسحب معروضك/g)?.length).toBe(1);
+
+  // The display layer retired with its badge: the market screen
+  // carries no «بيانات عرض» zone anymore.
+  expect(markup).not.toContain("بيانات عرض");
+
+  // The five category chips + the mine view + the search box ride the
+  // REAL ?cat=/?mine=/?q= reads.
   expect(markup).toContain('aria-label="تصنيفات السوق"');
   expect(markup).toContain('href="/neighborhood/market?cat=FREE"');
+  expect(markup).toContain('href="/neighborhood/market?mine=1"');
   expect(markup).toContain('name="q"');
+
+  // The publisher — the wave's real write path.
+  expect(markup).toContain("عندك شيء للبيع؟");
+  expect(markup).toContain("انشر معروضًا");
 
   // The safe-transaction rules strip.
   expect(markup).toContain("نصائح بيع آمن");
 });
 
-test("the market screen's filters ride the server-side ?cat= and ?q= reads", async () => {
+test("the market screen's filters ride the board read's own server-side axes", async () => {
+  const { getMyNeighborhoodMarket } = await import("@/lib/api/community");
   const { searchListings } = await import("@/lib/api/public");
-  // ?cat=FREE: only the free items render.
-  const freeMarkup = await renderScreen(MarketPage, { cat: "FREE" });
-  expect(freeMarkup).toContain("مكتب دراسي خشبي بحالة ممتازة");
-  expect(freeMarkup).toContain("شتلات نعناع وريحان وزعتر");
-  expect(freeMarkup).not.toContain("تكييف شباك 1.5 طن");
 
-  // ?q= matches the text read: the AC unit by its title word.
-  const qMarkup = await renderScreen(MarketPage, { q: "تكييف" });
-  expect(qMarkup).toContain("تكييف شباك 1.5 طن");
-  expect(qMarkup).not.toContain("مكتب دراسي خشبي");
+  // ?cat=FREE: the chips' axis rides the READ (the backend filters).
+  await renderScreen(MarketPage, { cat: "FREE" });
+  expect(getMyNeighborhoodMarket).toHaveBeenCalledWith(0, 20, "FREE", "", false);
+
+  // ?q= rides the search box's own axis.
+  await renderScreen(MarketPage, { q: "تكييف" });
+  expect(getMyNeighborhoodMarket).toHaveBeenCalledWith(0, 20, undefined, "تكييف", false);
+
+  // ?mine=1 rides the member's own-items view.
+  await renderScreen(MarketPage, { mine: "1" });
+  expect(getMyNeighborhoodMarket).toHaveBeenCalledWith(0, 20, undefined, "", true);
 
   // The bridge read stays the unfiltered location-scoped call.
   expect(searchListings).toHaveBeenCalledWith(

@@ -26,10 +26,13 @@ import { backendGet, backendSend, type BackendResult } from "./server";
 import type { PagedResponse } from "./types";
 import type {
   ContentReportView,
+  CreateMarketItemInput,
   CreateNeighborhoodEventInput,
   EventCategory,
   EventRsvp,
+  MarketCategory,
   NeighborhoodEvent,
+  NeighborhoodMarketItem,
   NeighborhoodMembership,
   NeighborhoodPost,
   PostCategory,
@@ -288,5 +291,66 @@ export function deleteNeighborhoodEvent(eventId: string): Promise<BackendResult<
   return backendSend<null>(
     "DELETE",
     `/api/v1/neighborhood/events/${encodeURIComponent(eventId)}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// L50 — the neighborhood market board (gap #5, «سوق الحي والحراج»)
+// ---------------------------------------------------------------------------
+
+/**
+ * Read my neighborhood's market board —
+ * `GET /api/v1/neighborhood/market?category=&q=&mine=&page=&size=`.
+ * The board is MEMBERSHIP-scoped like the feed and the events board
+ * (G-N1/G-N3: "one membership, one board — there is no location
+ * parameter to read anyone else's"), newest first on the complete
+ * sort key (createdAt DESC, id DESC). Every row carries the two
+ * caller-scoped facts (sellerVerified / mine) — the badge and the
+ * withdraw button render from the contract alone, no second read.
+ * The three filter axes are the product's own: the category chips,
+ * the search box (title + pickup-spot label), and the mine view.
+ */
+export function getMyNeighborhoodMarket(
+  page: number,
+  size: number,
+  category?: MarketCategory,
+  q?: string,
+  mine?: boolean,
+): Promise<BackendResult<PagedResponse<NeighborhoodMarketItem>>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (category) params.set("category", category);
+  if (q && q.trim().length > 0) params.set("q", q.trim());
+  if (mine) params.set("mine", "true");
+  return backendGet(`/api/v1/neighborhood/market?${params.toString()}`);
+}
+
+/**
+ * Publish an item to my neighborhood's market —
+ * `POST /api/v1/neighborhood/market` (L50). The backend's gate order
+ * (before any write): the location resolves through the geo port (404
+ * unknown), must be level-3 (400), the caller's own active — and
+ * REJECTED-excluded — membership (403), and the ONE pricing rule
+ * (400: a FREE item carries no price at all, «مجاني ⇔ بلا سعر»; the
+ * four sale categories carry strictly positive integer cents + a
+ * 3-letter ISO 4217 code). Title/locationLabel ≤ 200 — the type gate
+ * answers 400 before any write.
+ */
+export function createMarketItem(
+  input: CreateMarketItemInput,
+): Promise<BackendResult<NeighborhoodMarketItem>> {
+  return backendSend("POST", "/api/v1/neighborhood/market", input);
+}
+
+/**
+ * Withdraw my market item — `DELETE /api/v1/neighborhood/market/{itemId}`
+ * (L50). The author's own soft delete: the row stays (the audit trail
+ * keeps every revision), the reads stop returning it. Only the author
+ * — anyone else answers 403; an unknown item answers the honest 404.
+ * 204 on success.
+ */
+export function deleteMarketItem(itemId: string): Promise<BackendResult<null>> {
+  return backendSend<null>(
+    "DELETE",
+    `/api/v1/neighborhood/market/${encodeURIComponent(itemId)}`,
   );
 }

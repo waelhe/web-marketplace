@@ -419,25 +419,26 @@ export const DEMO_CHARTER: readonly OwnerCharter[] = [
 
 /* ===================================================================
  * SCREEN ② — سوق الحي والحراج: the market display grid.
+ *
+ * L50 (gap #5 served, 2026-10-02): the category vocabulary now re-
+ * exports from the SERVED contract (community-contract.ts measured it
+ * from the backend's MarketCategory enum; the display dataset and the
+ * served rows share the same membership — one vocabulary, zero drift,
+ * the neighborhood-events.ts discipline verbatim).
  * =================================================================== */
 
-export type OwnerMarketCategory = "FREE" | "FURNITURE" | "ELECTRONICS" | "TOOLS" | "OTHER";
+export {
+  MARKET_CATEGORIES,
+  MARKET_CATEGORY_LABELS,
+} from "@/lib/api/community-contract";
+import {
+  MARKET_CATEGORIES,
+  MARKET_CATEGORY_LABELS,
+  type MarketCategory,
+} from "@/lib/api/community-contract";
 
-export const MARKET_CATEGORIES = [
-  "FREE",
-  "FURNITURE",
-  "ELECTRONICS",
-  "TOOLS",
-  "OTHER",
-] as const;
-
-export const MARKET_CATEGORY_LABELS: Record<OwnerMarketCategory, string> = {
-  FREE: "مقتنيات مجانية",
-  FURNITURE: "أثاث ومنزل",
-  ELECTRONICS: "إلكترونيات",
-  TOOLS: "أدوات ومعدات",
-  OTHER: "متنوع",
-};
+/** The display-layer alias (the S10 module's historical name). */
+export type OwnerMarketCategory = MarketCategory;
 
 export interface OwnerMarketItem {
   /** `demo-` prefixed. */

@@ -362,3 +362,109 @@ export const MAX_EVENT_TITLE_LENGTH = 200;
 export const MAX_EVENT_DESCRIPTION_LENGTH = 2000;
 export const MAX_EVENT_LABEL_LENGTH = 200;
 export const MAX_EVENT_CAPACITY = 500;
+
+// ---------------------------------------------------------------------------
+// L50 — the neighborhood market board (gap #5, «سوق الحي والحراج»)
+// ---------------------------------------------------------------------------
+
+/**
+ * The market category vocabulary — the product's own five filter chips,
+ * measured verbatim from the backend's MarketCategory enum (the V90
+ * CHECK pins the same membership on the SQL side;
+ * src/lib/neighborhood-design.ts carried these chips as display data
+ * since S10 — one vocabulary, zero drift, re-exported there).
+ */
+export const MARKET_CATEGORIES = [
+  "FREE",
+  "FURNITURE",
+  "ELECTRONICS",
+  "TOOLS",
+  "OTHER",
+] as const;
+export type MarketCategory = (typeof MARKET_CATEGORIES)[number];
+
+/** Arabic UI labels of the market category vocabulary. */
+export const MARKET_CATEGORY_LABELS: Record<MarketCategory, string> = {
+  FREE: "مقتنيات مجانية",
+  FURNITURE: "أثاث ومنزل",
+  ELECTRONICS: "إلكترونيات",
+  TOOLS: "أدوات ومعدات",
+  OTHER: "متنوع",
+};
+
+/**
+ * The condition vocabulary — the design's own two chip states
+ * («كالجديد» / «جيد»), measured verbatim from the display dataset;
+ * the backend's MarketCondition enum and the V90 CHECK pin the same
+ * membership.
+ */
+export const MARKET_CONDITIONS = ["LIKE_NEW", "GOOD"] as const;
+export type MarketCondition = (typeof MARKET_CONDITIONS)[number];
+
+/** Arabic UI labels of the condition vocabulary. */
+export const MARKET_CONDITION_LABELS: Record<MarketCondition, string> = {
+  LIKE_NEW: "كالجديد",
+  GOOD: "جيد",
+};
+
+/** The item's product state — the board's own two-state vocabulary. */
+export const MARKET_ITEM_STATUSES = ["ACTIVE", "SOLD"] as const;
+export type MarketItemStatus = (typeof MARKET_ITEM_STATUSES)[number];
+
+/** Arabic UI labels of the item state vocabulary. */
+export const MARKET_STATUS_LABELS: Record<MarketItemStatus, string> = {
+  ACTIVE: "متاح",
+  SOLD: "تم البيع",
+};
+
+/** The market board's page size — the events board's own discipline. */
+export const MARKET_PAGE_SIZE = 20;
+
+/**
+ * L50 board read model (NeighborhoodMarketItemView): the stored facts
+ * plus the two caller-scoped facts — sellerVerified (the author's
+ * EARNED membership state, one grouped read over the page's authors)
+ * and mine (the caller's own authorship — the withdraw button's
+ * honest gate). The price pair carries the ONE pricing rule: a FREE
+ * item has BOTH price fields null («مجاني ⇔ بلا سعر»), the four sale
+ * categories carry integer cents + ISO 4217.
+ */
+export interface NeighborhoodMarketItem {
+  id: string;
+  /** Opaque by contract — display layers must not invent a seller identity. */
+  authorId: string;
+  locationId: string;
+  category: MarketCategory;
+  /** The item's whole authored text (the card carries no separate body). */
+  title: string;
+  condition: MarketCondition;
+  /** Integer cents — null for a gift. */
+  priceCents: number | null;
+  /** ISO 4217 — present exactly when priceCents is. */
+  priceCurrency: string | null;
+  status: MarketItemStatus;
+  /** The pickup spot's display label, as the seller wrote it. */
+  locationLabel: string;
+  /** The author's earned verification state — «جار موثق» is earned, never claimed. */
+  sellerVerified: boolean;
+  /** The caller's own authorship — the withdraw button renders from this alone. */
+  mine: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** The publish input — the backend's own type gates are the bounds. */
+export interface CreateMarketItemInput {
+  locationId: string;
+  category: MarketCategory;
+  title: string;
+  condition: MarketCondition;
+  /** Integer cents — required for the sale categories, absent for FREE. */
+  priceCents: number | null;
+  priceCurrency: string | null;
+  locationLabel: string;
+}
+
+/** The backend's own authored bounds (NeighborhoodMarketController). */
+export const MAX_MARKET_TITLE_LENGTH = 200;
+export const MAX_MARKET_LABEL_LENGTH = 200;

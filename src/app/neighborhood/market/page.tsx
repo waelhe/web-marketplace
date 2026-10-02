@@ -3,35 +3,49 @@ import Link from "next/link";
 import { SignInButton } from "@/app/auth-buttons";
 import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
-import { getMyMembership } from "@/lib/api/community";
-import { searchListings } from "@/lib/api/public";
-import { ListingCard } from "@/components/ui/card";
-import { neighborhoodDemoEnabled } from "@/lib/neighborhood-product";
 import {
-  DEMO_MARKET_ITEMS,
+  getMyMembership,
+  getMyNeighborhoodMarket,
+} from "@/lib/api/community";
+import {
   MARKET_CATEGORIES,
   MARKET_CATEGORY_LABELS,
-  MARKET_SAFETY_RULES,
-  freeGiftCount,
-  marketItemMatches,
-  ownerCount,
-  parseMarketCategory,
-} from "@/lib/neighborhood-design";
+  MARKET_PAGE_SIZE,
+  type MarketCategory,
+} from "@/lib/api/community-contract";
+import { searchListings } from "@/lib/api/public";
+import { ListingCard } from "@/components/ui/card";
+import { MARKET_SAFETY_RULES, ownerCount, parseMarketCategory } from "@/lib/neighborhood-design";
+import {
+  formatMarketPrice,
+  formatMarketWhen,
+  isFreeGift,
+  marketCategoryIcon,
+  sellerBadgeLabel,
+} from "@/lib/neighborhood-market";
+import { MarketCreateLauncher } from "./market-create";
+import { MarketDeleteButton } from "./market-delete";
 
 /**
  * سوق الحي والحراج — the market screen (slice S10, screen ② of the
  * owner-supplied design spec 2026-09-29). The design's own anatomy:
  * the page hero with the free-gifts rail (ركن الإهداء), the search
- * box + the five category chips, the item grid with the green gift
- * band on free items, and the safe-transaction rules strip.
+ * box + the category chips, the item grid with the green gift band on
+ * free items, and the safe-transaction rules strip.
  *
- * The REAL channel stays first-class: the location-scoped public
- * listings read (the same criteria op every public browse rides,
- * scoped by the membership's own locationId) renders above the
- * display grid — real rows with real detail links. The display grid
- * carries the owner's own items, «بيانات عرض» labeled, demo ids,
- * never links (discipline rules 1–5, src/lib/neighborhood-design.ts).
- * `noindex` — session-scoped content.
+ * N8 (gap #5 served, 2026-10-02): the grid went REAL — the backend's
+ * own GET /api/v1/neighborhood/market (L50), membership-scoped,
+ * newest first, every row carrying sellerVerified + mine. The search
+ * box, the chips and the mine view ride the READ's own server-side
+ * axes (?q= / ?cat= / ?mine=); the display dataset retired with its
+ * «بيانات عرض» badge. The publisher («انشر معروضًا») and the
+ * author's withdraw are the wave's two real writes.
+ *
+ * The REAL marketplace bridge stays first-class: the location-scoped
+ * public listings read (the same criteria op every public browse
+ * rides, scoped by the membership's own locationId) renders above
+ * the board — real rows with real detail links. `noindex` —
+ * session-scoped content.
  */
 export const metadata: Metadata = {
   title: "سوق الحي — حيّنا",
@@ -52,10 +66,17 @@ function parseQuery(raw: string | string[] | undefined): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** Read ?mine= as the member's own-items view flag. */
+function parseMine(raw: string | string[] | undefined): boolean {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === "1" || value === "true";
+}
+
 export default async function MarketPage({ searchParams }: MarketPageProps) {
   const sp = await searchParams;
   const cat = parseMarketCategory(sp?.cat);
   const q = parseQuery(sp?.q);
+  const mine = parseMine(sp?.mine);
 
   const session = await getSession();
   if (!session) {
@@ -119,22 +140,27 @@ export default async function MarketPage({ searchParams }: MarketPageProps) {
     LOCAL_LISTINGS_SIZE,
   );
 
-  // The owner's display grid — filtered by the chips (?cat=) and the
-  // search box (?q=), both server-side reads.
-  const demoOn = neighborhoodDemoEnabled();
-  const items = demoOn
-    ? DEMO_MARKET_ITEMS.filter(
-        (item) =>
-          (cat === null || item.category === cat) && marketItemMatches(item, q),
-      )
-    : [];
-  const freeCount = demoOn ? freeGiftCount(DEMO_MARKET_ITEMS) : 0;
+  // THE SERVED BOARD (N8): the backend's own read — the search box,
+  // the chips and the mine view ride the read's own server-side axes.
+  const board = await getMyNeighborhoodMarket(0, MARKET_PAGE_SIZE, cat ?? undefined, q, mine);
+  const items = board.ok ? board.data.content : [];
+  const boardError = board.ok
+    ? null
+    : board.unauthenticated
+      ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
+      : problemMessage(board.problem, `تعذّرت قراءة معروضات سوق حارتك (رمز ${board.status}).`);
 
-  /** Rebuild a filter href preserving the other parameter. */
-  const href = (nextCat: string | null) => {
+  // The free-gifts rail's own count — the visible board's gifts (the
+  // whole unfiltered board when no axis is active, exactly the
+  // display layer's own rule over its dataset).
+  const freeCount = items.filter((item) => isFreeGift(item.priceCents)).length;
+
+  /** Rebuild a filter href preserving the other parameters. */
+  const href = (nextCat: string | null, nextMine: boolean = mine) => {
     const params = new URLSearchParams();
     if (nextCat) params.set("cat", nextCat);
     if (q) params.set("q", q);
+    if (nextMine) params.set("mine", "1");
     const query = params.toString();
     return query ? `/neighborhood/market?${query}` : "/neighborhood/market";
   };
@@ -164,7 +190,7 @@ export default async function MarketPage({ searchParams }: MarketPageProps) {
         ) : null}
       </section>
 
-      {/* The search box + the category chips — server-side ?q= and ?cat=. */}
+      {/* The search box + the category chips — server-side ?q= and ?cat=/?mine=. */}
       <form className="hy-filter" action="/neighborhood/market" method="get" role="search">
         <div className="hy-searchbox">
           <span className="material-symbols-outlined" aria-hidden="true">search</span>
@@ -177,16 +203,17 @@ export default async function MarketPage({ searchParams }: MarketPageProps) {
           />
         </div>
         {cat ? <input type="hidden" name="cat" value={cat} /> : null}
+        {mine ? <input type="hidden" name="mine" value="1" /> : null}
         <button type="submit" className="hy-btn hy-btn-primary">
           <span className="material-symbols-outlined" aria-hidden="true">search</span>
           ابحث
         </button>
       </form>
       <nav className="hy-filter" aria-label="تصنيفات السوق">
-        <Link href={href(null)} className="hy-pill" data-active={cat === null || undefined}>
+        <Link href={href(null)} className="hy-pill" data-active={cat === null && !mine ? true : undefined}>
           الكل
         </Link>
-        {MARKET_CATEGORIES.map((value) => (
+        {MARKET_CATEGORIES.map((value: MarketCategory) => (
           <Link
             key={value}
             href={href(value)}
@@ -196,6 +223,9 @@ export default async function MarketPage({ searchParams }: MarketPageProps) {
             {MARKET_CATEGORY_LABELS[value]}
           </Link>
         ))}
+        <Link href={href(null, !mine)} className="hy-pill" data-active={mine || undefined}>
+          معروضاتي
+        </Link>
       </nav>
 
       <div className="hy-cols">
@@ -241,74 +271,106 @@ export default async function MarketPage({ searchParams }: MarketPageProps) {
             )}
           </section>
 
-          {/* The owner's display grid — the design's item cards. */}
-          {demoOn ? (
-            <section className="hy-section" aria-labelledby="demo-market-heading">
-              <div className="hy-section-head">
-                <h2 id="demo-market-heading" className="hy-section-title">
-                  <span className="material-symbols-outlined" aria-hidden="true">
-                    volunteer_activism
-                  </span>
-                  معروضات الجيران
-                </h2>
-                <span className="hy-badge-demo">بيانات عرض</span>
-              </div>
-              {items.length > 0 ? (
-                <ul className="hy-market-grid">
-                  {items.map((item) => (
-                    /* Display cards, never links (rule 4): the demo id is
-                        not a backend UUID — the public listing read would
-                        404, and a fake page would poison trust. */
+          {/* THE SERVED BOARD — the neighbors' real items (N8): the
+              design's own card anatomy over the backend's own rows. */}
+          <section className="hy-section" aria-labelledby="market-board-heading">
+            <div className="hy-section-head">
+              <h2 id="market-board-heading" className="hy-section-title">
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  volunteer_activism
+                </span>
+                معروضات الجيران
+              </h2>
+            </div>
+            {boardError ? (
+              <p className="hy-state" role="status">
+                {boardError}
+              </p>
+            ) : items.length > 0 ? (
+              <ul className="hy-market-grid">
+                {items.map((item) => {
+                  const free = isFreeGift(item.priceCents);
+                  return (
                     <li key={item.id} className="hy-card hy-market-item">
-                      <div className="hy-market-thumb" data-free={item.free || undefined} role="img" aria-label={item.title}>
+                      <div
+                        className="hy-market-thumb"
+                        data-free={free || undefined}
+                        role="img"
+                        aria-label={item.title}
+                      >
                         <span className="material-symbols-outlined" style={{ fontSize: "2.5rem" }}>
-                          {item.icon}
+                          {marketCategoryIcon(item.category)}
                         </span>
-                        {item.free ? (
+                        {free ? (
                           <span className="hy-market-free-chip">
-                            <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.75rem" }}>
+                            <span
+                              className="material-symbols-outlined"
+                              aria-hidden="true"
+                              style={{ fontSize: "0.75rem" }}
+                            >
                               redeem
                             </span>
                             مجاني — إهداء
                           </span>
                         ) : null}
+                        {item.status === "SOLD" ? (
+                          <span className="hy-market-free-chip" data-sold>
+                            تم البيع
+                          </span>
+                        ) : null}
                       </div>
                       <h3 className="hy-market-title">{item.title}</h3>
                       <div className="hy-market-meta">
-                        <span className="hy-market-price" data-free={item.free || undefined}>
-                          {item.priceLabel}
+                        <span className="hy-market-price" data-free={free || undefined}>
+                          {formatMarketPrice(item.priceCents, item.priceCurrency)}
                         </span>
                         <span className="hy-market-loc">
-                          <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.75rem" }}>
+                          <span
+                            className="material-symbols-outlined"
+                            aria-hidden="true"
+                            style={{ fontSize: "0.75rem" }}
+                          >
                             location_on
                           </span>
-                          {item.location}
+                          {item.locationLabel}
                         </span>
                       </div>
                       <div className="hy-market-meta">
-                        <span className="hy-post-chip" data-tone="neutral">{item.condition}</span>
-                        <span className="hy-post-chip" data-tone="verified">
-                          <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.75rem" }}>
+                        <span className="hy-post-chip" data-tone="neutral">
+                          {item.condition === "LIKE_NEW" ? "كالجديد" : "جيد"}
+                        </span>
+                        <span
+                          className="hy-post-chip"
+                          data-tone={item.sellerVerified ? "verified" : "neutral"}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            aria-hidden="true"
+                            style={{ fontSize: "0.75rem" }}
+                          >
                             verified
                           </span>
-                          {item.sellerBadge}
+                          {sellerBadgeLabel(item.sellerVerified)}
                         </span>
-                        <span className="hy-market-when">{item.when}</span>
+                        <span className="hy-market-when">
+                          {formatMarketWhen(item.createdAt)}
+                        </span>
                       </div>
+                      {/* The author's own seam: the withdraw button
+                          renders from the served mine fact alone. */}
+                      {item.mine ? <MarketDeleteButton itemId={item.id} /> : null}
                     </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="hy-empty" role="status">
-                  لا معروضات تطابق تصنيفك أو بحثك — جرّب تصنيفًا آخر أو امسح البحث.
-                </p>
-              )}
-              <p className="hy-directory-note">
-                عندما تُفعَّل عقود الباك اند ستظهر معروضات الجيران الحقيقية هنا بنفس البطاقات —
-                والإعلانات المجانية (الإهداء) بلا مقابل أبدًا.
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="hy-empty" role="status">
+                {mine
+                  ? "لا معروضات لك بعد — انشر أول معروض من زر «انشر معروضًا»."
+                  : "لا معروضات تطابق تصنيفك أو بحثك — جرّب تصنيفًا آخر أو امسح البحث."}
               </p>
-            </section>
-          ) : null}
+            )}
+          </section>
         </div>
 
         <div className="hy-col">
@@ -329,7 +391,8 @@ export default async function MarketPage({ searchParams }: MarketPageProps) {
             </ul>
           </section>
 
-          {/* The composer bridge — the classified quick-path into the feed. */}
+          {/* The publisher bridge — the market's own write path (N8):
+              the member publishes a real item into their board. */}
           <section className="hy-card" aria-labelledby="sell-heading">
             <h2 id="sell-heading" className="hy-widget-title">
               <span className="material-symbols-outlined" aria-hidden="true">
@@ -338,12 +401,9 @@ export default async function MarketPage({ searchParams }: MarketPageProps) {
               عندك شيء للبيع؟
             </h2>
             <p className="hy-screen-sub">
-              انشره كمنشور «بيع ومقايضة» في خلاصة الحي — يصل جيرانك مباشرة.
+              انشره على لوحة سوق حارتك — يصل جيرانك مباشرة، والإهداء بلا مقابل أبدًا.
             </p>
-            <Link className="hy-btn hy-btn-primary" href="/neighborhood?category=CLASSIFIED">
-              <span className="material-symbols-outlined" aria-hidden="true">add_circle</span>
-              انشر في الخلاصة
-            </Link>
+            <MarketCreateLauncher locationId={membership.data.locationId} />
           </section>
         </div>
       </div>
