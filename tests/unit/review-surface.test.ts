@@ -218,8 +218,9 @@ test("a photo rides the write: declare → PUT → confirm, and the message stay
       contentType: "image/jpeg",
       sizeBytes: 256,
       status: "UPLOADED",
-      displayOrder: 1,
-      url: "https://storage.example/signed-get",
+      position: 1,
+      downloadUrl: "https://storage.example/signed-get",
+      createdAt: "2026-10-02T01:00:00Z",
     },
   } as Awaited<ReturnType<typeof confirm>>);
 

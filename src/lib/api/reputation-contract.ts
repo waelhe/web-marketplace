@@ -215,9 +215,11 @@ export interface ReviewMediaUploadView {
 }
 
 /**
- * W1 §4.4: ReviewMediaView — one review-photo asset (ReviewMediaService):
- * the fresh presigned GET URL rides every row of the by-review read
- * (public for a PUBLISHED review; the author/admin otherwise).
+ * W1 §4.4: ReviewMediaView — one review-photo asset (ReviewMediaService,
+ * field names measured from the record itself): the fresh presigned GET
+ * URL (`downloadUrl`) and the display order (`position`, 1-based) ride
+ * every row of the by-review read (public for a PUBLISHED review; the
+ * author/admin otherwise).
  */
 export interface ReviewMediaView {
   id: string;
@@ -227,9 +229,10 @@ export interface ReviewMediaView {
   /** The asset lifecycle status (UPLOADED on the confirmed read). */
   status: string;
   /** Display order within the review (1-based). */
-  displayOrder: number;
-  /** The freshly presigned GET URL. */
-  url: string;
+  position: number;
+  /** The freshly presigned GET URL of the original object. */
+  downloadUrl: string;
+  createdAt: string;
 }
 
 /**

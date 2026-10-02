@@ -215,7 +215,7 @@ function ReviewRow({
                   presigned storage URL, not a local asset: next/image
                   would demand remote-pattern config for an ephemeral
                   signed host (the listing gallery's own measured call). */}
-              <img src={photo.url} alt="صورة مرفقة بالمراجعة" loading="lazy" />
+              <img src={photo.downloadUrl} alt="صورة مرفقة بالمراجعة" loading="lazy" />
             </li>
           ))}
         </ul>
