@@ -30,8 +30,10 @@ import type {
   CreateNeighborhoodEventInput,
   EventCategory,
   EventRsvp,
+  GroupMembership,
   MarketCategory,
   NeighborhoodEvent,
+  NeighborhoodGroup,
   NeighborhoodMarketItem,
   NeighborhoodMembership,
   NeighborhoodPost,
@@ -352,5 +354,59 @@ export function deleteMarketItem(itemId: string): Promise<BackendResult<null>> {
   return backendSend<null>(
     "DELETE",
     `/api/v1/neighborhood/market/${encodeURIComponent(itemId)}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// L51 — the neighbors groups board (gap #6, «مجموعات الجيران»)
+// ---------------------------------------------------------------------------
+
+/**
+ * Read my neighborhood's groups board —
+ * `GET /api/v1/neighborhood/groups?page=&size=`. The board is
+ * MEMBERSHIP-scoped like the feed, the events board and the market
+ * board (G-N1/G-N3: "one membership, one board — there is no location
+ * parameter to read anyone else's"), in the hood's HISTORICAL order
+ * (oldest club first — the seed's own insertion order) on the complete
+ * sort key (createdAt ASC, id ASC). Every row carries the two
+ * reader-scoped facts — members (the LIVE count) and joinedByMe — so
+ * the meta line and the join/leave button render from the contract
+ * alone, no second read.
+ */
+export function getMyNeighborhoodGroups(
+  page: number,
+  size: number,
+): Promise<BackendResult<PagedResponse<NeighborhoodGroup>>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return backendGet(`/api/v1/neighborhood/groups?${params.toString()}`);
+}
+
+/**
+ * Join a group — `POST /api/v1/neighborhood/groups/{groupId}/membership`
+ * (L51). The backend's gate order (before any write): the group's
+ * honest 404 (an unknown or retired group's memberships are absent
+ * exactly as the group itself is), the caller's own active — and
+ * REJECTED-excluded — membership in exactly the group's neighborhood
+ * (403 otherwise), and ONE live membership per member per group (409 —
+ * «عضوية واحدة لكل جار»).
+ */
+export function joinGroup(groupId: string): Promise<BackendResult<GroupMembership>> {
+  return backendSend(
+    "POST",
+    `/api/v1/neighborhood/groups/${encodeURIComponent(groupId)}/membership`,
+  );
+}
+
+/**
+ * Leave a group — `DELETE /api/v1/neighborhood/groups/{groupId}/membership`
+ * (L51). The same gates as the join; a member with no live membership
+ * answers the honest 404 (there is nothing to leave). 204 on success —
+ * the seat is free for a fresh join (the soft-deleted row stays for the
+ * audit trail).
+ */
+export function leaveGroup(groupId: string): Promise<BackendResult<null>> {
+  return backendSend<null>(
+    "DELETE",
+    `/api/v1/neighborhood/groups/${encodeURIComponent(groupId)}/membership`,
   );
 }

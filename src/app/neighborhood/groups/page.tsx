@@ -3,20 +3,33 @@ import Link from "next/link";
 import { SignInButton } from "@/app/auth-buttons";
 import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
-import { getMyMembership } from "@/lib/api/community";
-import { neighborhoodDemoEnabled } from "@/lib/neighborhood-product";
-import { DEMO_OWNER_GROUPS, ownerCount } from "@/lib/neighborhood-design";
+import {
+  getMyMembership,
+  getMyNeighborhoodGroups,
+} from "@/lib/api/community";
+import { GROUPS_PAGE_SIZE } from "@/lib/api/community-contract";
+import { ownerCount } from "@/lib/neighborhood-design";
+import { groupIcon, groupMeta, groupTone } from "@/lib/neighborhood-groups";
+import { GroupMembershipButton } from "./group-membership-button";
 
 /**
  * مجموعات الجيران — the specialist groups screen (slice S10, the
  * sidebar's sixth section given its own surface). The design's own
  * rows: the specialist clubs with their member counts, their meeting
- * cadence, and the join affordance — honestly gated (no
- * group-membership write exists yet), never a fake button.
+ * cadence, and the join affordance.
  *
- * All rows are display rows («بيانات عرض», demo ids, never links —
- * discipline rules 1–5, src/lib/neighborhood-design.ts). `noindex` —
- * session-scoped content.
+ * N9 (gap #6 served, 2026-10-02): the board went REAL — the backend's
+ * own GET /api/v1/neighborhood/groups (L51), membership-scoped, in the
+ * hood's historical order, every row carrying the LIVE members count
+ * («بعددها الحقيقي» — the display dataset's 85/120/45 retired with
+ * its «بيانات عرض» badge) and joinedByMe. The ONE adaptation seam:
+ * the page derives the design's display facts (the icon from the
+ * club's own name, the tone from the row's position, the meta line's
+ * composition) — zero visual change from the design's own rows. The
+ * join/leave toggle is the wave's one real write (the RSVP button's
+ * own shape). The sidebar's groups WIDGET stays display-layer (the
+ * events widget's own discipline — the screen is the product's
+ * surface). `noindex` — session-scoped content.
  */
 export const metadata: Metadata = {
   title: "مجموعات الجيران — حيّنا",
@@ -24,11 +37,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-type GroupsPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function GroupsPage({}: GroupsPageProps) {
+export default async function GroupsPage() {
   const session = await getSession();
   if (!session) {
     return (
@@ -83,8 +92,18 @@ export default async function GroupsPage({}: GroupsPageProps) {
     );
   }
 
-  const demoOn = neighborhoodDemoEnabled();
-  const groups = demoOn ? DEMO_OWNER_GROUPS : [];
+  // THE SERVED BOARD (N9): the backend's own read — every row carries
+  // the LIVE member count and the caller's own membership fact.
+  const board = await getMyNeighborhoodGroups(0, GROUPS_PAGE_SIZE);
+  const groups = board.ok ? board.data.content : [];
+  const boardError = board.ok
+    ? null
+    : board.unauthenticated
+      ? "جلستك مع الباك اند منتهية — سجّل الدخول من جديد."
+      : problemMessage(
+          board.problem,
+          `تعذّرت قراءة مجموعات حارتك (رمز ${board.status}).`,
+        );
 
   return (
     <main>
@@ -113,7 +132,11 @@ export default async function GroupsPage({}: GroupsPageProps) {
 
       <div className="hy-cols">
         <div className="hy-col">
-          {groups.length > 0 ? (
+          {boardError ? (
+            <p className="hy-state" role="status">
+              {boardError}
+            </p>
+          ) : groups.length > 0 ? (
             <section className="hy-section" aria-labelledby="board-heading">
               <div className="hy-section-head">
                 <h2 id="board-heading" className="hy-section-title">
@@ -122,55 +145,68 @@ export default async function GroupsPage({}: GroupsPageProps) {
                   </span>
                   النوادي النشطة
                 </h2>
-                <span className="hy-badge-demo">بيانات عرض</span>
               </div>
               <ul className="hy-group-list">
-                {groups.map((group) => (
-                  /* Display rows, never links (rule 4): no group
-                      surfaces exist — a demo id link would 404. */
+                {groups.map((group, index) => (
+                  /* Served rows — real ids, the club's own card; the
+                      design's display facts derive here (the ONE
+                      adaptation seam): the icon from the name, the tone
+                      from the position, the meta line's composition. */
                   <li key={group.id} className="hy-card hy-group-row">
                     <div className="hy-group-id">
-                      <span className="hy-group-icon" data-tone={group.tone}>
-                        <span className="material-symbols-outlined">{group.icon}</span>
+                      <span className="hy-group-icon" data-tone={groupTone(index)}>
+                        <span className="material-symbols-outlined">
+                          {groupIcon(group.name)}
+                        </span>
                       </span>
                       <div>
                         <span className="hy-group-name">{group.name}</span>
-                        <span className="hy-group-meta">{group.meta}</span>
+                        <span className="hy-group-meta">
+                          {groupMeta(group.members, group.description)}
+                        </span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="hy-btn hy-btn-soft"
-                      disabled
-                      title={group.joinGate}
-                    >
-                      <span className="material-symbols-outlined">person_add</span>
-                      انضمام
-                    </button>
+                    {/* The real membership toggle — the served fact gates
+                        the button's own state, refresh() re-renders the
+                        count and the state from the read. */}
+                    <GroupMembershipButton
+                      groupId={group.id}
+                      joinedByMe={group.joinedByMe}
+                    />
                   </li>
                 ))}
               </ul>
-              <p className="hy-directory-note">
-                <strong>القناة القادمة:</strong> عندما يُفعَّل عقد عضويات المجموعات لدى الباك اند
-                يصبح زر الانضمام كتابة حقيقية — عضوية واحدة لكل جار، بعددها الحقيقي.
+            </section>
+          ) : (
+            <section className="hy-section" aria-labelledby="board-heading">
+              <div className="hy-section-head">
+                <h2 id="board-heading" className="hy-section-title">
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    diversity_3
+                  </span>
+                  النوادي النشطة
+                </h2>
+              </div>
+              <p className="hy-empty" role="status">
+                لا نوادٍ في حارتك بعد — النوادي تُؤسَّس بقرار المنتج القادم داخل
+                نافذة المجموعات المفتوحة.
               </p>
             </section>
-          ) : null}
+          )}
         </div>
 
         <div className="hy-col">
-          {/* The honest gate's explanation — the join discipline. */}
+          {/* The honest membership discipline — the join's own rules. */}
           <section className="hy-card" aria-labelledby="join-heading">
             <h2 id="join-heading" className="hy-widget-title">
               <span className="material-symbols-outlined" aria-hidden="true">
-                lock_open
+                group_add
               </span>
-              لماذا زر الانضمام مُعطّل؟
+              كيف تعمل العضوية؟
             </h2>
             <p className="hy-screen-sub">
-              عقد عضويات المجموعات لم يُبنِ بعد لدى الباك اند. نُظهر لك النوادي الحقيقية
-              التي يعمل بها الحي، وننتظر العقد لنفعّل الانضمام — لا نعدك بزر يبدو
-              حيًا وهو صامت.
+              عضوية واحدة لكل جار في كل مجموعة — انضم متى شئت وغادر متى شئت،
+              والعدد الذي تراه هو عدد الجيران الأحياء فعلًا.
             </p>
             <Link className="hy-btn hy-btn-primary" href="/neighborhood">
               <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>

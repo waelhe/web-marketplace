@@ -136,6 +136,51 @@ const fixtures = vi.hoisted(() => ({
       empty: false,
     },
   },
+  // N9: the SERVED groups board (L51) — the caller's own neighborhood,
+  // the LIVE member counts («بعددها الحقيقي»), and both membership
+  // states live (one joined, three open — the toggle button's own gates).
+  groupsBoard: {
+    ok: true,
+    status: 200,
+    data: {
+      content: [
+        {
+          id: "66666666-6666-4666-8666-666666660001",
+          name: "فريق دراجي ومشي النخيل",
+          description: "تجمّع يومي 5:30 فجراً",
+          members: 2,
+          joinedByMe: true,
+        },
+        {
+          id: "66666666-6666-4666-8666-666666660002",
+          name: "مجلس أولياء أمور المدارس",
+          description: "نقاش الباصات والأنشطة",
+          members: 2,
+          joinedByMe: false,
+        },
+        {
+          id: "66666666-6666-4666-8666-666666660003",
+          name: "نادي قراء ومثقفي النخيل",
+          description: "مناقشة كتاب شهرياً",
+          members: 2,
+          joinedByMe: false,
+        },
+        {
+          id: "66666666-6666-4666-8666-666666660004",
+          name: "نادي المشي المسائي",
+          description: "جولة يومية بعد المغرب من بوابة الحديقة",
+          members: 1,
+          joinedByMe: false,
+        },
+      ],
+      pageNumber: 0,
+      pageSize: 20,
+      totalElements: 4,
+      totalPages: 1,
+      last: true,
+      empty: false,
+    },
+  },
 }));
 
 vi.mock("@/lib/dal", () => ({
@@ -145,6 +190,7 @@ vi.mock("@/lib/dal", () => ({
 vi.mock("@/lib/api/community", () => ({
   getMyMembership: vi.fn(async () => ({ ok: true, status: 200, data: fixtures.membership })),
   getMyNeighborhoodMarket: vi.fn(async () => fixtures.marketBoard),
+  getMyNeighborhoodGroups: vi.fn(async () => fixtures.groupsBoard),
 }));
 
 vi.mock("@/lib/api/public", () => ({
@@ -323,21 +369,36 @@ test("the safety screen's ?zone= read filters the incidents to the block", async
 
 /* ─────────────────── مجموعات الجيران ─────────────────── */
 
-test("the groups screen: the clubs with honest gated joins, never links", async () => {
+test("the groups screen: the served board with real membership toggles, never gated buttons", async () => {
   const markup = await renderScreen(GroupsPage);
 
   expect(markup).toContain("مجموعات الحي التخصصية");
-  expect(markup).toContain("3 نوادٍ نشطة");
+  expect(markup).toContain("4 نوادٍ نشطة");
   const list = markup.match(/<ul class="hy-group-list"[\s\S]*?<\/ul>/)?.[0];
   expect(list).toBeDefined();
+  // The served clubs — the design's own vocabulary, the LIVE counts.
   expect(list ?? "").toContain("فريق دراجي ومشي النخيل");
   expect(list ?? "").toContain("مجلس أولياء أمور المدارس");
   expect(list ?? "").toContain("نادي قراء ومثقفي النخيل");
-  expect(list ?? "").not.toContain("href=");
-  // The join buttons are honestly gated (disabled, with the reason).
-  expect(list ?? "").not.toContain('class="hy-btn hy-btn-soft">');
-  expect((list ?? "").match(/disabled=""/g)?.length).toBe(3);
-  expect(list ?? "").toContain("قريبًا — الانضمام للمجموعات بانتظار عقد الباك اند");
+  expect(list ?? "").toContain("نادي المشي المسائي");
+  // The meta lines — the design's own composition: the live count + the
+  // club's own description.
+  expect(list ?? "").toContain("عضوان • تجمّع يومي 5:30 فجراً");
+  expect(list ?? "").toContain("عضوان • نقاش الباصات والأنشطة");
+  expect(list ?? "").toContain("عضو • جولة يومية بعد المغرب من بوابة الحديقة");
+  // The display layer retired with its badge and its disabled gate.
+  expect(markup).not.toContain("بيانات عرض");
+  expect(list ?? "").not.toContain("disabled");
+  expect(markup).not.toContain("بانتظار عقد الباك اند");
+  // The membership toggle: the joined row carries the confirmed button
+  // (and the live fact that gates its direction), the open rows carry
+  // the join button — the RSVP button's own shape.
+  expect(list ?? "").toContain("عضو ✓");
+  expect((list ?? "").match(/>انضمام</g)?.length).toBe(3);
+  expect(list ?? "").toContain('name="joinedByMe" value="true"');
+  expect(list ?? "").toContain('name="groupId" value="66666666-6666-4666-8666-666666660001"');
+  // The honest discipline card replaced the disabled-gate card.
+  expect(markup).toContain("عضوية واحدة لكل جار");
 });
 
 /* ─────────────────── The anonymous gates on every screen ─────────────────── */

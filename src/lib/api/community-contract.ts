@@ -468,3 +468,45 @@ export interface CreateMarketItemInput {
 /** The backend's own authored bounds (NeighborhoodMarketController). */
 export const MAX_MARKET_TITLE_LENGTH = 200;
 export const MAX_MARKET_LABEL_LENGTH = 200;
+
+// ---------------------------------------------------------------------------
+// L51 — the neighbors groups (gap #6, «مجموعات الجيران»)
+// ---------------------------------------------------------------------------
+
+/** The groups board's page size — the events/market boards' own discipline. */
+export const GROUPS_PAGE_SIZE = 20;
+
+/**
+ * L51 board read model (NeighborhoodGroupView): the registered
+ * contract's three facts — name/description/members (§7.7/6) — plus
+ * the ONE reader-scoped fact. The members count is the LIVE
+ * membership count (one grouped read over the page's groups —
+ * «بعددها الحقيقي», never a seeded display number), and joinedByMe
+ * is the caller's own live membership (the join/leave button renders
+ * from the contract alone, no second read). The group carries NO
+ * enumerated column by the registered contract's own shape — the
+ * icon/tone derivations stay display-side (the one adaptation seam).
+ */
+export interface NeighborhoodGroup {
+  id: string;
+  /** The club's display name, Arabic. */
+  name: string;
+  /** The one-line description — the design's own cadence line. */
+  description: string;
+  /** The LIVE membership count — earned by real rows. */
+  members: number;
+  /** The caller's own live membership — the join/leave button's honest gate. */
+  joinedByMe: boolean;
+}
+
+/**
+ * The join write's echo (NeighborhoodGroupMembershipView) — the
+ * stored facts, nothing else (the EventRsvp discipline verbatim).
+ */
+export interface GroupMembership {
+  id: string;
+  groupId: string;
+  memberId: string;
+  createdAt: string;
+  updatedAt: string;
+}
