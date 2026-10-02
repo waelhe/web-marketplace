@@ -182,7 +182,7 @@ surface gaps after S4.
 | lib/api channel | Consumes (backend module) |
 |---|---|
 | `public.ts` | catalog listings browse/detail/provider-list, search, the two category path ops (S4: browse-by-category + search-by-category) |
-| `reputation.ts` | providers public page, reviews (+reply, reverse) |
+| `reputation.ts` | providers public page (+the W1 dual-reviews surface: the mode-aware rating block, the composed reviews block, the organic write, the helpful votes), reviews (+reply, reverse) |
 | `geo.ts` | geo children/suggest (tree navigation) |
 | `booking.ts` | bookings CRUD chain + payments intents (resolve + the pure GET) + availability |
 | `inbox.ts` | notifications (paged + unread-count), preferences, leads, conversations/messages |
