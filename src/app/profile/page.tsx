@@ -7,7 +7,7 @@ import { problemMessage } from "@/lib/problem";
 import { formatDate } from "@/lib/format";
 import { getMyBackendUser } from "@/lib/api/inbox";
 import {
-  getReviewsByReviewer,
+  getMyWrittenReviews,
   getReviewsOfConsumer,
 } from "@/lib/api/reputation";
 import {
@@ -114,12 +114,15 @@ export default async function ProfilePage() {
     getMyBackendUser(),
   ]);
 
-  // The my-reviews pair rides the public reviews reads keyed by the
-  // caller's own user id (batch-2 spec §3): what I wrote (both
-  // directions) + what providers said about me (the trust view).
+  // The my-reviews pair keyed by the caller's own user id (batch-2
+  // spec §3): what I wrote rides the SESSION-authenticated author path
+  // (N7-b: the W1 visibility gate serves the author every moderation
+  // state — the anonymous read would filter his own pending/hidden rows
+  // out, measured live on Noor's profile); what providers said about me
+  // stays the public trust view (its contract has no author path).
   const [written, aboutMe] = backendUser.ok
     ? await Promise.all([
-        getReviewsByReviewer(backendUser.id, 0, MY_REVIEWS_PAGE_SIZE),
+        getMyWrittenReviews(backendUser.id, 0, MY_REVIEWS_PAGE_SIZE),
         getReviewsOfConsumer(backendUser.id, 0, MY_REVIEWS_PAGE_SIZE),
       ])
     : [null, null];

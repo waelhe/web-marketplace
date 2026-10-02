@@ -33,7 +33,7 @@
  */
 
 import { cache } from "react";
-import { backendSend, type BackendResult } from "./server";
+import { backendGet, backendSend, type BackendResult } from "./server";
 import { publicGet } from "./public";
 import type { PagedResponse } from "./types";
 import type {
@@ -288,4 +288,25 @@ export function deleteReviewMedia(
   mediaId: string,
 ): Promise<BackendResult<void>> {
   return backendSend("DELETE", `/api/v1/media/reviews/${encodeURIComponent(mediaId)}`);
+}
+
+/**
+ * N7-b (the W1 author path): the caller's OWN written reviews — the SAME
+ * `GET /api/v1/reviews/reviewer/{id}` read, but SESSION-authenticated:
+ * the W1 visibility gate serves the author (or an admin) EVERY
+ * moderation state, everyone else the published surface only. The
+ * anonymous twin (getReviewsByReviewer) stays for the public reviewer
+ * surfaces; «مراجعاتي» must ride THIS one or the author would never see
+ * his own pending/hidden rows — the badge would never render (measured
+ * live: the anonymous read filtered Noor's HIDDEN row out of her own
+ * profile).
+ */
+export async function getMyWrittenReviews(
+  reviewerUserId: string,
+  page: number,
+  size: number,
+): Promise<BackendResult<PagedResponse<ReviewView>>> {
+  return backendGet(
+    `/api/v1/reviews/reviewer/${encodeURIComponent(reviewerUserId)}?page=${page}&size=${size}`,
+  );
 }
