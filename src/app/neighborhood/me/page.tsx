@@ -9,6 +9,7 @@ import { getMyMembership, getMyFeed } from "@/lib/api/community";
 import { VerificationCard } from "../forms";
 import { CATEGORY_LABELS, CATEGORY_TONES, parseVerificationState, type PostCategory } from "@/lib/api/community-contract";
 import { findGeoNodeById } from "@/lib/api/geo";
+import { visionDisplayEnabled } from "@/lib/vision-institutions";
 
 /**
  * ملف الجار — the wing's member profile (slice N1, the Nextdoor-2026
@@ -148,6 +149,22 @@ export default async function MePage({ searchParams }: MePageProps) {
             </p>
             <p className="hy-me-fact">
               <strong>عضو منذ:</strong> {formatDate(membershipOk.memberSince)}
+            </p>
+            {/* The full-vision fabric (spec §2.4): the neighbor-kind line —
+                the trust formula {الشارة} في {الحي}. The kind field rides
+                the G1 backend wave; until it lands the line states the
+                verified-resident trust honestly and the kind vocabulary
+                display-gated. */}
+            <p className="hy-me-fact">
+              <strong>نوع الجار:</strong>{" "}
+              {parseVerificationState(membershipOk.verificationState) === "VERIFIED"
+                ? "جار مقيم موثّق"
+                : "جار"}
+              {visionDisplayEnabled() ? (
+                <span className="hy-badge-demo" style={{ marginInlineStart: "0.375rem" }}>
+                  مقيم/مغترب — يُفعّل بعقد G1
+                </span>
+              ) : null}
             </p>
             <VerificationCard
               state={parseVerificationState(membershipOk.verificationState)}

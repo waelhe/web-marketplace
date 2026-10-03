@@ -25,4 +25,7 @@ export const PANEL_ITEMS: ReadonlyArray<{
   { href: "/admin/audit", label: "التدقيق", short: "التدقيق", icon: "history" },
   { href: "/admin/reviews", label: "إشراف المراجعات", short: "المراجعات", icon: "rate_review" },
   { href: "/admin/settings", label: "إعدادات المنصة", short: "الإعدادات", icon: "settings" },
+  // The full-vision wave (spec §5.7): the graph door + the revenue door.
+  { href: "/admin/graph", label: "الرسم البياني للمكان", short: "الرسم البياني", icon: "account_tree" },
+  { href: "/admin/revenue", label: "بوابة الربح", short: "الربح", icon: "trending_up" },
 ];

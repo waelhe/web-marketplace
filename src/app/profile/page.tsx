@@ -25,20 +25,35 @@ import {
   REVIEW_ORIGIN_LABELS,
   type ReviewView,
 } from "@/lib/api/reputation-contract";
+import { getMyMembership } from "@/lib/api/community";
+import { findGeoNodeById } from "@/lib/api/geo";
+import {
+  NEIGHBOR_KIND_LABELS,
+  DISPLAY_BADGE_LABEL,
+  visionDisplayEnabled,
+} from "@/lib/vision-institutions";
 import { SignOutButton } from "../auth-buttons";
 import { ReviewEditForm, UnfollowForm, UnsaveFavoriteForm } from "./forms";
 
-// Profile: DAL session + DIRECT backend fetch (no self HTTP round trip —
-// official BFF guide). The /me payload shape is intentionally loose until
-// the typed API layer lands with the OpenAPI export (recorded debt: exact
-// DTO types come from the backend contract, not invention).
+// بطاقة الجار — the full-vision spec §4: ONE profile with FOUR floors
+// (identity / composed reputation / presence / privacy & sessions), each
+// floor's reads REAL where the backend serves them (the me chain, the
+// reviews pair, follows, favorites, the membership) and badged display
+// where the P1 wave's contracts are pending (the marketplace rating, the
+// business recommendations, the session manager). The floors are <section>
+// landmarks — one screen, one card, scrollable like the owner's HTML.
+//
+// The DAL discipline is unchanged: session + DIRECT backend fetch (no
+// self HTTP round trip — official BFF guide). The /me payload shape is
+// intentionally loose until the typed API layer lands with the OpenAPI
+// export (recorded debt: exact DTO types come from the backend contract).
 type MePayload = Record<string, unknown>;
 
 // Private surface — `noindex` is the honest robots contract for
 // session-scoped content (the one private route that was missing it;
 // surfaced by the production battery's anonymous-privacy probe, 2026-09-22).
 export const metadata: Metadata = {
-  title: "الملف الشخصي",
+  title: "بطاقة الجار",
   description: "جلستك الحالية وبيانات حسابك من الخادم",
   robots: { index: false },
 };
@@ -157,7 +172,7 @@ export default async function ProfilePage() {
   if (!session) {
     return (
       <main>
-        <h1>الملف الشخصي</h1>
+        <h1>بطاقة الجار</h1>
         <p className="page-note">
           لم تسجّل الدخول. <Link href="/">تسجيل الدخول</Link>
         </p>
@@ -165,12 +180,20 @@ export default async function ProfilePage() {
     );
   }
 
-  const [me, backendUser] = await Promise.all([
+  const [me, backendUser, membership] = await Promise.all([
     backendGet<MePayload>("/api/v1/users/me"),
     // The ME chain — the caller's backend user id powers the two
     // my-reviews reads (never a client-sent id).
     getMyBackendUser(),
+    // The full-vision identity floor: the membership (the caller's own
+    // neighborhood + kind badge world) — the same read the wing rides.
+    getMyMembership(),
   ]);
+  const membershipOk = membership?.ok ? membership.data : null;
+  const hoodName = membershipOk
+    ? (await findGeoNodeById(membershipOk.locationId))?.nameAr ?? null
+    : null;
+  const visionOn = visionDisplayEnabled();
 
   // The my-reviews pair keyed by the caller's own user id (batch-2
   // spec §3): what I wrote rides the SESSION-authenticated author path
@@ -193,36 +216,187 @@ export default async function ProfilePage() {
       ])
     : [null, null, null, null];
 
+  // The reputation composition's REAL cells (the P1 wave composes these
+  // server-side later; today the page derives them from the same reads
+  // it already holds — no extra roundtrip, no invented numbers).
+  const writtenCount = written?.ok ? written.data.totalElements : null;
+  const receivedCount = aboutMe?.ok ? aboutMe.data.totalElements : null;
+
   return (
     <main>
-      <h1>الملف الشخصي</h1>
-      <p>مسجّل الدخول باسم: {session.name || session.email}</p>
+      <h1>بطاقة الجار</h1>
 
-      {me.ok ? (
-        <section className="card" aria-label="بيانات الحساب من الخادم">
-          <h2>
-            <code>GET /api/v1/users/me</code>
-          </h2>
-          <pre dir="ltr">{JSON.stringify(me.data, null, 2)}</pre>
-          {/* GDPR Art. 20 (batch-2 spec §3): the data-subject export —
-              a native browser download served by the app's own
-              authenticated endpoint (the backend's document verbatim). */}
-          <p>
-            <a className="button" href="/api/account/export" download>
-              صدّر بياناتي (JSON)
-            </a>
+      {/* ══ الطابق الأول — الهوية (spec §4.1) ══════════════════════ */}
+      <section className="card" aria-labelledby="identity-heading">
+        <h2 id="identity-heading">الهوية</h2>
+        <p className="listing-meta">
+          <span>{session.name || session.email}</span>
+          {hoodName ? (
+            <>
+              <span>·</span>
+              <span>
+                {membershipOk?.verificationState === "VERIFIED"
+                  ? `جار مقيم موثّق في ${hoodName}`
+                  : `جار في ${hoodName}`}
+              </span>
+            </>
+          ) : (
+            <>
+              <span>·</span>
+              <span>بلا عضوية حي بعد — انضم من «حيّنا»</span>
+            </>
+          )}
+        </p>
+        {me.ok ? (
+          <>
+            {typeof me.data.createdAt === "string" && me.data.createdAt ? (
+              <p className="page-note">عضو منذ {formatDate(me.data.createdAt)}</p>
+            ) : null}
+            {/* GDPR Art. 20 (batch-2 spec §3): the data-subject export —
+                a native browser download served by the app's own
+                authenticated endpoint (the backend's document verbatim). */}
+            <p>
+              <a className="button" href="/api/account/export" download>
+                صدّر بياناتي (JSON)
+              </a>
+            </p>
+          </>
+        ) : me.status === 0 ? (
+          <p className="page-note" role="status">
+            الخادم الخلفي غير متاح حالياً — لا يمكن قراءة البيانات الآن.
+          </p>
+        ) : (
+          <p className="page-note" role="status">
+            {problemMessage(me.problem, `تعذّر قراءة البيانات (رمز ${me.status}).`)}
+          </p>
+        )}
+        {visionOn ? (
+          <p className="page-note">
+            شارة نوع الجار ({NEIGHBOR_KIND_LABELS.RESIDENT} /{" "}
+            {NEIGHBOR_KIND_LABELS.EXPAT}) تُفعّل بعضوية الحي عند هبوط عقد G1
+            لدى الباك اند — {DISPLAY_BADGE_LABEL}.
+          </p>
+        ) : null}
+      </section>
+
+      <div className="profile-floors">
+        {/* ══ الطابق الثاني — السمعة المركبة (spec §4.2) ═══════════ */}
+        <section className="card" aria-labelledby="reputation-heading">
+          <h2 id="reputation-heading">السمعة المركبة</h2>
+          <p className="page-note">
+            سمعتك من كل أعمدة المنصة — كمزوّد، وكزبون، وجار. الخلايا المقيسة من
+            قراءاتك الحقيقية؛ وخلايا المتجر والتوصيات بانتظار عقودها.
+          </p>
+          <ul className="reputation-grid">
+            {writtenCount !== null ? (
+              <li className="reputation-cell">
+                <span className="reputation-value">
+                  {new Intl.NumberFormat("ar").format(writtenCount)}
+                </span>
+                <span>مراجعة كتبتها</span>
+              </li>
+            ) : null}
+            {receivedCount !== null ? (
+              <li className="reputation-cell">
+                <span className="reputation-value">
+                  {new Intl.NumberFormat("ar").format(receivedCount)}
+                </span>
+                <span>مراجعة قالها المزوّدون عنك</span>
+              </li>
+            ) : null}
+            {visionOn ? (
+              <>
+                <li className="reputation-cell">
+                  <span className="reputation-value">—</span>
+                  <span>تقييمك كبائع متجر (عقد M5) {DISPLAY_BADGE_LABEL}</span>
+                </li>
+                <li className="reputation-cell">
+                  <span className="reputation-value">—</span>
+                  <span>«شكرًا» استلمتها (عقد P1) {DISPLAY_BADGE_LABEL}</span>
+                </li>
+                <li className="reputation-cell">
+                  <span className="reputation-value">—</span>
+                  <span>وسام نشاط المجتمع (عقد P1) {DISPLAY_BADGE_LABEL}</span>
+                </li>
+              </>
+            ) : null}
+          </ul>
+        </section>
+
+        {/* ══ الطابق الثالث — الحضور (spec §4.3) ═══════════════════ */}
+        <section className="card" aria-labelledby="presence-heading">
+          <h2 id="presence-heading">الحضور</h2>
+          <p className="page-note">
+            أعضوياتك ونشاطك في نسيج المنصة: الحي والجامعة والأقسام والمجموعات،
+            والفعاليات ومعروضات الحراج.
+          </p>
+          <ul className="reputation-grid">
+            <li className="reputation-cell">
+              <span className="reputation-value">
+                {hoodName ? "١" : "٠"}
+              </span>
+              <span>
+                {hoodName ? (
+                  <Link href="/neighborhood">عضوية {hoodName}</Link>
+                ) : (
+                  <Link href="/neighborhoods">انضم إلى حيّك</Link>
+                )}
+              </span>
+            </li>
+            <li className="reputation-cell">
+              <span className="reputation-value">
+                {follows?.ok ? new Intl.NumberFormat("ar").format(follows.data.totalElements) : "—"}
+              </span>
+              <span>مزوّدًا تتابعه (تنبيه عند إعلانهم الجديد)</span>
+            </li>
+            <li className="reputation-cell">
+              <span className="reputation-value">
+                {favorites?.ok ? new Intl.NumberFormat("ar").format(favorites.data.totalElements) : "—"}
+              </span>
+              <span>إعلانًا محفوظًا</span>
+            </li>
+            <li className="reputation-cell">
+              <span className="reputation-value">→</span>
+              <span>
+                <Link href="/neighborhood/events">فعاليات الحي</Link> ·{" "}
+                <Link href="/neighborhood/market">معروضاتي في الحراج</Link> ·{" "}
+                <Link href="/neighborhood/groups">مجموعاتي</Link>
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        {/* ══ الطابق الرابع — الخصوصية والجلسات (spec §4.4) ═══════ */}
+        <section className="card" aria-labelledby="privacy-heading">
+          <h2 id="privacy-heading">الخصوصية والجلسات</h2>
+          <ul className="reputation-grid">
+            <li className="reputation-cell">
+              <span className="reputation-value">✓</span>
+              <span>
+                <Link href="/neighborhood/notifications">مصفوفة الإشعارات</Link> —
+                مفعّلة بعقدها الحي
+              </span>
+            </li>
+            <li className="reputation-cell">
+              <span className="reputation-value">✓</span>
+              <span>تصدير البيانات (GDPR) — زر الطابق الأول</span>
+            </li>
+            <li className="reputation-cell">
+              <span className="reputation-value">…</span>
+              <span>
+                مدير الجلسات والأجهزة (عقد S3) — «لا انتهاء بلا تسجيل خروج»
+                {visionOn ? ` ${DISPLAY_BADGE_LABEL}` : ""}
+              </span>
+            </li>
+          </ul>
+          <p className="page-note">
+            معيار الجلسة العالمي: الجلسة لا تنتهي بلا خروج صريح — إبطال الجلسات
+            عن بعد يُفتح بموجة S3 لدى الباك اند.
           </p>
         </section>
-      ) : me.status === 0 ? (
-        <p className="page-note" role="status">
-          الخادم الخلفي غير متاح حالياً — لا يمكن قراءة البيانات الآن.
-        </p>
-      ) : (
-        <p className="page-note" role="status">
-          {problemMessage(me.problem, `تعذّر قراءة البيانات (رمز ${me.status}).`)}
-        </p>
-      )}
+      </div>
 
+      {/* ══ المراجعات بالتفصيل (الطابق الثاني مفتوحًا) ══════════════ */}
       {written !== null ? (
         <section className="card" aria-labelledby="written-reviews-heading">
           <h2 id="written-reviews-heading">مراجعاتي</h2>

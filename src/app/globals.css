@@ -4869,3 +4869,170 @@ a.hy-kpi:hover,
 @media (min-width: 48rem) {
   .hy-adm-pair { grid-template-columns: 1fr 1fr; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   THE FULL-VISION WAVE (2026-10-04 spec — N14): the store column, the
+   context card, the mortgage calculator, the cart/orders, and the wing's
+   fabric blocks (sections rail + universities). One visual column with
+   the existing tokens: no new skin, no shadows, RTL logical — the spec
+   §8 inheritance rule. Latin digits ride the Arabic-locale latn grammar
+   the lib helpers already emit.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── The store surfaces ─────────────────────────────────────────────── */
+
+.store-grid { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+
+.store-card { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.store-plate {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  border-radius: 0.75rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--accent, #0e7a5f) 12%, Canvas),
+    color-mix(in oklab, var(--accent, #0e7a5f) 4%, Canvas)
+  );
+  border: 1px solid color-mix(in oklab, var(--accent, #0e7a5f) 22%, Canvas);
+}
+.store-plate .material-symbols-outlined { font-size: 3rem; color: var(--accent, #0e7a5f); }
+.store-plate-lg { margin-block-end: 1rem; }
+.store-plate-lg .material-symbols-outlined { font-size: 5rem; }
+
+.store-price { font-weight: 700; font-size: 1.125rem; margin: 0; }
+.store-price-lg { font-size: 1.5rem; }
+
+.store-qa { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; }
+.store-qa li { border-block-start: 1px solid CanvasText22; padding-block-start: 1rem; }
+.store-qa-q { font-weight: 700; margin: 0 0 0.375rem; }
+.store-qa-a { margin: 0; }
+
+/* ── The cart & orders ──────────────────────────────────────────────── */
+
+.cart-lines { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.cart-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-block-start: 1px solid CanvasText22;
+  padding-block-start: 0.75rem;
+}
+.cart-line-main { display: grid; gap: 0.25rem; }
+.cart-line-controls { display: flex; align-items: center; gap: 0.5rem; }
+.cart-line-controls .button { padding-inline: 0.625rem; padding-block: 0.25rem; }
+
+.order-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; }
+.order-card { display: grid; gap: 0.5rem; }
+.order-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.order-rows { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.375rem; }
+.order-rows li { display: flex; justify-content: space-between; gap: 1rem; }
+
+/* ── The context card (spec §5.6 — the redesign's heart) ────────────── */
+
+.context-nearby { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.625rem; }
+.context-nearby-row { display: grid; gap: 0.25rem; border-block-start: 1px solid CanvasText22; padding-block-start: 0.625rem; }
+.context-nearby-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.875rem; color: CanvasText77; }
+
+.context-institutions { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.context-institutions li { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.context-inst-kind {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999rem;
+  background: color-mix(in oklab, var(--accent, #0e7a5f) 10%, Canvas);
+  border: 1px solid color-mix(in oklab, var(--accent, #0e7a5f) 24%, Canvas);
+  white-space: nowrap;
+}
+.context-inst-walk { margin-inline-start: auto; font-size: 0.8125rem; color: CanvasText77; white-space: nowrap; }
+
+.context-insights { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.context-insights li { display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 1rem; }
+.context-insight-label { font-weight: 600; }
+.context-insight-value { font-weight: 700; }
+.context-insight-date { grid-column: 1 / -1; font-size: 0.75rem; color: CanvasText55; }
+
+.context-estimate {
+  border: 1px solid color-mix(in oklab, #b3261e 30%, Canvas);
+  background: color-mix(in oklab, #b3261e 5%, Canvas);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.context-estimate-headline { font-weight: 800; font-size: 1.25rem; margin: 0; color: #b3261e; }
+
+/* ── The mortgage calculator (pure frontend tool) ───────────────────── */
+
+.mortgage-form { display: grid; gap: 0.75rem; margin-block: 1rem; }
+.mortgage-form label { display: grid; gap: 0.25rem; }
+.mortgage-form input {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid CanvasText33;
+  background: Canvas;
+  font: inherit;
+}
+.mortgage-form input:focus-visible { outline: 2px solid var(--accent, #0e7a5f); outline-offset: 1px; }
+.mortgage-result { font-size: 1.125rem; margin-block: 0.75rem; }
+
+/* ── The wing's fabric blocks (sections rail + universities) ─────────── */
+
+.hy-nav-extra { margin-block: var(--hy-space-md, 1rem); display: grid; gap: var(--hy-space-xs, 0.5rem); }
+.hy-nav-extra-heading { margin: 0; font-size: 0.8125rem; font-weight: 700; color: var(--hy-on-surface-variant); display: flex; align-items: center; gap: 0.375rem; }
+.hy-nav-extra-note { margin: 0; font-size: 0.6875rem; color: var(--hy-on-surface-variant); }
+.hy-sections-rail { display: grid; gap: 0.25rem; }
+.hy-sections-rail a {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem var(--hy-space-sm, 0.75rem);
+  border-radius: var(--hy-radius-md, 0.75rem);
+  color: var(--hy-on-surface);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+.hy-sections-rail a:hover { background: var(--hy-surface-container); }
+.hy-section-count { margin-inline-start: auto; font-size: 0.6875rem; color: var(--hy-on-surface-variant); }
+.hy-uni-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.25rem; }
+.hy-uni-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem var(--hy-space-sm, 0.75rem);
+  font-size: 0.8125rem;
+  color: var(--hy-on-surface-variant);
+}
+
+/* ── The section board page ─────────────────────────────────────────── */
+
+.hy-main-section { display: grid; gap: 1rem; }
+.hy-section-head h1 { margin: 0 0 0.5rem; }
+.section-board { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.section-board-row { display: grid; gap: 0.375rem; border-block-start: 1px solid var(--hy-outline-variant, CanvasText22); padding-block-start: 0.75rem; }
+.section-row-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+/* ── The services packages + booking modes (spec §5.5) ──────────────── */
+
+.service-packages { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.service-package { display: grid; gap: 0.25rem; border-block-start: 1px solid CanvasText22; padding-block-start: 0.75rem; }
+.booking-modes { display: grid; gap: 0.75rem; margin-block: 0.75rem; }
+.booking-mode {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--accent, #0e7a5f) 24%, Canvas);
+  background: color-mix(in oklab, var(--accent, #0e7a5f) 5%, Canvas);
+}
+.booking-mode strong { font-size: 1rem; }
+
+/* ── The advanced profile floors (spec §4) ──────────────────────────── */
+
+.profile-floors { display: grid; gap: 1rem; }
+.reputation-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.75rem; }
+.reputation-cell { display: grid; gap: 0.25rem; padding: 0.75rem; border: 1px solid CanvasText22; border-radius: 0.75rem; }
+.reputation-value { font-weight: 800; font-size: 1.25rem; }

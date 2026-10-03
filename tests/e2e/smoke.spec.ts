@@ -349,11 +349,12 @@ test("no horizontal overflow at 375px on the control panels (RTL console shell)"
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
-  // The strip is present, sticky, and carries the console's nine
-  // destinations as pills (11 after W1: the reviews-moderation and settings doors).
+  // The strip is present, sticky, and carries the console's growing
+  // destination set as pills (11 after W1; 13 after the full-vision wave:
+  // the graph + revenue doors joined the shell — spec §5.7).
   const strip = page.locator("nav.hy-adm-strip").first();
   await expect(strip).toBeVisible();
-  await expect(strip.locator("a.hy-pill")).toHaveCount(11);
+  await expect(strip.locator("a.hy-pill")).toHaveCount(13);
 });
 
 // -- N10 (the W2+W4 frontend waves) -----------------------------------------
