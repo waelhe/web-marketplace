@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getListingDetail, getListingMedia } from "@/lib/api/public";
+import { recordAdClick } from "@/lib/api/ads";
 import { formatDate } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
 import type { ListingDetail, PropertyType } from "@/lib/api/types";
@@ -99,6 +100,17 @@ export default async function ListingPage({ params }: ListingPageProps) {
   }
 
   const listing = result.data;
+
+  // W5 (G24 — #496): the promoted-result click recording — the wave's
+  // ONLY public write (`POST /ads/listings/{id}/clicks`, the L34 lead
+  // form's own backendSendPublic lane: session-optional, attribution
+  // when a session exists). 200 attributes the click to the listing's
+  // ONE live campaign; the honest 404 no-op means no live campaign —
+  // an unpromoted click is nobody's to bill. Fire-and-forget by
+  // design: the outcome never gates this render and never surfaces
+  // (the visitor dedup is the counter's own structural business).
+  void recordAdClick(listing.id).catch(() => {});
+
   return (
     <main>
       {listing.jsonLd ? (

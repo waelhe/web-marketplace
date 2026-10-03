@@ -208,6 +208,29 @@ session cookie.
   ride payment completion — the Stripe owner input); LEDGER-403 (battery
   BE-04) is FIXED on staging (measured live 2026-09-29) and any refusal
   words would render verbatim — data via `src/lib/api/provider.ts`
+- `/provider/ads` — AUTHENTICATED campaigns home (N13 — yelp W5
+  G24-G26, #496): the provider's own paid-promotion money surface —
+  `GET /providers/me/ads/campaigns` (newest first, every row carrying
+  the frozen money state: budget/consumed/remaining + the prices + the
+  status vocabulary + billedThrough), the create form (the picker of MY
+  ACTIVE inventory + the money trio in whole ر.س converted losslessly
+  to cents + the optional datetime-local end read as UTC — the booking
+  form's own convention; the backend's bean bounds mirrored in HTML),
+  the per-status hold/lift pair (`POST …/{id}/pause` /
+  `…/{id}/resume` — the single-promotion law's own 409 words verbatim),
+  and the charges disclosure (`GET …/{id}/charges` — the INSERT-ONLY
+  windows frozen by the daily 04:45 UTC job; the honest empty until the
+  first freeze). **The wave's measured lesson (2026-10-03): the
+  id-keyed public reads take the BACKEND user UUID — the picker (and
+  the dashboard's inventory + reviews reads, healed the same wave)
+  resolve it through the backend's /me projection (`getMyBackendUser`),
+  never the Better-Auth session id** (which answers "Failed to convert
+  'providerId'"). The public half: `/listings/[id]` fires the wave's
+  ONE public write on render — `POST /ads/listings/{id}/clicks` via
+  `backendSendPublic` (the L34 lead lane), fire-and-forget, the honest
+  404 no-op swallowed silently (an unpromoted click is nobody's to
+  bill) — data via `src/lib/api/ads.ts`, writes via Server Actions in
+  `src/app/provider/ads/actions.ts`
 - `/provider/profile` — AUTHENTICATED provider profile edit (slice S3,
   J5): `GET/PUT /providers/{id}` keyed by provider_profiles.PK — the
   measured PROFILE-ID-GAP governs: no "read my profile" surface exists,

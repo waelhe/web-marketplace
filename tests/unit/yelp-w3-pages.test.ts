@@ -122,6 +122,16 @@ vi.mock("@/lib/dal", () => ({
 
 vi.mock("@/lib/api/server", () => ({
   backendGet: vi.fn(async () => ({ ok: true, status: 200, data: { id: "u" } })),
+  // N13 (W5 — #496): the detail page now also fires the promoted-result
+  // click recording through the public-write lane — the mock answers the
+  // honest 404 no-op (an unpromoted click is nobody's to bill; the
+  // fire-and-forget outcome never gates the render).
+  backendSendPublic: vi.fn(async () => ({
+    ok: false,
+    status: 404,
+    problem: null,
+    unauthenticated: false,
+  })),
 }));
 
 vi.mock("@/lib/api/inbox", () => ({
