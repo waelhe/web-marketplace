@@ -21,6 +21,7 @@ import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
 import {
   createContentReport,
+  createNeighborhoodPoll,
   createNeighborhoodPost,
   createPostComment,
   deleteNeighborhoodPost,
@@ -29,6 +30,7 @@ import {
   reactToPost,
   removePostReaction,
   requestNeighborhoodVerification,
+  votePoll,
 } from "@/lib/api/community";
 import { completeUpload, putToPresignedUrl, requestPostUpload } from "@/lib/api/media";
 import { openDirectConversation } from "@/lib/api/inbox";
@@ -499,5 +501,119 @@ export async function reportAction(
   return {
     status: "success",
     message: "وصل الإبلاغ — يفتحه فريق الإشراف.",
+  };
+}
+
+/**
+ * Cast my vote on one poll (N12 — L52, gap #7): the registered
+ * contract's own real write («صوت واحد لكل عضو»). The form carries the
+ * poll id and the CHOSEN option's id (the clicked submit button's own
+ * name/value pair — one form, one vote, no client state); the
+ * backend's gate order (the poll's honest 404, the option's own
+ * 404/400, the membership 403, the one-vote 409) surfaces as the
+ * inline note with the backend's own words. Success refreshes the
+ * server render — the re-read carries the live per-option counts and
+ * votedByMe, and the card re-renders its results in place.
+ */
+export async function voteAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const pollId = text(formData, "pollId");
+  const optionId = text(formData, "optionId");
+  if (!isUuid(pollId) || !isUuid(optionId)) {
+    return { status: "error", message: "معرّف الاستطلاع أو الخيار غير صالح." };
+  }
+
+  const result = await votePoll(pollId, optionId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر تسجيل صوتك (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  // refresh() (not redirect): the board's server render IS the
+  // percentages' source of truth — the re-read carries the fresh
+  // per-option counts and the caller's own votedByMe, and the card
+  // re-renders its results in place.
+  refresh();
+  return {
+    status: "success",
+    message: "شكرًا لمشاركتك — صوتك محسوب.",
+  };
+}
+
+/**
+ * Author a poll (N12 — L52): the composer's own channel. The body
+ * carries the ONE question, the committee/role label, and the full
+ * 2–5 option set in the author's own order; the backend's gate order
+ * (the L41 publish gate, then the cardinality 400 with the
+ * registered contract's own words) surfaces as the inline note.
+ * Success refreshes the feed — the featured zone carries the fresh
+ * LATEST poll from the board's own read.
+ */
+export async function createPollAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const locationId = text(formData, "locationId");
+  const question = text(formData, "question");
+  const authorLabel = text(formData, "authorLabel");
+  if (!isUuid(locationId)) {
+    return { status: "error", message: "معرّف الحي غير صالح." };
+  }
+  if (question.length < 1 || question.length > 200) {
+    return { status: "error", message: "السؤال مطلوب (حتى ٢٠٠ حرفًا)." };
+  }
+  if (authorLabel.length < 1 || authorLabel.length > 200) {
+    return { status: "error", message: "تسمية الجهة مطلوبة (حتى ٢٠٠ حرفًا)." };
+  }
+  const options: string[] = [];
+  for (let i = 1; i <= 5; i++) {
+    const label = text(formData, `option${i}`);
+    if (label.length > 0) options.push(label);
+  }
+  if (options.length < 2 || options.length > 5) {
+    return { status: "error", message: "الاستطلاع يحمل سؤالًا واحدًا ومن ٢ إلى ٥ خيارات." };
+  }
+  if (options.some((label) => label.length > 200)) {
+    return { status: "error", message: "كل خيار سطر واحد حتى ٢٠٠ حرفًا." };
+  }
+
+  const result = await createNeighborhoodPoll({
+    locationId,
+    question,
+    authorLabel,
+    options,
+  });
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر نشر الاستطلاع (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  // refresh() (not redirect): the feed's server render IS the featured
+  // zone's source of truth — the re-read carries the fresh LATEST
+  // poll, and the card renders it in place.
+  refresh();
+  return {
+    status: "success",
+    message: "نُشر استطلاعك — ظهر في منطقة المختارات.",
   };
 }

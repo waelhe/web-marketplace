@@ -178,22 +178,12 @@ describe("the poll contract (the interactive featured card)", () => {
     expect(manual).toBeGreaterThan(0);
   });
 
-  test("the poll card renders its options as buttons with the honest display label", async () => {
-    const { PollCard } = await import("@/app/neighborhood/poll-card");
-    const markup = renderToStaticMarkup(createElement(PollCard, { poll: DEMO_POLL[0] }));
-    // The S10 owner-design skin: the same interaction, the design's card.
-    expect(markup).toContain("hy-card");
-    expect(markup).toContain("استطلاع رأي");
-    expect(markup).toContain("بيانات عرض");
-    expect(markup).toContain(DEMO_POLL[0].question);
-    // Every option is a button (the display interaction) carrying its label.
-    for (const option of DEMO_POLL[0].options) {
-      expect(markup).toContain(option.label);
-    }
-    expect(markup).toContain("<button");
-    // The disclosure of the display-vote semantics.
-    expect(markup).toContain("صوت واحد لكل جلسة عرض");
-  });
+  // N12 (L52 — gap #7 served): the CARD itself moved to the served
+  // contract (tests/unit/polls-board.test.ts — the real write, the
+  // live counts, the caller's own choice); the display dataset above
+  // stays the S8 module's documented shape with its discipline tests,
+  // retired from every surface's consumption (the page rides the
+  // served board's newest row).
 });
 
 describe("the pinned alert contract (the featured zone's urgent card)", () => {
