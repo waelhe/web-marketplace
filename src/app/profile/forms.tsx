@@ -11,6 +11,7 @@
 import { useActionState } from "react";
 import {
   unfollowProviderAction,
+  unsaveFavoriteAction,
   updateReviewAction,
   type ActionState,
 } from "./actions";
@@ -115,6 +116,29 @@ export function UnfollowForm({ followId }: { followId: string }) {
           notifications_off
         </span>
         <span>{pending ? "جارٍ الإلغاء…" : "ألغِ المتابعة"}</span>
+      </button>
+      {state.status !== "idle" ? <StateMessage state={state} /> : null}
+    </form>
+  );
+}
+
+/**
+ * W3 (yelp plan §5 — G19, #492): «سحب من المفضلات» — the per-row small
+ * form (the UnfollowForm's own shape). The withdraw carries the LISTING
+ * id (the pair's own key — the favorites surface's own contract, not
+ * the follows surface's row id).
+ */
+export function UnsaveFavoriteForm({ listingId }: { listingId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    unsaveFavoriteAction,
+    IDLE,
+  );
+
+  return (
+    <form action={action} className="inline-action">
+      <input type="hidden" name="listingId" value={listingId} />
+      <button type="submit" className="button" data-variant="danger" disabled={pending}>
+        {pending ? "جارٍ السحب…" : "اسحبه من مفضلاتك"}
       </button>
       {state.status !== "idle" ? <StateMessage state={state} /> : null}
     </form>

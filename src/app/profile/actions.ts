@@ -16,6 +16,7 @@ import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
 import { updateReview } from "@/lib/api/reputation";
 import { unfollowProvider } from "@/lib/api/follows";
+import { unsaveListingFavorite } from "@/lib/api/favorites";
 import { REVIEW_RATING_MAX, REVIEW_RATING_MIN } from "@/lib/api/booking-contract";
 import { isUuid } from "@/lib/api/geo";
 
@@ -109,4 +110,42 @@ export async function unfollowProviderAction(
   // follow's history is the backend's own record).
   refresh();
   return { status: "success", message: "أُلغيت المتابعة." };
+}
+
+/**
+ * W3 (yelp plan §5 — G19, #492): withdraw a saved listing — `DELETE
+ * /api/v1/me/favorites/{listingId}` (the LISTING id — the pair's own
+ * key, unlike the follows surface's row id). 204; a pair with no live
+ * favorite answers the honest 404 with its own words. The house soft
+ * delete: the row stays for the audit trail — a re-save from the
+ * listing's page is a FRESH row, never a resurrection.
+ */
+export async function unsaveFavoriteAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const listingId = text(formData, "listingId");
+  if (!isUuid(listingId)) {
+    return { status: "error", message: "معرّف الإعلان غير صالح." };
+  }
+
+  const result = await unsaveListingFavorite(listingId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر سحب المفضلة (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  // refresh(): the /profile server read is «مفضلاتي»'s source of truth
+  // — the re-read drops the row (the audit trail stays backend-side).
+  refresh();
+  return { status: "success", message: "سُحب الإعلان من مفضلاتك." };
 }

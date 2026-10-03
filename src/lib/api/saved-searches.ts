@@ -60,6 +60,12 @@ export interface SavedSearchCriteriaJson {
   latitude?: number;
   longitude?: number;
   radiusKm?: number;
+  /** W3 (G17 — #492): the min-stars floor — the SearchCriteria record's
+   *  newest component; the backend's saved-search matcher composes it
+   *  for free (the floor is a provider set, exactly like the availability
+   *  whitelist), so the round-trip here preserves the member the matcher
+   *  will re-apply. */
+  minRating?: number;
 }
 
 /** SavedSearchView (SavedSearchController) — the /me read model. */
@@ -126,6 +132,7 @@ const CRITERIA_URL_KEYS = [
   "lat",
   "lng",
   "radiusKm",
+  "minRating",
 ] as const;
 
 /** URL name → criteria (record-component) name — the measured trap. */
@@ -146,6 +153,7 @@ const URL_TO_CRITERIA: Record<(typeof CRITERIA_URL_KEYS)[number], string> = {
   lat: "latitude",
   lng: "longitude",
   radiusKm: "radiusKm",
+  minRating: "minRating",
 };
 
 /** The numeric criteria members (string URL form → finite number). */
@@ -157,6 +165,7 @@ const NUMERIC_CRITERIA_URL_KEYS = new Set([
   "minBathrooms",
   "minAreaM2",
   "radiusKm",
+  "minRating",
 ]);
 
 /**
@@ -248,6 +257,7 @@ export function linkFromCriteria(
   putNumber("lat", criteria.latitude);
   putNumber("lng", criteria.longitude);
   putNumber("radiusKm", criteria.radiusKm);
+  putNumber("minRating", criteria.minRating);
 
   for (const [urlKey, instant] of [
     ["checkIn", criteria.checkIn],
@@ -305,12 +315,18 @@ export function savedSearchLabel(criteria: SavedSearchCriteriaJson | null): stri
     // component (absent criteria arrive as JSON null, not omitted keys).
     parts.push("موقع محدد");
   }
-  if (
-    typeof criteria.radiusKm === "number" &&
-    Number.isFinite(criteria.radiusKm) &&
-    criteria.radiusKm > 0
-  ) {
+  if (typeof criteria.radiusKm === "number" && Number.isFinite(criteria.radiusKm) && criteria.radiusKm > 0) {
     parts.push(`قرب نقطة (${criteria.radiusKm} كم)`);
+  }
+  if (
+    typeof criteria.minRating === "number" &&
+    Number.isFinite(criteria.minRating) &&
+    criteria.minRating >= 1 &&
+    criteria.minRating <= 5
+  ) {
+    parts.push(
+      `تقييم ${new Intl.NumberFormat("ar", { maximumFractionDigits: 1 }).format(criteria.minRating)}+`,
+    );
   }
   const windowPart =
     typeof criteria.checkIn === "string" && criteria.checkIn !== ""

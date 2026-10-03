@@ -49,14 +49,36 @@ type RawParams = Record<string, string | string[] | undefined>;
 // The backend declares `area`/`distance` too (VAL-001 vocabulary) but no
 // accepted wire form for them was proven within budget — CUT from the
 // submittable options (same CUT precedent as the Task-5 newest section).
-const ACCEPTED_SORTS = ["newest", "price,asc", "price,desc"] as const;
+// W3 (G16 — #492) adds the rating sort, MEASURED LIVE 2026-10-03 after
+// the backend deploy: the BARE form `sort=rating` answers 400 (Spring's
+// Pageable parses a direction-less property as ASCENDING, and the
+// backend's own gate rejects it: "sort=rating orders highest-first
+// (ascending is not supported)") — `rating,desc` is the ONLY accepted
+// wire form. The composite itself (rating × log(count) × completeness
+// × recency, the daily 03:30 UTC job) is the backend's own order; the
+// frontend never re-sorts.
+const ACCEPTED_SORTS = ["newest", "price,asc", "price,desc", "rating,desc"] as const;
 type AcceptedSort = (typeof ACCEPTED_SORTS)[number];
 
 const SORT_LABELS: Record<AcceptedSort, string> = {
   newest: "الأحدث",
   "price,asc": "السعر: من الأقل إلى الأعلى",
   "price,desc": "السعر: من الأعلى إلى الأقل",
+  "rating,desc": "الأعلى تقييماً",
 };
+
+// W3 (G17): the min-stars floor select's fixed choices — integers only
+// (a presentation judgment within the backend's [1, 5] BigDecimal gate;
+// the parse boundary below re-validates any arriving URL value against
+// the same bounds, and a fractional arriving value stays selectable —
+// the radius options' own lossless round-trip pattern).
+const MIN_RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
+
+/** The stars-floor label — the number as the user reads it (Arabic
+ *  numerals, the RatingChip display discipline). */
+function minRatingLabel(value: number): string {
+  return `${new Intl.NumberFormat("ar", { maximumFractionDigits: 1 }).format(value)}+ نجوم`;
+}
 
 const PURPOSES: readonly PropertyPurpose[] = ["RENT", "SALE"];
 const PROPERTY_TYPES: readonly PropertyType[] = [
@@ -125,7 +147,23 @@ function readUrlState(sp: RawParams): { link: Record<string, string>; page: numb
   keep("lng", first(sp?.lng));
   keep("radiusKm", first(sp?.radiusKm));
   keep("sort", first(sp?.sort));
+  keep("minRating", first(sp?.minRating));
   return { link, page: parsePage(sp?.page) };
+}
+
+/**
+ * W3 (G17): the stars floor at the parse boundary — the backend's own
+ * gate mirrored exactly (SearchCriteria: minRating within [1, 5], a 400
+ * before any query). A non-finite or out-of-range arriving value drops
+ * to absent (the R27 discipline — never a doomed 400 roundtrip); the
+ * select's fixed options are safe by construction, so this guard only
+ * bites hand-built URLs and foreign producers.
+ */
+function acceptedMinRating(value: string | undefined): number | undefined {
+  if (value === undefined || value === "") return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 5) return undefined;
+  return parsed;
 }
 
 /** R27: numerics via Number.isFinite, else absent (never 500). */
@@ -182,6 +220,7 @@ export async function generateMetadata({ searchParams }: ListingsPageProps): Pro
   const lat = finiteNumber(link.lat);
   const lng = finiteNumber(link.lng);
   const sort = acceptedSort(link.sort);
+  const minRating = acceptedMinRating(link.minRating);
   const locationRaw = link.locationId ?? "";
   let resolvedLocationId: string | undefined;
   if (locationRaw !== "") {
@@ -221,6 +260,7 @@ export async function generateMetadata({ searchParams }: ListingsPageProps): Pro
   if (lng !== undefined) canonicalParams.lng = String(lng);
   if (radiusKm !== undefined) canonicalParams.radiusKm = String(radiusKm);
   if (sort !== undefined) canonicalParams.sort = sort;
+  if (minRating !== undefined) canonicalParams.minRating = String(minRating);
   if (page > 0) canonicalParams.page = String(page);
   const query = new URLSearchParams(canonicalParams).toString();
   return {
@@ -255,6 +295,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   const lat = finiteNumber(link.lat);
   const lng = finiteNumber(link.lng);
   const sort = acceptedSort(link.sort);
+  const minRating = acceptedMinRating(link.minRating);
 
   // ---- R7+R32 location: UUID direct, else geo-suggest first hit ----
   // The homepage hero submits its free-text location box as `locationId`
@@ -309,6 +350,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   if (lat !== undefined) criteria.lat = lat;
   if (lng !== undefined) criteria.lng = lng;
   if (radiusKm !== undefined) criteria.radiusKm = radiusKm;
+  if (minRating !== undefined) criteria.minRating = minRating;
 
   // Sanitized snapshot for canonical + pager hrefs (fix round 1/5): ONLY
   // defined criteria members + the accepted sort. Invalid enums /
@@ -335,6 +377,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   if (lng !== undefined) sanitizedLink.lng = String(lng);
   if (radiusKm !== undefined) sanitizedLink.radiusKm = String(radiusKm);
   if (sort !== undefined) sanitizedLink.sort = sort;
+  if (minRating !== undefined) sanitizedLink.minRating = String(minRating);
 
   const filtered = Object.keys(criteria).length > 0 || sort !== undefined;
   // Actual criteria (not sort alone) — the save affordance's own rule:
@@ -441,6 +484,8 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   if (lat !== undefined) chips.push({ key: "lat", label: "خط العرض", value: link.lat });
   if (lng !== undefined) chips.push({ key: "lng", label: "خط الطول", value: link.lng });
   if (radiusKm !== undefined) chips.push({ key: "radiusKm", label: "النطاق", value: link.radiusKm });
+  if (minRating !== undefined)
+    chips.push({ key: "minRating", label: "التقييم الأدنى", value: minRatingLabel(minRating) });
   if (sort !== undefined) chips.push({ key: "sort", label: "الفرز", value: SORT_LABELS[sort] });
 
   // Radius select options: the fixed set + an arriving foreign value so a
@@ -449,6 +494,14 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     radiusRaw !== undefined && !RADIUS_OPTIONS.includes(radiusRaw)
       ? [...RADIUS_OPTIONS, radiusRaw]
       : RADIUS_OPTIONS;
+
+  // Stars-floor select options: the fixed integer set + an arriving
+  // fractional value (a saved search's 4.5 link, a hand URL) so the
+  // round-trip stays lossless — the radius options' own pattern.
+  const minRatingOptions =
+    minRating !== undefined && !MIN_RATING_OPTIONS.includes(minRating as (typeof MIN_RATING_OPTIONS)[number])
+      ? [...MIN_RATING_OPTIONS, minRating]
+      : MIN_RATING_OPTIONS;
 
   return (
     <main>
@@ -552,6 +605,21 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
             <option value="newest">{SORT_LABELS.newest}</option>
             <option value="price,asc">{SORT_LABELS["price,asc"]}</option>
             <option value="price,desc">{SORT_LABELS["price,desc"]}</option>
+            <option value="rating,desc">{SORT_LABELS["rating,desc"]}</option>
+          </select>
+        </Field>
+        {/* W3 (G17): the stars floor — providers below the floor never
+            match. The fixed options mirror the backend's own [1, 5] gate
+            (safe by construction); «الكل» submits the empty value the
+            parse boundary drops. */}
+        <Field label="التقييم الأدنى">
+          <select name="minRating" defaultValue={minRating !== undefined ? String(minRating) : ""}>
+            <option value="">الكل</option>
+            {minRatingOptions.map((option) => (
+              <option key={option} value={String(option)}>
+                {minRatingLabel(option)}
+              </option>
+            ))}
           </select>
         </Field>
         {lat !== undefined ? <input type="hidden" name="lat" value={link.lat} /> : null}

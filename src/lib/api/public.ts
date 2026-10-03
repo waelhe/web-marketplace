@@ -115,6 +115,11 @@ export interface SearchCriteria {
   lat?: number;
   lng?: number;
   radiusKm?: number;
+  /** W3 (G17 — #492): the min-stars floor — BigDecimal [1, 5] gate
+   *  server-side (a 400 before any query); composes with text search
+   *  too (the floor routes the full-text form onto its restricted
+   *  twin — providers below the floor never match). */
+  minRating?: number;
 }
 
 /**
@@ -149,6 +154,7 @@ export const searchListings = cache(
     if (criteria.lat !== undefined) qs.set("lat", String(criteria.lat));
     if (criteria.lng !== undefined) qs.set("lng", String(criteria.lng));
     if (criteria.radiusKm !== undefined) qs.set("radiusKm", String(criteria.radiusKm));
+    if (criteria.minRating !== undefined) qs.set("minRating", String(criteria.minRating));
     qs.set("page", String(page));
     qs.set("size", String(size));
     if (sort !== undefined) qs.set("sort", sort);

@@ -69,6 +69,8 @@ export const DEMO_LISTINGS: readonly ListingSummary[] = [
     price: 850,
     currency: "SAR",
     providerName: "استراحات الواجهة",
+    providerRating: null,
+    providerReviewCount: 0,
   },
   {
     id: "demo-apartment-qudsia",
@@ -77,6 +79,8 @@ export const DEMO_LISTINGS: readonly ListingSummary[] = [
     price: 2400,
     currency: "SAR",
     providerName: "بيوت المدينة",
+    providerRating: null,
+    providerReviewCount: 0,
   },
   {
     id: "demo-villa-palm-garden",
@@ -85,6 +89,8 @@ export const DEMO_LISTINGS: readonly ListingSummary[] = [
     price: 5200,
     currency: "SAR",
     providerName: "دار الضيافة",
+    providerRating: null,
+    providerReviewCount: 0,
   },
   {
     id: "demo-loft-old-town",
@@ -93,6 +99,8 @@ export const DEMO_LISTINGS: readonly ListingSummary[] = [
     price: 1100,
     currency: "SAR",
     providerName: "أركان الحي",
+    providerRating: null,
+    providerReviewCount: 0,
   },
   {
     id: "demo-studio-ribbon-front",
@@ -101,6 +109,8 @@ export const DEMO_LISTINGS: readonly ListingSummary[] = [
     price: 460,
     currency: "SAR",
     providerName: "إقامة الركن",
+    providerRating: null,
+    providerReviewCount: 0,
   },
   {
     id: "demo-resthouse-orchard",
@@ -109,6 +119,8 @@ export const DEMO_LISTINGS: readonly ListingSummary[] = [
     price: 3300,
     currency: "SAR",
     providerName: "استراحات الواجهة",
+    providerRating: null,
+    providerReviewCount: 0,
   },
   {
     id: "demo-apartment-medina-view",
@@ -117,6 +129,8 @@ export const DEMO_LISTINGS: readonly ListingSummary[] = [
     price: 1750,
     currency: "SAR",
     providerName: "بيوت المدينة",
+    providerRating: null,
+    providerReviewCount: 0,
   },
   {
     id: "demo-guesthouse-lavender",
@@ -125,6 +139,8 @@ export const DEMO_LISTINGS: readonly ListingSummary[] = [
     price: 980,
     currency: "SAR",
     providerName: "دار الضيافة",
+    providerRating: null,
+    providerReviewCount: 0,
   },
 ];
 
