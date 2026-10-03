@@ -160,15 +160,19 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
   // N12 (L52 — gap #7 served): the poll chip went REAL — the dialog
   // lives OUTSIDE the post form (nested forms are invalid HTML; the
   // EventCreateLauncher's own structure: launcher chip inside the
-  // composer, modal a sibling of the form).
+  // composer, modal a sibling of the form). The dialog is SESSION-KEYED
+  // (the CodeRabbit round's adopted root fix): every open remounts a
+  // fresh instance — idle note, empty fields — and the open effect
+  // calls showModal itself after the remount.
   const pollDialogRef = useRef<HTMLDialogElement>(null);
-  const [pollExpanded, setPollExpanded] = useState(false);
+  const [pollSession, setPollSession] = useState(0);
+  const [pollOpen, setPollOpen] = useState(false);
   const openPoll = () => {
-    setPollExpanded(true);
-    pollDialogRef.current?.showModal();
+    setPollSession((session) => session + 1);
+    setPollOpen(true);
   };
   const closePoll = () => {
-    setPollExpanded(false);
+    setPollOpen(false);
   };
 
   return (
@@ -202,7 +206,7 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
               poll modal (a poll is not a post category — the backend's
               own vocabulary keeps them separate surfaces, and the chip
               never fakes a category radio). */}
-          <PollCreateChip expanded={pollExpanded} onOpen={openPoll} />
+          <PollCreateChip expanded={pollOpen} onOpen={openPoll} />
         </fieldset>
         <label htmlFor="post-body" className="visually-hidden">
           {COMPOSER_PROMPT}
@@ -271,10 +275,13 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
       </div>
     </form>
     {/* The poll modal — a SIBLING of the post form (nested forms are
-        invalid HTML; the EventCreateLauncher's own structure). */}
+        invalid HTML; the EventCreateLauncher's own structure),
+        SESSION-KEYED so every open starts fresh. */}
     <PollCreateDialog
+      key={pollSession}
       dialogRef={pollDialogRef}
       locationId={locationId}
+      open={pollOpen}
       onClose={closePoll}
     />
     </>

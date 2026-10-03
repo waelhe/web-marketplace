@@ -137,6 +137,7 @@ describe("the composer's poll chip — the gated «قريبًا» retired with t
         createElement(PollCreateDialog, {
           dialogRef: ref,
           locationId: LOCATION_ID,
+          open: false,
           onClose: () => {},
         }),
       ),

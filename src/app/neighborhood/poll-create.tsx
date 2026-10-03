@@ -70,22 +70,38 @@ export function PollCreateChip({
 
 /**
  * The modal itself — a SIBLING of the post form (never nested inside
- * it). Owns the action state; success closes after the feed's
- * refresh() carries the fresh poll.
+ * it), SESSION-KEYED by the parent so every open starts fresh (the
+ * CodeRabbit round's adopted root fix: the useActionState note and the
+ * authored fields reset per session — a second poll never opens on a
+ * stale success note). Owns the action state; the open effect mounts
+ * the dialog open, and success closes it after the feed's refresh()
+ * carries the fresh poll.
  */
 export function PollCreateDialog({
   dialogRef,
   locationId,
+  open,
   onClose,
 }: {
   dialogRef: React.RefObject<HTMLDialogElement | null>;
   locationId: string;
+  open: boolean;
   onClose: () => void;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     createPollAction,
     { status: "idle" },
   );
+
+  // The session-keyed remount opens itself: the parent bumps the
+  // session key and sets open in ONE batch, this fresh instance mounts,
+  // and the native modal opens (the CodeRabbit round's adopted shape —
+  // no ref dance across the remount boundary).
+  useEffect(() => {
+    if (open && dialogRef.current && !dialogRef.current.open) {
+      dialogRef.current.showModal();
+    }
+  }, [open, dialogRef]);
 
   // Success closes the modal one render after the note paints — the
   // feed's refresh() already carries the fresh poll underneath (the
@@ -153,7 +169,15 @@ export function PollCreateDialog({
           />
         ))}
         <div className="event-create-actions">
-          <button type="button" className="button" onClick={onClose}>
+          <button
+            type="button"
+            className="button"
+            // The CodeRabbit round's adopted fix: the cancel closes the
+            // NATIVE dialog through the ref (the onClose event then
+            // resets the launcher's expanded state — the events'
+            // close() shape: both directions, one path).
+            onClick={() => dialogRef.current?.close()}
+          >
             إلغاء
           </button>
           <button type="submit" className="button" data-variant="primary" disabled={pending}>
