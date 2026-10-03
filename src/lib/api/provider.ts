@@ -46,6 +46,13 @@ import type {
   PropertyUpsertInput,
   ViewsWindowDays,
 } from "./provider-contract";
+// W2 (the business page, #489): the hours/services view types live in
+// the reputation contract (the public page's own served shapes — the
+// write channels echo the SAME views).
+import type {
+  BusinessHourView,
+  OfferedServiceView,
+} from "./reputation-contract";
 
 /**
  * The caller's per-listing view analytics —
@@ -262,4 +269,143 @@ export function upsertProperty(
     `/api/v1/listings/${encodeURIComponent(listingId)}/property`,
     input,
   );
+}
+
+// -- W2 (yelp-level plan §5 — the business page, #489): the provider's
+// own business-page writes. Every path takes the provider PROFILE id
+// (the same id-space as GET /providers/{id} itself); the backend's own
+// ownership gate (a foreign id's 403 words) stays the authority. The
+// hours read/write pair and the services/areas writes mirror the
+// ProviderController's own contracts verbatim. --------------------------
+
+/**
+ * W2 (G11): declare my working hours — `PUT /providers/{id}/
+ * business-hours` (PUT REPLACEMENT semantics: the request's list IS the
+ * declared week — a day absent from the request is withdrawn; at most
+ * one window per weekday, the V96 unique key). Returns the declared
+ * week as served (the editor's new baseline).
+ */
+export function replaceBusinessHours(
+  profileId: string,
+  hours: { dayOfWeek: string; opensAt: string; closesAt: string }[],
+): Promise<BackendResult<BusinessHourView[]>> {
+  return backendSend("PUT", `/api/v1/providers/${encodeURIComponent(profileId)}/business-hours`, {
+    hours,
+  });
+}
+
+/**
+ * W2 (G12): add a declared service — `POST /providers/{id}/services`
+ * (the position is auto-allocated max+1 server-side; the money pair is
+ * integer cents + ISO 4217, declared together or not at all).
+ */
+export function addOfferedService(
+  profileId: string,
+  entry: {
+    title: string;
+    description: string | null;
+    durationMinutes: number | null;
+    priceCents: number | null;
+    currency: string | null;
+  },
+): Promise<BackendResult<OfferedServiceView>> {
+  return backendSend("POST", `/api/v1/providers/${encodeURIComponent(profileId)}/services`, entry);
+}
+
+/**
+ * W2 (G12): update a declared service's display fields — `PUT
+ * /providers/{id}/services/{serviceId}` (the position key moves ONLY
+ * through the move endpoint; the row's own PUT replaces title/
+ * description/duration/price).
+ */
+export function updateOfferedService(
+  profileId: string,
+  serviceId: string,
+  entry: {
+    title: string;
+    description: string | null;
+    durationMinutes: number | null;
+    priceCents: number | null;
+    currency: string | null;
+  },
+): Promise<BackendResult<OfferedServiceView>> {
+  return backendSend(
+    "PUT",
+    `/api/v1/providers/${encodeURIComponent(profileId)}/services/${encodeURIComponent(serviceId)}`,
+    entry,
+  );
+}
+
+/**
+ * W2 (G12): reorder a declared service — `PUT /providers/{id}/services/
+ * {serviceId}/position` `{position}` (swap semantics: the target's
+ * occupant takes the mover's old position; returns the WHOLE menu in
+ * its new order — the editor's new baseline).
+ */
+export function moveOfferedService(
+  profileId: string,
+  serviceId: string,
+  position: number,
+): Promise<BackendResult<OfferedServiceView[]>> {
+  return backendSend(
+    "PUT",
+    `/api/v1/providers/${encodeURIComponent(profileId)}/services/${encodeURIComponent(serviceId)}/position`,
+    { position },
+  );
+}
+
+/**
+ * W2 (G12): withdraw a declared service — `DELETE /providers/{id}/
+ * services/{serviceId}` (soft delete, 204).
+ */
+export function removeOfferedService(
+  profileId: string,
+  serviceId: string,
+): Promise<BackendResult<void>> {
+  return backendSend(
+    "DELETE",
+    `/api/v1/providers/${encodeURIComponent(profileId)}/services/${encodeURIComponent(serviceId)}`,
+  );
+}
+
+/**
+ * W2 (G13): declare a served area — `POST /providers/{id}/
+ * service-areas` `{locationId}` (the geo-tree node id; the node must be
+ * real — the FK's own law — and not already declared, 409 the unique
+ * key's words).
+ */
+export function addServiceArea(
+  profileId: string,
+  locationId: string,
+): Promise<BackendResult<void>> {
+  return backendSend("POST", `/api/v1/providers/${encodeURIComponent(profileId)}/service-areas`, {
+    locationId,
+  });
+}
+
+/**
+ * W2 (G13): withdraw a served area — `DELETE /providers/{id}/
+ * service-areas/{areaId}` (the area ROW id — the ServiceArea entity's
+ * own key, not the geo node id; soft delete, 204).
+ */
+export function removeServiceArea(
+  profileId: string,
+  areaId: string,
+): Promise<BackendResult<void>> {
+  return backendSend(
+    "DELETE",
+    `/api/v1/providers/${encodeURIComponent(profileId)}/service-areas/${encodeURIComponent(areaId)}`,
+  );
+}
+
+/**
+ * W2 (G14): submit my ownership-verification claim — `POST
+ * /providers/{id}/verification` (queues the claim for administrative
+ * resolution: UNVERIFIED/REJECTED → PENDING; display-only trust — no
+ * privilege attaches to the badge).
+ */
+export function submitProviderVerification(
+  profileId: string,
+): Promise<BackendResult<unknown>> {
+  return backendSend("POST", `/api/v1/providers/${encodeURIComponent(profileId)}/verification`);
 }

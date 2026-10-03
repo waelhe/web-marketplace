@@ -10,6 +10,8 @@ import {
   getMyWrittenReviews,
   getReviewsOfConsumer,
 } from "@/lib/api/reputation";
+import { getMyFollows } from "@/lib/api/follows";
+import { MY_FOLLOWS_PAGE_SIZE } from "@/lib/api/follows-contract";
 import {
   MY_REVIEWS_PAGE_SIZE,
   REVIEW_DIRECTION_LABELS,
@@ -18,7 +20,7 @@ import {
   type ReviewView,
 } from "@/lib/api/reputation-contract";
 import { SignOutButton } from "../auth-buttons";
-import { ReviewEditForm } from "./forms";
+import { ReviewEditForm, UnfollowForm } from "./forms";
 
 // Profile: DAL session + DIRECT backend fetch (no self HTTP round trip —
 // official BFF guide). The /me payload shape is intentionally loose until
@@ -120,12 +122,16 @@ export default async function ProfilePage() {
   // state — the anonymous read would filter his own pending/hidden rows
   // out, measured live on Noor's profile); what providers said about me
   // stays the public trust view (its contract has no author path).
-  const [written, aboutMe] = backendUser.ok
+  // W4 (G21): the follows read joins the same me-chain family — the
+  // caller's follow rows, newest first (the follow's own "me" owner
+  // key — the client never sends an id).
+  const [written, aboutMe, follows] = backendUser.ok
     ? await Promise.all([
         getMyWrittenReviews(backendUser.id, 0, MY_REVIEWS_PAGE_SIZE),
         getReviewsOfConsumer(backendUser.id, 0, MY_REVIEWS_PAGE_SIZE),
+        getMyFollows(0, MY_FOLLOWS_PAGE_SIZE),
       ])
-    : [null, null];
+    : [null, null, null];
 
   return (
     <main>
@@ -212,6 +218,52 @@ export default async function ProfilePage() {
               {problemMessage(
                 aboutMe.problem,
                 `تعذّرت قراءة المراجعات عنك (رمز ${aboutMe.status}).`,
+              )}
+            </p>
+          )}
+        </section>
+      ) : null}
+
+      {follows !== null ? (
+        <section className="card" aria-labelledby="my-follows-heading">
+          <h2 id="my-follows-heading">متابعاتي</h2>
+          {follows.ok ? (
+            follows.data.content.length === 0 ? (
+              <p className="page-note" role="status">
+                لا تتابع مزوّداً بعد — زر «تابع هذا المزوّد» في صفحة أي مزوّد
+                يطلق تنبيهاً واحداً عند إعلانه إعلاناً جديداً.
+              </p>
+            ) : (
+              <>
+                <p className="page-note">
+                  {new Intl.NumberFormat("ar").format(follows.data.totalElements)} متابعة —
+                  الأحدث أولاً
+                </p>
+                <ul className="feed-list">
+                  {follows.data.content.map((follow) => (
+                    <li key={follow.id} className="card post-card">
+                      <p className="listing-meta">
+                        {follow.providerId && follow.providerDisplayName ? (
+                          <Link href={`/providers/${follow.providerId}`}>
+                            {follow.providerDisplayName}
+                          </Link>
+                        ) : (
+                          <span aria-label="مزوّد محذوف">مزوّد لم يعد متاحاً</span>
+                        )}
+                        <span>·</span>
+                        <span>تتابعه منذ {formatDate(follow.createdAt)}</span>
+                      </p>
+                      <UnfollowForm followId={follow.id} />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )
+          ) : (
+            <p className="page-note" role="status">
+              {problemMessage(
+                follows.problem,
+                `تعذّرت قراءة متابعاتك (رمز ${follows.status}).`,
               )}
             </p>
           )}

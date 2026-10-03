@@ -4834,3 +4834,38 @@ a.hy-kpi:hover,
 @media (max-width: 47.999rem) {
   .hy-adm .hy-brand-sub { display: none; }
 }
+
+/* --- W2/W4 yelp surfaces (the business page + the reviewer page) -------
+   Scoped blocks in the platform's own token system: the rating
+   histogram (RTL bars fill from the inline-start), the declared week,
+   the services menu, the hours editor rows, and the admin pair. */
+
+.biz-histogram { margin-block: var(--space-2); }
+.biz-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.biz-bar-row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.biz-bar-star { inline-size: 1.25rem; text-align: center; font-weight: 700; color: var(--ink); }
+.biz-bar-track { flex: 1; block-size: 0.5rem; border-radius: 999px; background: var(--border); overflow: hidden; }
+.biz-bar-fill { display: block; block-size: 100%; border-radius: inherit; background: var(--accent); }
+.biz-bar-count { min-inline-size: 2rem; text-align: start; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.biz-hours { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.biz-hours li { display: flex; align-items: baseline; gap: var(--space-3); font-size: var(--text-sm); }
+.biz-day { min-inline-size: 5rem; font-weight: 700; color: var(--ink); }
+.biz-window { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+.biz-services { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.biz-service { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-3); display: grid; gap: var(--space-1); }
+.biz-service-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); margin: 0; }
+.biz-service-title { font-weight: 800; color: var(--ink); }
+.biz-service-price { font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
+
+.biz-hours-editor { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.biz-hours-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.biz-day-toggle { display: inline-flex; align-items: center; gap: var(--space-1); min-inline-size: 7rem; font-size: var(--text-sm); font-weight: 700; color: var(--ink); }
+
+/* The admin verification pair (confirm/reject side by side; stacks on
+   narrow screens). */
+.hy-adm-pair { display: grid; gap: var(--space-3); grid-template-columns: 1fr; }
+@media (min-width: 48rem) {
+  .hy-adm-pair { grid-template-columns: 1fr 1fr; }
+}

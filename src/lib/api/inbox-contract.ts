@@ -19,6 +19,13 @@
  * L22/L34/L35/L42/L46/L45: the notification types the backend emits
  * today — the enum is the single source of truth (NotificationType
  * javadoc); a preference row can never drift from a delivered type.
+ *
+ * W2/W4 debt closed (2026-10-03): POST_REACTED (the L47 reactions
+ * wave's type, N3) and FOLLOWED_PROVIDER_NEW_LISTING (W4's ninth
+ * type, #494) were missing from this list — the preference matrix
+ * rendered 7 of the backend's 9 types, so two delivered types could
+ * never be switched. Both ride the enum's own order; the backend's
+ * CHECK widened to the ninth type under V93/V94.
  */
 export const NOTIFICATION_TYPES = [
   "BOOKING_CREATED",
@@ -28,6 +35,8 @@ export const NOTIFICATION_TYPES = [
   "POST_COMMENTED",
   "NEW_LISTING_IN_NEIGHBORHOOD",
   "CONTENT_MODERATED",
+  "POST_REACTED",
+  "FOLLOWED_PROVIDER_NEW_LISTING",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -39,6 +48,8 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   POST_COMMENTED: "تعليق على منشورك",
   NEW_LISTING_IN_NEIGHBORHOOD: "إعلان جديد في حارتك",
   CONTENT_MODERATED: "إشعار إشراف",
+  POST_REACTED: "تفاعل على منشورك",
+  FOLLOWED_PROVIDER_NEW_LISTING: "إعلان جديد لمزوّد تتابعه",
 };
 
 /** The delivery channels a preference is expressed against (L22). */

@@ -64,7 +64,9 @@ session cookie.
   engages on any filtered/sorted/later page (the search/filter contract
   is real data only), self-retires the moment real content reaches the
   floor, and `DEMO_LISTINGS=0|false` kills the whole layer (unset = ON —
-  the owner's directive is the default) + the
+  the owner's directive is the default); N10 (W2 G23): the category
+  state carries the additive «صفحة فئة … الثابتة» link to the
+  category's canonical landing (`/categories/{code}`) + the
   L35 session-aware saved-searches strip (batch-1 spec §2): chips that
   restore the stored criteria through the URL (the measured name map
   query/latitude/longitude ↔ q/lat/lng; the stay window rides ISO
@@ -224,7 +226,70 @@ session cookie.
   unknown ids → not-found boundary + `noindex` (the documented
   streamed-404); the full reviews LIST is not renderable here (reviews
   are keyed by the provider user id no public read exposes — declared
-  backend gap) — data via `src/lib/api/reputation.ts`
+  backend gap) — data via `src/lib/api/reputation.ts`.
+  **N10 (yelp W2 — the business page, #489)**: the same one-read now
+  carries the wave's own Yelp shape — the ownership-verification chip
+  (`verificationState` UNVERIFIED/PENDING/VERIFIED/REJECTED — display-
+  only trust), the «توزيع نجوم» histograms (one per displayed badge,
+  the same mode law: HYBRID both, OPEN the merged bars,
+  VERIFIED_ONLY the verified bars; all five buckets 1..5 zeros
+  included — the served completeness), the declared working week
+  (`businessHours`, LTR machine times, the undeclared days never
+  render), the services menu (`services` — position order, integer
+  cents rendered major, the free row renders without a price), the
+  resolved service areas (`serviceAreas` — Arabic names), and the
+  backend-composed schema.org `LocalBusiness` JSON-LD embedded
+  VERBATIM (the L39 listing twin — escaped `<`, the stars the checker
+  sees agree with the visible blocks).
+  **N10 (yelp W4 — G28/G21, #494)**: every review row's reviewer name
+  is the LINK to the public reviewer page (`/users/{reviewerId}` — the
+  row's own click target), and «تابع هذا المزوّد» joins the profile
+  head (the blind-submit HelpfulVote discipline: the anonymous and the
+  logged-in page are the same HTML; the backend's 400 self-follow /
+  409 duplicate gates teach with their own words; unfollow lives in
+  «متابعاتي» on /profile where the follow ROW id is served)
+- `/users/[id]` — PUBLIC reviewer page (N10 — yelp W4 G28/G29, #494):
+  the click target every review row's own `reviewerId` carries («نقرة
+  من مراجعة إلى صفحة المراجع تكشف نشاطه»). Two anonymous reads under
+  the SAME key (users.id — no id-space seam): the identity block
+  (`GET /users/{id}/public`: the pseudonym-honouring name, the join
+  timestamp, the verified/organic published counters, the cumulative
+  helpful-vote total, the DERIVED badges — VERIFIED_REVIEWER at ≥1
+  published booking-origin review, HELPFUL_REVIEWER at ≥10 cumulative
+  helpful votes, recomputed never stored) + the activity block (the
+  existing `GET /reviews/reviewer/{id}` public surface, newest first,
+  paged). A live account with no published reviews is the honest zero
+  profile; unknown ids → 404 (the boundary + `noindex`); the served
+  rows carry NO provider attribution (the backend's own W4 design) —
+  data via `src/lib/api/reputation.ts`
+- `/categories/[code]` — PUBLIC category page (N10 — yelp W2 G23,
+  #489): the «فئة/إقامة» landing page the backend sitemap advertises
+  (`/categories/{code}` — CatalogProperties.seo's own default path
+  template; the sitemap's category URLs point HERE at the public-site
+  origin). The registry read IS the code's validator (the vocabulary's
+  single source — an unknown code is the honest not-found branch, and a
+  dead registry degrades to the code-as-name render, never a 500); the
+  dedicated category browse serves its ACTIVE listings (the S4 measured
+  op). Indexable with its own canonical; linked additively from the
+  /listings category state («صفحة فئة … الثابتة») — the browse state
+  keeps its own contract untouched — data via `src/lib/api/public.ts`
+- `/provider/business` — AUTHENTICATED business-page management (N10 —
+  yelp W2 G11-G14, #489): the provider's own writes — the declared
+  working week (`PUT /providers/{id}/business-hours`, PUT REPLACEMENT
+  semantics: the form's checked days ARE the week), the services menu
+  (add/update/move/remove — the entity's own bounds mirrored: title
+  ≤200 required, description ≤1000, positive duration, the money pair
+  integer-cents+ISO-4217 together-or-not-at-all, MAJOR units convert
+  client-side), the service areas (`POST /providers/{id}/service-areas`
+  via the /neighborhoods ?areaParent= drill — the geo node at any
+  level; the WITHDRAW seam declared honestly on the page: the served
+  view carries no area row id), and the ownership-verification claim
+  (`POST /providers/{id}/verification` → PENDING; the administrative
+  confirm/reject pair renders on /admin/listings). The measured
+  PROFILE-ID-GAP governs (`?id=` — the /provider/profile discipline;
+  the public page read prefills every editor) — data via
+  `src/lib/api/provider.ts`, writes via Server Actions in
+  `src/app/provider/business/actions.ts`
 - `/provider/listings/new` — AUTHENTICATED create-listing form (born
   DRAFT; the backend's VERIFIED gate surfaces its own words on submit)
 - `/provider/listings/[id]` — AUTHENTICATED listing manage: the L38
@@ -248,9 +313,12 @@ session cookie.
   `src/app/provider/listings/[id]/pricing/actions.ts`
 - `/inbox` — AUTHENTICATED inbox (roadmap stage 4): the in-app
   notification feed (mark-read) + the L22 preference matrix (7 types ×
-  3 channels; the in-app column always on, diffs only are upserted) +
-  the L34 provider lead inbox (status tabs + one-way moves) — data via
-  `src/lib/api/inbox.ts`
+  3 channels; the in-app column always on, diffs only are upserted;
+  **N10**: the matrix now carries all NINE backend types — POST_REACTED
+  (the N3 reactions wave's type, a pre-existing gap this wave closed)
+  and FOLLOWED_PROVIDER_NEW_LISTING (W4's ninth type, the follow alert)
+  joined the enum's own order) + the L34 provider lead inbox (status
+  tabs + one-way moves) — data via `src/lib/api/inbox.ts`
 - `/inbox/conversations/[id]` — AUTHENTICATED conversation view (L44
   direct + booking threads): messages oldest-first, composer, and the
   view-marks-read effect; message ownership rides the measured
@@ -335,7 +403,14 @@ session cookie.
   403 words) + «ما قاله المزوّدون عني» (`GET /reviews/consumer/{me.id}`
   — the I8 trust view; both keyed by the /me-resolved user id, never
   client-sent) + «صدّر بياناتي» — the GDPR Art. 20 export download link
-  (the `/api/account/export` route below)
+  (the `/api/account/export` route below) + **N10 (W4 G21) «متابعاتي»**:
+  the caller's follows (`GET /me/follows`, newest first, each row
+  composed with the followed provider's current public identity — the
+  null pair the honest soft-deleted fallback) with the per-row unfollow
+  (`DELETE /me/follows/{rowId}` — 204; a foreign id answers 404 with
+  the backend's own words; the freed pair makes re-following legal) —
+  data via `src/lib/api/follows.ts`, writes via Server Actions in
+  `src/app/profile/actions.ts`
 - `/admin` — AUTHENTICATED administration console (batch-3 spec + the
   batch-4 spec — the console II: the remaining 21 admin operations; the
   whole `/api/v1/admin/**` contract now has a console home): the

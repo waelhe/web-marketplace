@@ -141,9 +141,11 @@ storms as a rotation signal, never a code bug.
 | `/inbox` | session | notifications feed (paged, plan-2.6) + unread badge + L22 preferences matrix + L34 leads |
 | `/inbox/conversations/{id}` | participant | message thread (L44 direct / booking) |
 | `/bookings`, `/bookings/{id}` | session | my bookings + state machine actions; the J4 manual-settlement note (S6) on the payment block's no-channel/pending states |
-| `/profile` | session | identity + data export download |
-| `/providers/{id}` | public | provider public page + reviews |
-| `/provider` + `/provider/bookings` + `/provider/listings/*` + pricing | provider | the provider power tools |
+| `/profile` | session | identity + data export download + «متابعاتي» (N10/W4: the follows list + unfollow) |
+| `/providers/{id}` | public | provider public page + reviews; N10/W2: the Yelp business shape — verification chip, star histograms (mode law), the declared week, the services menu, the service areas, the backend-composed LocalBusiness JSON-LD verbatim; N10/W4: reviewer links + the follow button |
+| `/users/{id}` | public | N10/W4: the public reviewer page — identity block (`GET /users/{id}/public`), derived badges, the published-activity page |
+| `/categories/{code}` | public | N10/W2 (G23): the category landing the backend sitemap advertises — the registry resolves the code, the dedicated category browse serves the rows |
+| `/provider` + `/provider/bookings` + `/provider/listings/*` + pricing + `/provider/business` | provider | the provider power tools; N10/W2: the business-page management (hours replacement, services CRUD+reorder, area declare via the geo drill, the verification claim) |
 | `/admin` | admin | the 24-op administration console |
 
 Route handlers: `api/auth/[...all]` (channel 4), `api/backend/[...path]`
@@ -182,13 +184,14 @@ surface gaps after S4.
 | lib/api channel | Consumes (backend module) |
 |---|---|
 | `public.ts` | catalog listings browse/detail/provider-list, search, the two category path ops (S4: browse-by-category + search-by-category) |
-| `reputation.ts` | providers public page (+the W1 dual-reviews surface: the mode-aware rating block, the composed reviews block, the organic write, the helpful votes), reviews (+reply, reverse) |
+| `reputation.ts` | providers public page (+the W1 dual-reviews surface: the mode-aware rating block, the composed reviews block, the organic write, the helpful votes; +N10/W2: the business-page blocks — verification state, histograms, hours, services, areas, JSON-LD; +N10/W4: `GET /users/{id}/public` the reviewer profile), reviews (+reply, reverse) |
+| `follows.ts` | N10/W4: the /me follows surface — `GET/POST /me/follows`, `DELETE /me/follows/{id}` (the follow row id — a DIFFERENT id space than the provider id; the withdraw seam for areas is the declared-gap twin) |
 | `geo.ts` | geo children/suggest (tree navigation) |
 | `booking.ts` | bookings CRUD chain + payments intents (resolve + the pure GET) + availability |
 | `inbox.ts` | notifications (paged + unread-count), preferences, leads, conversations/messages |
 | `community.ts` | posts, comments, reports, neighborhood membership |
 | `saved-searches.ts` | saved searches CRUD |
-| `provider.ts` | provider listings lifecycle + stats + views + the L20 ledger reads (balance, statement) + profile read/update (the J5 edit) |
+| `provider.ts` | provider listings lifecycle + stats + views + the L20 ledger reads (balance, statement) + profile read/update (the J5 edit) | (+N10/W2: the business-page writes — `PUT business-hours`, services CRUD/position, service-areas, verification submit) |
 | `pricing.ts` | availability calendar + seasonal rates + weekend rule |
 | `disputes.ts` | booking disputes read/open |
 | `media.ts` | upload flow (S3-gated, honest 503) |

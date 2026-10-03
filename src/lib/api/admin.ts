@@ -527,6 +527,37 @@ export function suspendProvider(
 }
 
 /**
+ * W2 (yelp plan §5 — G14, #489): confirm an ownership-verification
+ * claim — `POST /api/v1/admin/providers/{id}/verification/confirm`
+ * (resolves PENDING → VERIFIED; the «مالك موثّق» badge lights on the
+ * public page). Same profile-id space; a non-PENDING claim answers 409
+ * with the backend's own words.
+ */
+export function confirmProviderVerification(
+  providerId: string,
+): Promise<BackendResult<ProviderProfileView>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/providers/${encodeURIComponent(providerId)}/verification/confirm`,
+  );
+}
+
+/**
+ * W2 (G14): decline an ownership-verification claim — `POST
+ * /api/v1/admin/providers/{id}/verification/reject` (resolves PENDING →
+ * REJECTED; the owner may submit again — the Envers trail is the
+ * record).
+ */
+export function rejectProviderVerification(
+  providerId: string,
+): Promise<BackendResult<ProviderProfileView>> {
+  return backendSend(
+    "POST",
+    `/api/v1/admin/providers/${encodeURIComponent(providerId)}/verification/reject`,
+  );
+}
+
+/**
  * One provider's ledger balance — `GET /api/v1/admin/ledger/providers/
  * {providerId}/balance` → ProviderBalance (the entity's id IS the
  * providerId; availableCents in minor units).
