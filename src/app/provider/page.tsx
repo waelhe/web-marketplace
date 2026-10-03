@@ -5,6 +5,7 @@ import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
 import { formatDate, formatDateTime, formatPrice } from "@/lib/format";
 import { getMyListingViews, getMyStats, getProviderProfileById } from "@/lib/api/provider";
+import { getMyBackendUser } from "@/lib/api/inbox";
 import { getProviderReviews } from "@/lib/api/reputation";
 import { PROVIDER_REVIEWS_PAGE_SIZE } from "@/lib/api/reputation-contract";
 import {
@@ -132,10 +133,20 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
   // (Server Components fetch in parallel — the packaged guide's model);
   // the profile card joins ONLY when the onboarding redirect carried the
   // PK (?profile= — the measured PROFILE-ID-GAP's only seam).
+  //
+  // N13 (W5 — the measured lesson of this wave's live round, 2026-10-03):
+  // the id-keyed public reads take the BACKEND user UUID. The old
+  // session.userId pass (the Better-Auth local id, gzaocdnH…) answered
+  // "Failed to convert 'providerId'" — the inventory AND the reviews
+  // sections were serving that honest error on live main. The root fix:
+  // resolve the id through the backend's own /me projection (the profile
+  // page's documented me-chain — "keyed by the /me-resolved user id,
+  // never client-sent"), never a guessed session-id↔users.id mapping.
+  const me = await getMyBackendUser();
   const [stats, listings, reviews, profile] = await Promise.all([
     getMyStats(),
-    getProviderListings(session.userId, 0, 20),
-    getProviderReviews(session.userId, 0, PROVIDER_REVIEWS_PAGE_SIZE),
+    me.ok ? getProviderListings(me.id, 0, 20) : Promise.resolve(null),
+    me.ok ? getProviderReviews(me.id, 0, PROVIDER_REVIEWS_PAGE_SIZE) : Promise.resolve(null),
     profileId ? getProviderProfileById(profileId) : Promise.resolve(null),
   ]);
 
@@ -245,6 +256,11 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
           {/* Slice S3 (charter J5): the provider's money reads — the L20
               ledger balance + statement surface. */}
           <Link href="/provider/ledger">دفتر رصيدك وكشف حسابك</Link>
+          {/* W5 (yelp plan §5 — G24, #496): the paid-promotion money
+              surface — the campaigns board with the frozen billing
+              windows. */}
+          <span>·</span>
+          <Link href="/provider/ads">حملاتك الإعلانية المدفوعة</Link>
         </p>
         {stats.ok ? (
           <ul className="stat-list">
@@ -302,7 +318,7 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
             listable by any backend surface — the manage page (by id) is
             their entry, and the views analytics above keeps their
             history visible. */}
-        {listings.ok ? (
+        {listings?.ok ? (
           listings.data.content.length === 0 ? (
             <p className="page-note" role="status">
               لا إعلانات منشورة بعد — أنشئ إعلانك الأول ثم نشّطه.
@@ -336,9 +352,13 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
           )
         ) : (
           <p className="page-note" role="status">
-            {problemMessage(
-              listings.problem,
-              `تعذّرت قراءة إعلاناتك (رمز ${listings.status}).`,
+            {listings == null ? (
+              "جلستك مع الباك اند منتهية — سجّل الدخول من جديد لقراءة إعلاناتك."
+            ) : (
+              problemMessage(
+                listings.problem,
+                `تعذّرت قراءة إعلاناتك (رمز ${listings.status}).`,
+              )
             )}
           </p>
         )}
@@ -353,7 +373,7 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
             (the measured stage-3 gap) — the aggregate rides the L36
             public page alone, and its join key (the profile id) is not
             discoverable by this frontend. */}
-        {reviews.ok ? (
+        {reviews?.ok ? (
           reviews.data.content.length === 0 ? (
             <p className="page-note" role="status">
               لا مراجعات بعد — تُكتب المراجعات عن حجوزات عملائك المكتملة.
@@ -389,9 +409,13 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
           )
         ) : (
           <p className="page-note" role="status">
-            {problemMessage(
-              reviews.problem,
-              `تعذّرت قراءة المراجعات (رمز ${reviews.status}).`,
+            {reviews == null ? (
+              "جلستك مع الباك اند منتهية — سجّل الدخول من جديد لقراءة مراجعاتك."
+            ) : (
+              problemMessage(
+                reviews.problem,
+                `تعذّرت قراءة المراجعات (رمز ${reviews.status}).`,
+              )
             )}
           </p>
         )}
