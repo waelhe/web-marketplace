@@ -28,6 +28,7 @@ import type {
   ContentReportView,
   CreateMarketItemInput,
   CreateNeighborhoodEventInput,
+  CreatePollInput,
   EventCategory,
   EventRsvp,
   GroupMembership,
@@ -36,7 +37,9 @@ import type {
   NeighborhoodGroup,
   NeighborhoodMarketItem,
   NeighborhoodMembership,
+  NeighborhoodPoll,
   NeighborhoodPost,
+  PollVote,
   PostCategory,
   PostComment,
   PostReaction,
@@ -408,5 +411,83 @@ export function leaveGroup(groupId: string): Promise<BackendResult<null>> {
   return backendSend<null>(
     "DELETE",
     `/api/v1/neighborhood/groups/${encodeURIComponent(groupId)}/membership`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// N12 — L52 — the neighborhood polls (gap #7, «استطلاعات الرأي»)
+// ---------------------------------------------------------------------------
+
+/**
+ * Read my neighborhood's polls board —
+ * `GET /api/v1/neighborhood/polls?page=&size=`. The board is
+ * MEMBERSHIP-scoped like the feed, the events, market and groups
+ * boards (G-N1/G-N3: "one membership, one board — there is no
+ * location parameter to read anyone else's"), NEWEST first on the
+ * complete sort key (createdAt DESC, id DESC — the featured zone
+ * carries the LATEST poll). Every row carries the FULL authored
+ * option set in the author's own order — each option with its LIVE
+ * vote count — plus votedByMe (the caller's own chosen option id,
+ * absent when not voted), so the card renders its results, its
+ * «mine» mark and the honest not-yet-voted state from the contract
+ * alone, no second read.
+ */
+export function getMyNeighborhoodPolls(
+  page: number,
+  size: number,
+): Promise<BackendResult<PagedResponse<NeighborhoodPoll>>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return backendGet(`/api/v1/neighborhood/polls?${params.toString()}`);
+}
+
+/**
+ * Author a poll — `POST /api/v1/neighborhood/polls` (L52). The
+ * backend's gate order (before any write): the location resolves
+ * through the geo port (404 unknown), must be a level-3 neighborhood
+ * node (400 otherwise), the caller must hold an active — and
+ * REJECTED-excluded — membership in exactly that location (403
+ * otherwise), and the option set must carry 2 to 5 options (400 — the
+ * registered contract's own words). The poll and its full option set
+ * insert as ONE authored unit; the echo carries the authored row with
+ * zero counts.
+ */
+export function createNeighborhoodPoll(
+  input: CreatePollInput,
+): Promise<BackendResult<NeighborhoodPoll>> {
+  return backendSend("POST", "/api/v1/neighborhood/polls", input);
+}
+
+/**
+ * Cast my vote — `POST /api/v1/polls/{pollId}/vote` with the chosen
+ * option's id (L52). The backend's gate order (before any write): the
+ * poll's honest 404 (unknown or retired), the option's own gates (404
+ * unknown, 400 when it belongs to a different poll), the active — and
+ * REJECTED-excluded — membership in exactly the poll's own
+ * neighborhood (403 otherwise), and ONE live vote per member per poll
+ * (409 — «صوت واحد لكل عضو»). The echo carries the fresh vote's own
+ * stored facts.
+ */
+export function votePoll(
+  pollId: string,
+  optionId: string,
+): Promise<BackendResult<PollVote>> {
+  return backendSend("POST", `/api/v1/polls/${encodeURIComponent(pollId)}/vote`, {
+    optionId,
+  });
+}
+
+/**
+ * Withdraw my vote — `DELETE /api/v1/polls/{pollId}/vote` (L52). The
+ * owner-scoped removal (the /me owner-delete convention): a member
+ * with no live vote answers the honest 404 (there is nothing to
+ * withdraw); the vote's neighborhood gate never rides the withdraw.
+ * 204 on success — the member is free to vote again.
+ */
+export function withdrawPollVote(
+  pollId: string,
+): Promise<BackendResult<null>> {
+  return backendSend<null>(
+    "DELETE",
+    `/api/v1/polls/${encodeURIComponent(pollId)}/vote`,
   );
 }

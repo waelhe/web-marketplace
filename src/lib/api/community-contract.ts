@@ -477,6 +477,13 @@ export const MAX_MARKET_LABEL_LENGTH = 200;
 export const GROUPS_PAGE_SIZE = 20;
 
 /**
+ * The polls board's page size (N12/L52) — the boards' own discipline,
+ * sized for the featured zone's ONE newest row (the design's single
+ * featured poll) with the recent history behind it on the same read.
+ */
+export const POLLS_PAGE_SIZE = 8;
+
+/**
  * L51 board read model (NeighborhoodGroupView): the registered
  * contract's three facts — name/description/members (§7.7/6) — plus
  * the ONE reader-scoped fact. The members count is the LIVE
@@ -509,4 +516,86 @@ export interface GroupMembership {
   memberId: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * N12 — L52 board read model (NeighborhoodPollView): the registered
+ * contract's own shape (§7/7-4 — question/options/votes; the real
+ * write = one vote per member) served whole from ONE read:
+ *
+ * <ul>
+ *  <li>{@link NeighborhoodPoll.options} — the FULL authored option set
+ *      in the author's own order (position), every row carrying its
+ *      LIVE vote count (one grouped aggregate over the board page's
+ *      option ids — the percentage bars' own denominators, earned by
+ *      real rows, never a seeded display number);</li>
+ *  <li>{@link NeighborhoodPoll.votedByMe} — the caller's own live
+ *      vote's OPTION id (absent when not voted): the richer twin of
+ *      the RSVP's rsvpedByMe — the vote HAS a choice, so the
+ *      projection carries the choice. The card renders its «mine»
+ *      mark and the honest not-yet-voted state from this field alone,
+ *      no second read.</li>
+ * </ul>
+ *
+ * <p>The author label is a committee/role display string by the
+ * registered contract's own shape (a design fact like «لجنة تطوير
+ * الحي» — never a person identity); the question is the poll's whole
+ * display title.
+ */
+export interface NeighborhoodPoll {
+  id: string;
+  /** The poll's ONE question — its whole display title, Arabic. */
+  question: string;
+  /** The committee/role label the poll publishes under (a display string, never a person). */
+  author: string;
+  /** The full authored option set in the author's own order, each with its LIVE count. */
+  options: NeighborhoodPollOption[];
+  /**
+   * The caller's own live vote's option id — ABSENT (undefined) when
+   * the caller has not voted. The backend omits the null field
+   * (NON_NULL wire shape, the market priceCents precedent).
+   */
+  votedByMe?: string;
+  /** Creation timestamp (ISO). */
+  createdAt: string;
+}
+
+/** One answer choice — the registered contract's option row (L52's NeighborhoodPollOptionView). */
+export interface NeighborhoodPollOption {
+  id: string;
+  /** The option's display label, Arabic. */
+  label: string;
+  /** The author's own submission ordinal (0-based) — the display order. */
+  position: number;
+  /** The LIVE vote count — earned by real vote rows. */
+  votes: number;
+}
+
+/**
+ * The vote write's echo (NeighborhoodPollVoteView) — the stored
+ * facts, nothing else (the EventRsvp/GroupMembership discipline
+ * verbatim). The card's state re-renders from the board read it
+ * already holds; the echo carries no counts.
+ */
+export interface PollVote {
+  id: string;
+  pollId: string;
+  optionId: string;
+  memberId: string;
+  createdAt: string;
+}
+
+/**
+ * The authoring body (CreatePollRequest) — the composer's own
+ * channel: the target neighborhood (the author's own — the service
+ * gates the match), the ONE question, the committee/role label, and
+ * the full option set in the author's own display order (2–5 one-line
+ * labels; the cardinality gate is the backend's own 400 with the
+ * registered contract's words).
+ */
+export interface CreatePollInput {
+  locationId: string;
+  question: string;
+  authorLabel: string;
+  options: string[];
 }

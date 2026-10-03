@@ -93,6 +93,13 @@ vi.mock("@/lib/dal", () => ({
 vi.mock("@/lib/api/community", () => ({
   getMyMembership: vi.fn(async () => ({ ok: true, status: 200, data: fixtures.membership })),
   getMyFeed: vi.fn(async () => ({ ok: true, status: 200, data: feedWith(fixtures.media) })),
+  // N12/L52: the page's polls board read — an honest EMPTY board (this
+  // suite's focus is the post photos; the featured zone stays absent).
+  getMyNeighborhoodPolls: vi.fn(async () => ({
+    ok: true,
+    status: 200,
+    data: { content: [], pageNumber: 0, pageSize: 8, totalElements: 0, totalPages: 0, last: true },
+  })),
   createNeighborhoodPost: vi.fn(),
 }));
 

@@ -7,6 +7,7 @@ import { problemMessage } from "@/lib/problem";
 import {
   getMyFeed,
   getMyMembership,
+  getMyNeighborhoodPolls,
 } from "@/lib/api/community";
 import { getMyBackendUser } from "@/lib/api/inbox";
 import { searchListings } from "@/lib/api/public";
@@ -14,13 +15,13 @@ import {
   CATEGORY_LABELS,
   CATEGORY_TONES,
   FEED_PAGE_SIZE,
+  POLLS_PAGE_SIZE,
   POST_CATEGORIES,
   parseVerificationState,
   type PostCategory,
 } from "@/lib/api/community-contract";
 import { ListingCard } from "@/components/ui/card";
 import {
-  DEMO_POLL,
   DEMO_WEATHER,
   airQualityBand,
   neighborhoodDemoEnabled,
@@ -176,7 +177,7 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
     );
   }
 
-  const [feed, me, localListings] = await Promise.all([
+  const [feed, me, localListings, polls] = await Promise.all([
     getMyFeed(page, FEED_PAGE_SIZE, category),
     // My backend user id (the /me projection) — powers the feed's
     // self-message suppression; on failure every post keeps its button
@@ -187,16 +188,25 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
     // scoped by the membership's own locationId (the backend resolves
     // self+descendants; measured live 2026-09-29 on staging).
     searchListings({ locationId: membership.data.locationId }, 0, LOCAL_LISTINGS_SIZE),
+    // N12 (L52 — gap #7 served): the polls board read — the featured
+    // zone's poll is the board's OWN newest row (createdAt DESC, id
+    // DESC), every row carrying the full option set with its live
+    // counts and the caller's own choice. On failure the zone stays
+    // honestly empty (the backend's words ride the console, never a
+    // fake poll); the demo dataset retired with the served contract.
+    getMyNeighborhoodPolls(0, POLLS_PAGE_SIZE),
   ]);
   const myBackendId = me.ok ? me.id : null;
 
   // The S10 owner-design display layers (clearly labeled, one env
   // kill-switch, demo-prefixed ids, never links) — see
-  // src/lib/neighborhood-design.ts for the discipline.
+  // src/lib/neighborhood-design.ts for the discipline. The POLL
+  // retired from this layer (N12/L52): the featured zone's poll is
+  // the served board's newest row — the real write, the real counts.
   const demoOn = neighborhoodDemoEnabled();
   const mood = demoOn ? DEMO_MOOD[0] ?? null : null;
   const alert = demoOn ? DEMO_OWNER_ALERTS[0] ?? null : null;
-  const poll = demoOn ? DEMO_POLL[0] ?? null : null;
+  const poll = polls.ok ? polls.data.content[0] ?? null : null;
   const weather = demoOn ? DEMO_WEATHER[0] ?? null : null;
   const pulse = demoOn ? DEMO_OWNER_PULSE[0] ?? null : null;
   const ownerPosts = demoOn ? DEMO_OWNER_POSTS : [];
@@ -276,9 +286,10 @@ export default async function NeighborhoodPage({ searchParams }: NeighborhoodPag
             ))}
           </nav>
 
-          {/* THE FEATURED ZONE — the design's pinned urgent alert and
-              community poll: product-defined contracts, display-labeled,
-              interactive as display interactions (never fake writes). */}
+          {/* THE FEATURED ZONE — the design's pinned urgent alert
+              (display-labeled) and the REAL community poll (N12/L52:
+              the served board's newest row — a real vote write, live
+              counts, the caller's own choice). */}
           {alert || poll ? (
             <section aria-label="مختارات الحي" className="hy-grid-main">
               {alert ? <AlertCard alert={alert} /> : null}

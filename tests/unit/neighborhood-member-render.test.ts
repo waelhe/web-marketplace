@@ -63,6 +63,29 @@ const fixtures = vi.hoisted(() => ({
     totalPages: 1,
     last: true,
   },
+  /** The REAL polls board read (N12/L52): one served row — the
+   * featured zone's poll, the caller NOT voted (the unvoted card's
+   * own honest state). */
+  polls: {
+    content: [
+      {
+        id: "48484848-4848-4484-8484-484848480001",
+        question: "ما المواعيد الأنسب لفتح الممشى المظلل خلال الصيف؟",
+        author: "لجنة تطوير الحي",
+        options: [
+          { id: "49494949-4949-4494-9494-494949490001", label: "الفجر — ٥:٣٠ إلى ٨:٠٠", position: 0, votes: 1 },
+          { id: "49494949-4949-4494-9494-494949490002", label: "المساء — ٥:٠٠ إلى ٨:٣٠", position: 1, votes: 2 },
+          { id: "49494949-4949-4494-9494-494949490003", label: "كلا الفترتين", position: 2, votes: 0 },
+        ],
+        createdAt: "2026-09-27T18:00:00Z",
+      },
+    ],
+    pageNumber: 0,
+    pageSize: 8,
+    totalElements: 1,
+    totalPages: 1,
+    last: true,
+  },
   /** A DIFFERENT backend user id — the post stays someone else's (message affordance). */
   myBackendId: "00000000-0000-4000-8000-0000000000ff",
   /** The REAL local-listings bridge read: one ACTIVE row scoped to the
@@ -99,6 +122,7 @@ vi.mock("@/lib/dal", () => ({
 vi.mock("@/lib/api/community", () => ({
   getMyMembership: vi.fn(async () => ({ ok: true, status: 200, data: fixtures.membership })),
   getMyFeed: vi.fn(async () => ({ ok: true, status: 200, data: fixtures.feed })),
+  getMyNeighborhoodPolls: vi.fn(async () => ({ ok: true, status: 200, data: fixtures.polls })),
 }));
 
 vi.mock("@/lib/api/geo", () => ({
@@ -254,30 +278,45 @@ test("the member branch renders the filter pills over the real reads", async () 
   expect(markup).toContain('href="/neighborhood"');
 });
 
-test("the member branch renders the featured zone: the pinned alert + the interactive poll, both display-labeled", async () => {
+test("the member branch renders the featured zone: the pinned display alert + the REAL served poll (N12/L52)", async () => {
   const element = await NeighborhoodPage({
     params: Promise.resolve({}),
     searchParams: Promise.resolve<Record<string, string | string[] | undefined>>({}),
   });
   const markup = renderToStaticMarkup(element);
 
-  // THE FEATURED ZONE — both cards render their REAL initial markup
-  // (no server actions inside; only client state), each carrying the
-  // honest display label.
+  // THE FEATURED ZONE — the alert renders its display-labeled markup
+  // (the S8 layer), and the poll renders the REAL served contract
+  // (N12/L52: the board's newest row — a real vote write, live
+  // counts, the caller's own choice from votedByMe).
   expect(markup).toContain('class="hy-alert-edge"');
   expect(markup).toContain("تنبيه حيوي مثبت");
-  expect(markup).toContain("استطلاع رأي معتمد");
+  expect(markup).toContain("استطلاع رأي الحي");
   // The design's works-map snippet + guidelines + parking ride the alert.
   expect(markup).toContain("مسار الأعمال الميدانية");
   expect(markup).toContain("توجيهات الحركة أثناء الأعمال");
   expect(markup).toContain("مواقف مخصصة مؤقتة بجوار مجمع المدارس");
-  // The display labels ride BOTH cards (the S7 rule 2, restated).
+  // The poll's own REAL facts: the question, the committee label,
+  // the one-vote rule, and the served options' labels.
+  expect(markup).toContain("ما المواعيد الأنسب لفتح الممشى المظلل خلال الصيف؟");
+  expect(markup).toContain("لجنة تطوير الحي");
+  expect(markup).toContain("صوت واحد لكل عضو");
+  expect(markup).toContain("الفجر — ٥:٣٠ إلى ٨:٠٠");
+  expect(markup).toContain("المساء — ٥:٠٠ إلى ٨:٣٠");
+  expect(markup).toContain("كلا الفترتين");
+  // The alert keeps its ONE display label; the poll's retired with
+  // the served contract (never two again — the S7 rule's own mirror).
   const featured = markup.match(/<section aria-label="مختارات الحي"[\s\S]*?<\/section>/)?.[0];
   expect(featured).toBeDefined();
-  expect((featured ?? "").match(/بيانات عرض/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
-  // The poll's options are the design's interactive affordance.
+  expect((featured ?? "").match(/بيانات عرض/g)?.length ?? 0).toBe(1);
+  // The poll's options are the REAL vote affordance: submit buttons
+  // carrying the served option ids (ONE form, one vote per member).
   expect(featured ?? "").toContain("<button");
   expect(featured ?? "").toContain('class="hy-poll-option"');
+  expect(featured ?? "").toContain('value="49494949-4949-4494-9494-494949490001"');
+  // The unvoted state stays honest: the design's own gate note, no
+  // percentages before the member votes.
+  expect(featured ?? "").toContain("اختر خيارًا لعرض النتائج");
 });
 
 test("the member branch renders the smart sidebar: weather, emergency, groups, charter — and the feed column leads", async () => {

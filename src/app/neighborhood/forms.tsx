@@ -9,7 +9,7 @@
  * hydration (queued, then prioritized).
  */
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import {
   createPostAction,
   deletePostAction,
@@ -20,6 +20,7 @@ import {
   requestVerificationAction,
 } from "./actions";
 import type { ActionState } from "./actions";
+import { PollCreateChip, PollCreateDialog } from "./poll-create";
 import { POST_CATEGORIES, VERIFICATION_LABELS, VERIFICATION_NOTES, type VerificationState } from "@/lib/api/community-contract";
 
 function StateMessage({ state }: { state: ActionState }) {
@@ -156,8 +157,26 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createPostAction, {
     status: "idle",
   });
+  // N12 (L52 — gap #7 served): the poll chip went REAL — the dialog
+  // lives OUTSIDE the post form (nested forms are invalid HTML; the
+  // EventCreateLauncher's own structure: launcher chip inside the
+  // composer, modal a sibling of the form). The dialog is SESSION-KEYED
+  // (the CodeRabbit round's adopted root fix): every open remounts a
+  // fresh instance — idle note, empty fields — and the open effect
+  // calls showModal itself after the remount.
+  const pollDialogRef = useRef<HTMLDialogElement>(null);
+  const [pollSession, setPollSession] = useState(0);
+  const [pollOpen, setPollOpen] = useState(false);
+  const openPoll = () => {
+    setPollSession((session) => session + 1);
+    setPollOpen(true);
+  };
+  const closePoll = () => {
+    setPollOpen(false);
+  };
 
   return (
+    <>
     <form action={action} className="hy-composer">
       <span className="hy-avatar" data-tone="primary" aria-hidden="true">
         <span className="material-symbols-outlined">edit_square</span>
@@ -181,16 +200,13 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
               <span>{type.label}</span>
             </label>
           ))}
-          {/* The poll quick-option the design specifies — honestly gated:
-              the NeighborhoodPoll creation contract is registered (§7/7)
-              but the backend write does not exist yet. A disabled chip with
-              its reason, never a fake enabled control. */}
-          <span className="hy-composer-type" data-gated="true" aria-disabled="true" title="قريبًا — بانتظار عقد الإنشاء لدى الباك اند">
-            <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "0.9375rem" }}>
-              ballot
-            </span>
-            <span>استطلاع رأي — قريبًا</span>
-          </span>
+          {/* N12 (L52 — gap #7 served): the poll chip went REAL — the
+              registered creation contract is live (L52), so the gated
+              «قريبًا» chip retired with its reason. The chip OPENS the
+              poll modal (a poll is not a post category — the backend's
+              own vocabulary keeps them separate surfaces, and the chip
+              never fakes a category radio). */}
+          <PollCreateChip expanded={pollOpen} onOpen={openPoll} />
         </fieldset>
         <label htmlFor="post-body" className="visually-hidden">
           {COMPOSER_PROMPT}
@@ -258,6 +274,17 @@ export function CreatePostForm({ locationId }: { locationId: string }) {
         <StateMessage state={state} />
       </div>
     </form>
+    {/* The poll modal — a SIBLING of the post form (nested forms are
+        invalid HTML; the EventCreateLauncher's own structure),
+        SESSION-KEYED so every open starts fresh. */}
+    <PollCreateDialog
+      key={pollSession}
+      dialogRef={pollDialogRef}
+      locationId={locationId}
+      open={pollOpen}
+      onClose={closePoll}
+    />
+    </>
   );
 }
 
