@@ -10,6 +10,7 @@
 
 import { useActionState } from "react";
 import {
+  followProviderAction,
   organicReviewAction,
   reportReviewAction,
   voteReviewAction,
@@ -197,5 +198,46 @@ export function ReviewFlagForm({ reviewId }: { reviewId: string }) {
         <StateMessage state={state} />
       </form>
     </details>
+  );
+}
+
+/**
+ * W4 (yelp plan §5 — G21): «تابع هذا المزوّد» — the follow button, the
+ * HelpfulVote discipline verbatim: the public page carries NO session
+ * read (crawler parity — the anonymous and the logged-in page are the
+ * same HTML), so the button submits BLIND and the backend's own gates
+ * teach — 409 a live duplicate («متابعة موجودة» in the backend's own
+ * words), 400 your own profile, 404 an unknown profile. Unfollowing
+ * lives in «متابعاتي» (/profile) where the follow ROW id is served;
+ * refresh() re-renders the page's server read in place.
+ */
+export function FollowProviderButton({
+  providerId,
+  providerName,
+}: {
+  providerId: string;
+  providerName: string;
+}) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    followProviderAction,
+    { status: "idle" },
+  );
+
+  return (
+    <form action={action} className="inline-action">
+      <input type="hidden" name="providerId" value={providerId} />
+      <button
+        type="submit"
+        className="hy-react-btn"
+        disabled={pending}
+        aria-label={`تابع ${providerName} — تنبيه واحد داخل التطبيق عند إعلانه إعلاناً جديداً`}
+      >
+        <span className="material-symbols-outlined" aria-hidden="true">
+          notifications
+        </span>
+        <span>{pending ? "جارٍ المتابعة…" : "تابع هذا المزوّد"}</span>
+      </button>
+      {state.status !== "idle" ? <StateMessage state={state} /> : null}
+    </form>
   );
 }

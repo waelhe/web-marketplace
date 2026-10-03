@@ -9,7 +9,11 @@
  */
 
 import { useActionState } from "react";
-import { updateReviewAction, type ActionState } from "./actions";
+import {
+  unfollowProviderAction,
+  updateReviewAction,
+  type ActionState,
+} from "./actions";
 import { REVIEW_RATING_MAX, REVIEW_RATING_MIN } from "@/lib/api/booking-contract";
 import { Field } from "@/components/ui/field";
 
@@ -87,5 +91,32 @@ export function ReviewEditForm({
         <StateMessage state={state} />
       </form>
     </details>
+  );
+}
+
+/**
+ * W4 (yelp plan §5 — G21): «إلغاء المتابعة» — one per follow row in
+ * «متابعاتي» (the row's OWN id — the /me/follows read's key, never the
+ * provider id). The backend's own gate teaches: a foreign id answers
+ * 404 ("it is not in your list"); the pair is freed, so re-following
+ * the same provider from its page is legal.
+ */
+export function UnfollowForm({ followId }: { followId: string }) {
+  const [state, action, pending] = useActionState<ActionState, FormData>(
+    unfollowProviderAction,
+    IDLE,
+  );
+
+  return (
+    <form action={action} className="inline-action">
+      <input type="hidden" name="followId" value={followId} />
+      <button type="submit" className="hy-react-btn" disabled={pending}>
+        <span className="material-symbols-outlined" aria-hidden="true">
+          notifications_off
+        </span>
+        <span>{pending ? "جارٍ الإلغاء…" : "ألغِ المتابعة"}</span>
+      </button>
+      {state.status !== "idle" ? <StateMessage state={state} /> : null}
+    </form>
   );
 }

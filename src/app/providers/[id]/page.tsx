@@ -5,11 +5,19 @@ import { getProviderPublicPage, getReviewMedia } from "@/lib/api/reputation";
 import {
   PROVIDER_PAGE_LISTINGS_SIZE,
   PROVIDER_PAGE_REVIEWS_SIZE,
+  PROVIDER_VERIFICATION_LABELS,
   REVIEWS_MODE_LABELS,
   REVIEW_ORIGIN_LABELS,
+  WEEKDAY_LABELS,
+  WEEKDAY_ORDER,
+  type BusinessHourView,
+  type OfferedServiceView,
   type PublishedReviewView,
+  type ProviderVerificationState,
+  type RatingBucketView,
   type ReviewMediaView,
   type ReviewsMode,
+  type ServiceAreaView,
 } from "@/lib/api/reputation-contract";
 import {
   ACTOR_TYPE_LABELS,
@@ -17,7 +25,7 @@ import {
 } from "@/lib/api/provider-contract";
 import { formatDate, formatDateTime, formatPrice } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
-import { HelpfulVoteButton, OrganicReviewForm, ReviewFlagForm } from "./forms";
+import { FollowProviderButton, HelpfulVoteButton, OrganicReviewForm, ReviewFlagForm } from "./forms";
 
 // The L36 public provider page — the app's SECOND SEO surface (roadmap
 // stage 5, السمعة). The backend composes the whole page in one read
@@ -31,14 +39,23 @@ import { HelpfulVoteButton, OrganicReviewForm, ReviewFlagForm } from "./forms";
 // is served only for VERIFIED profiles (a suspended broker's inventory
 // is hidden on his page — an honest empty block); the profile itself
 // stays visible with its status. The rating block rides the same
-// response. W1 (yelp-level plan §4.4/§4.5, PR #487): the page now also
+// response. W1 (yelp-level plan §4.4/§4.5, PR #487): the page also
 // composes the provider's PUBLISHED reviews page and the active reviews
-// mode — the backend closed the declared §10 ID-space seam itself (the
-// profile-to-user mapping never leaves the owning service), so this
-// page is the reviews list's public home: the dual badges per mode, the
-// identity-rich rows, the helpful votes, and the organic write (mounted
-// only when the served mode admits it — the backend gate stays the
-// authority).
+// mode — the reviews list's public home: the dual badges per mode, the
+// identity-rich rows, the helpful votes, and the organic write.
+//
+// W2 (yelp-level plan §5 — the business page, #489): the page gains
+// the wave's own Yelp shape — the ownership-verification badge (G14),
+// the «توزيع نجوم» histograms (one per displayed badge, the same mode
+// law as the badge pair), the declared working week (G11), the services
+// menu (G12), the resolved service areas (G13), and the backend's own
+// schema.org LocalBusiness JSON-LD block embedded VERBATIM (G22 — the
+// L39 listing twin's discipline: a rich result that agrees with its
+// page). W4 (#494): every review row's reviewer name becomes the link
+// to the public reviewer page (`/users/{reviewerId}` — the row's own
+// click target), and the follow button joins the profile head (the
+// anonymous render keeps the same HTML — the button's session enters
+// at the action, the HelpfulVote discipline).
 
 type ProviderPageProps = PageProps<"/providers/[id]">;
 
@@ -132,10 +149,140 @@ function RatingChip({
 }
 
 /**
- * The rating block per the served mode (W1 §4.4): HYBRID carries the
- * two badges separately («موثّق 4.8 (23) · عام 4.2 (156)» — the plan's
- * strongest trust display); OPEN's single number is the merged mean
- * (labeled honestly); VERIFIED_ONLY is the verified aggregate alone.
+ * W2 (G11): the declared working week — the ISO weekday order (the
+ * enum's own), one window per row, the times LTR (the house rule for
+ * machine-formatted values inside RTL prose). An undeclared week is
+ * the honest note, never an invented schedule.
+ */
+function BusinessHoursBlock({ hours }: { hours: BusinessHourView[] }) {
+  if (hours.length === 0) {
+    return <p className="page-note">لا ساعات عمل معلنة بعد.</p>;
+  }
+  const byDay = new Map(hours.map((hour) => [hour.dayOfWeek, hour]));
+  return (
+    <ul className="biz-hours" aria-label="ساعات العمل المعلنة">
+      {WEEKDAY_ORDER.filter((day) => byDay.has(day)).map((day) => {
+        const hour = byDay.get(day);
+        if (!hour) return null;
+        return (
+          <li key={day}>
+            <span className="biz-day">{WEEKDAY_LABELS[day] ?? day}</span>
+            <span className="biz-window" dir="ltr">
+              {hour.opensAt.slice(0, 5)} — {hour.closesAt.slice(0, 5)}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
+ * W2 (G12): the services menu — position order (the served order IS
+ * the menu), the money pair as integer cents + ISO 4217 rendered major
+ * (the ledger's own display convention), the duration in minutes. A
+ * service without a price renders without one — never a fabricated 0.
+ */
+function ServicesMenu({ services }: { services: OfferedServiceView[] }) {
+  if (services.length === 0) {
+    return <p className="page-note">لا خدمات معلنة بعد.</p>;
+  }
+  return (
+    <ul className="biz-services" aria-label="الخدمات المعلنة">
+      {services.map((service) => (
+        <li key={service.id} className="biz-service">
+          <p className="biz-service-head">
+            <span className="biz-service-title">{service.title}</span>
+            {service.priceCents !== null && service.currency ? (
+              <span className="biz-service-price">
+                {formatPrice(service.priceCents / 100, service.currency)}
+              </span>
+            ) : null}
+          </p>
+          {service.description ? (
+            <p className="listing-description">{service.description}</p>
+          ) : null}
+          {service.durationMinutes !== null ? (
+            <p className="page-note">
+              المدة: {new Intl.NumberFormat("ar").format(service.durationMinutes)} دقيقة
+            </p>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * W2 (G13): the resolved service areas — the Arabic name (the primary
+ * market's label), the honest note when none are declared.
+ */
+function ServiceAreasBlock({ areas }: { areas: ServiceAreaView[] }) {
+  if (areas.length === 0) {
+    return <p className="page-note">لا نطاقات خدمة معلنة بعد.</p>;
+  }
+  return (
+    <p className="listing-meta" aria-label="نطاقات الخدمة">
+      {areas.map((area, index) => (
+        <span key={area.locationId}>
+          {index > 0 ? <span>·</span> : null}
+          <span>{area.nameAr ?? area.nameEn ?? area.slug}</span>
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/**
+ * W2 («توزيع نجوم»): one histogram — all five buckets 1..5 in the
+ * served order (the backend fills zeros by construction), the bar's
+ * width proportional to the bucket's share of the histogram's own
+ * maximum. The RTL bar fills from the inline-start (the logical
+ * direction — no physical left/right).
+ */
+function RatingHistogram({
+  buckets,
+  label,
+}: {
+  buckets: RatingBucketView[];
+  label: string;
+}) {
+  const max = Math.max(...buckets.map((bucket) => bucket.count), 1);
+  return (
+    <div className="biz-histogram" aria-label={`توزيع النجوم — ${label}`}>
+      <p className="page-note">{label}</p>
+      <ul className="biz-bars">
+        {buckets.map((bucket) => (
+          <li key={bucket.rating} className="biz-bar-row">
+            <span className="biz-bar-star" aria-label={`${bucket.rating} من ٥`}>
+              {new Intl.NumberFormat("ar").format(bucket.rating)}
+            </span>
+            <span
+              className="biz-bar-track"
+              aria-hidden="true"
+            >
+              <span
+                className="biz-bar-fill"
+                style={{ inlineSize: `${(bucket.count / max) * 100}%` }}
+              />
+            </span>
+            <span className="biz-bar-count">
+              {new Intl.NumberFormat("ar").format(bucket.count)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * The rating block per the served mode (W1 §4.4 + W2's histograms):
+ * HYBRID carries the two badges separately («موثّق 4.8 (23) · عام 4.2
+ * (156)» — the plan's strongest trust display) with BOTH histograms;
+ * OPEN's single number is the merged mean (labeled honestly) over the
+ * merged bars; VERIFIED_ONLY is the verified aggregate alone. The W2
+ * histograms ride the same mode law as the badge pair.
  */
 function RatingBlock({
   mode,
@@ -143,28 +290,48 @@ function RatingBlock({
   count,
   generalAverage,
   generalCount,
+  distribution,
+  generalDistribution,
 }: {
   mode: ReviewsMode;
   average: number | null;
   count: number;
   generalAverage: number | null;
   generalCount: number;
+  distribution: RatingBucketView[] | undefined;
+  generalDistribution: RatingBucketView[] | null | undefined;
 }) {
   const hasAny = count > 0 || generalCount > 0;
   return (
     <>
       <p className="page-note">نمط المراجعات: {REVIEWS_MODE_LABELS[mode]}</p>
       {mode === "HYBRID" ? (
-        <p className="listing-meta">
-          <RatingChip average={average} count={count} label="موثّق" />
-          <RatingChip average={generalAverage} count={generalCount} label="عام" />
-        </p>
+        <>
+          <p className="listing-meta">
+            <RatingChip average={average} count={count} label="موثّق" />
+            <RatingChip average={generalAverage} count={generalCount} label="عام" />
+          </p>
+          {distribution && distribution.length > 0 ? (
+            <RatingHistogram buckets={distribution} label="توزيع مراجعات موثّقة" />
+          ) : null}
+          {generalDistribution && generalDistribution.length > 0 ? (
+            <RatingHistogram buckets={generalDistribution} label="توزيع مراجعات عامة" />
+          ) : null}
+        </>
       ) : (
-        <RatingChip
-          average={average}
-          count={count}
-          label={mode === "OPEN" ? "من المراجعات كلها" : "موثّق"}
-        />
+        <>
+          <RatingChip
+            average={average}
+            count={count}
+            label={mode === "OPEN" ? "من المراجعات كلها" : "موثّق"}
+          />
+          {distribution && distribution.length > 0 ? (
+            <RatingHistogram
+              buckets={distribution}
+              label={mode === "OPEN" ? "توزيع كل المراجعات" : "توزيع مراجعات موثّقة"}
+            />
+          ) : null}
+        </>
       )}
       {!hasAny ? <p className="page-note">لا مراجعات بعد.</p> : null}
     </>
@@ -172,10 +339,11 @@ function RatingBlock({
 }
 
 /**
- * One published review row (W1 §4.4/§4.5): the origin badge
- * («موثّقة»/«عامة»), the reviewer identity block, the provider reply,
- * the helpful vote, the photos (the completion slice — the by-review
- * public read, honest per-review degradation), and the flag (V86).
+ * One published review row (W1 §4.4/§4.5 + W4 G28): the origin badge
+ * («موثّقة»/«عامة»), the reviewer identity block — the name now the
+ * LINK to the public reviewer page (the row's own reviewerId key —
+ * «نقرة من مراجعة إلى صفحة المراجع»), the provider reply, the helpful
+ * vote, the photos, and the flag (V86).
  */
 function ReviewRow({
   review,
@@ -196,7 +364,13 @@ function ReviewRow({
         </span>
         <span>من ٥</span>
         <span>·</span>
-        <span aria-label="كاتب المراجعة">{review.reviewerName}</span>
+        {review.reviewerId ? (
+          <Link href={`/users/${review.reviewerId}`} aria-label="صفحة المراجع العامة">
+            {review.reviewerName}
+          </Link>
+        ) : (
+          <span aria-label="كاتب المراجعة">{review.reviewerName}</span>
+        )}
         <span>·</span>
         <span>
           {new Intl.NumberFormat("ar").format(review.reviewerReviewCount)} مراجعة منشورة
@@ -298,6 +472,19 @@ export default async function ProviderPublicPage({
 
   return (
     <main>
+      {/* W2 (G22): the backend-composed schema.org LocalBusiness block,
+          embedded VERBATIM (the L39 listing twin's discipline — escape
+          `<` per the packaged JSON-LD guide so the payload cannot carry
+          markup; the stars the checker sees agree with the page). */}
+      {provider.jsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(provider.jsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      ) : null}
+
       <p className="listing-crumb">
         <Link href="/">الرئيسية</Link> / <span>{provider.displayName}</span>
       </p>
@@ -312,6 +499,22 @@ export default async function ProviderPublicPage({
           <span className="listing-category">
             {PROVIDER_STATUS_LABELS[provider.status] ?? provider.status}
           </span>
+          {/* W2 (G14): the ownership-verification chip — display-only
+              trust, the administrative lifecycle's read. */}
+          {provider.verificationState ? (
+            <>
+              <span>·</span>
+              <span
+                className="listing-category"
+                data-verification={provider.verificationState}
+                aria-label="حالة توثيق الملكية"
+              >
+                {PROVIDER_VERIFICATION_LABELS[
+                  provider.verificationState as ProviderVerificationState
+                ] ?? provider.verificationState}
+              </span>
+            </>
+          ) : null}
         </p>
         {provider.agencyName ? (
           <p className="listing-meta">
@@ -326,6 +529,12 @@ export default async function ProviderPublicPage({
         {provider.bio ? <p className="listing-description">{provider.bio}</p> : null}
         <p className="page-note">عضو منذ {formatDate(provider.createdAt)}</p>
 
+        {/* W4 (G21): the follow button — the anonymous render keeps the
+            same HTML (the session enters at the action, the
+            HelpfulVote discipline); the backend's own 400/409 gates
+            teach with their own words. */}
+        <FollowProviderButton providerId={provider.id} providerName={provider.displayName} />
+
         <h2>التقييم</h2>
         <RatingBlock
           mode={provider.reviewsMode}
@@ -333,7 +542,18 @@ export default async function ProviderPublicPage({
           count={provider.reviewCount}
           generalAverage={provider.ratingGeneralAverage}
           generalCount={provider.ratingGeneralCount}
+          distribution={provider.ratingDistribution}
+          generalDistribution={provider.ratingGeneralDistribution}
         />
+
+        <h2>ساعات العمل</h2>
+        <BusinessHoursBlock hours={provider.businessHours ?? []} />
+
+        <h2>الخدمات</h2>
+        <ServicesMenu services={provider.services ?? []} />
+
+        <h2>نطاقات الخدمة</h2>
+        <ServiceAreasBlock areas={provider.serviceAreas ?? []} />
       </section>
 
       <section className="card" aria-labelledby="provider-reviews-heading">

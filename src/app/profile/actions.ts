@@ -15,6 +15,7 @@ import { refresh } from "next/cache";
 import { getSession } from "@/lib/dal";
 import { problemMessage } from "@/lib/problem";
 import { updateReview } from "@/lib/api/reputation";
+import { unfollowProvider } from "@/lib/api/follows";
 import { REVIEW_RATING_MAX, REVIEW_RATING_MIN } from "@/lib/api/booking-contract";
 import { isUuid } from "@/lib/api/geo";
 
@@ -70,4 +71,42 @@ export async function updateReviewAction(
 
   refresh();
   return { status: "success", message: "حُدّثت مراجعتك." };
+}
+
+/**
+ * W4 (yelp plan §5 — G21, #494): unfollow a provider — `DELETE
+ * /api/v1/me/follows/{id}` (the follow ROW id — «متابعاتي»'s own key).
+ * The backend's own gate teaches the caller: a foreign id answers 404
+ * ("it is not in your list") with its own words. The pair is freed, so
+ * re-following the same provider from its page is legal by construction.
+ */
+export async function unfollowProviderAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const followId = text(formData, "followId");
+  if (!isUuid(followId)) {
+    return { status: "error", message: "معرّف المتابعة غير صالح." };
+  }
+
+  const result = await unfollowProvider(followId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر إلغاء المتابعة (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  // refresh(): the /profile server read is «متابعاتي»'s source of truth
+  // — the re-read drops the row (and its one-alert ledger stays: the
+  // follow's history is the backend's own record).
+  refresh();
+  return { status: "success", message: "أُلغيت المتابعة." };
 }

@@ -581,6 +581,20 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         </ul>
       ) : null}
 
+      {/* W2 (G23 — the public category pages): the category state's
+          additive link to the category's canonical landing page —
+          /categories/{code} (the page the backend sitemap advertises at
+          the public-site origin). Additive only: the browse state keeps
+          its own contract untouched. */}
+      {category !== undefined ? (
+        <p className="page-note">
+          <Link href={`/categories/${encodeURIComponent(category)}`}>
+            صفحة فئة {category} الثابتة
+          </Link>{" "}
+          — الموطن القياسي للفئة كما تعلنه خريطة الموقع.
+        </p>
+      ) : null}
+
       {/* L35: the saved-searches strip (session-aware; anonymous sees
           nothing here). Chips restore their criteria through the URL —
           the measured name map reconverted (query→q, latitude→lat,

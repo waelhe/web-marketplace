@@ -22,6 +22,7 @@ import {
   unvoteReviewHelpful,
   voteReviewHelpful,
 } from "@/lib/api/reputation";
+import { followProvider } from "@/lib/api/follows";
 import { putToPresignedUrl } from "@/lib/api/media";
 import { createContentReport } from "@/lib/api/community";
 import {
@@ -223,4 +224,48 @@ export async function reportReviewAction(
   }
 
   return { status: "success", message: "وصل الإبلاغ — يفتحه فريق الإشراف." };
+}
+
+/**
+ * W4 (yelp plan §5 — G21, #494): follow a provider — `POST /api/v1/
+ * me/follows` `{providerId}` (the PUBLIC PROFILE id, the page's own
+ * key). The backend's own gates teach the caller: 400 following your
+ * own provider profile, 409 a live duplicate, 404 an unknown profile,
+ * 429 the rate-limiter's budget. The one alert per listing announcement
+ * rides the standing per-type/channel notification preferences (the
+ * matrix's FOLLOWED_PROVIDER_NEW_LISTING row — the ninth type).
+ */
+export async function followProviderAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const providerId = text(formData, "providerId");
+  if (!isUuid(providerId)) {
+    return { status: "error", message: "معرّف المزوّد غير صالح." };
+  }
+
+  const result = await followProvider(providerId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّرت المتابعة (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  // refresh(): the follow's durable home is «متابعاتي» on /profile —
+  // the page's own server read needs no re-render for the pair, but the
+  // re-read keeps any served state honest in place.
+  refresh();
+  return {
+    status: "success",
+    message:
+      "أنت تتابع هذا المزوّد الآن — تنبيه واحد داخل التطبيق عند إعلانه إعلاناً جديداً (تحترم تفضيلات قنواتك).",
+  };
 }

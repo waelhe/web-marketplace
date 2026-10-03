@@ -185,6 +185,13 @@ export default async function ProviderPage({ searchParams }: ProviderPageProps) 
               عدّل ملفك
             </Link>
             <span>·</span>
+            {/* W2 (the business page, #489): the business-page management
+                entry — hours, services, service areas, and the ownership
+                verification claim (the same ?id= PK seam). */}
+            <Link href={`/provider/business?id=${profile.data.id}`}>
+              صفحة أعمالي
+            </Link>
+            <span>·</span>
             {/* The PK finally reaches the L36 public page too — its join
                 key was undiscoverable until the redirect seam existed. */}
             <Link href={`/providers/${profile.data.id}`}>

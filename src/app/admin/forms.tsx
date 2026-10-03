@@ -29,6 +29,8 @@ import {
   setPricingRuleActiveAction,
   archiveListingAction,
   suspendProviderAction,
+  confirmProviderVerificationAction,
+  rejectProviderVerificationAction,
   updateUserRoleAction,
   updateUserStatusAction,
   pseudonymizeUserAction,
@@ -786,5 +788,67 @@ export function ModerateReviewForm({ reviewId }: { reviewId: string }) {
       </button>
       <StateMessage state={state} />
     </form>
+  );
+}
+
+/**
+ * W2 (yelp plan §5 — G14, #489): resolve an ownership-verification
+ * claim — the input-driven pair (confirm/reject) on the same
+ * profile-id space as VerifyProviderForm beside it. A non-PENDING
+ * claim answers 409 with the backend's own words.
+ */
+export function ProviderVerificationForms() {
+  const [confirmState, confirmAction, confirmPending] = useActionState<
+    ActionState,
+    FormData
+  >(confirmProviderVerificationAction, { status: "idle" });
+  const [rejectState, rejectAction, rejectPending] = useActionState<
+    ActionState,
+    FormData
+  >(rejectProviderVerificationAction, { status: "idle" });
+
+  return (
+    <div className="hy-adm-pair">
+      <form action={confirmAction} className="stack-form">
+        <label htmlFor="confirm-verification-provider-id">
+          معرّف المزوّد (فضاء معرّف الملف)
+        </label>
+        <input
+          id="confirm-verification-provider-id"
+          name="providerId"
+          type="text"
+          required
+          dir="ltr"
+        />
+        <p className="field-hint">
+          يقبل طلب توثيق ملكية معلّق (PENDING → VERIFIED) — تضيء شارة «مالك
+          موثّق» على صفحته العامة. غير المعلّق يُجيب 409 بكلمات الخلفي.
+        </p>
+        <button type="submit" className="button" data-variant="primary" disabled={confirmPending}>
+          {confirmPending ? "جارٍ القبول…" : "اقبل التوثيق"}
+        </button>
+        <StateMessage state={confirmState} />
+      </form>
+      <form action={rejectAction} className="stack-form">
+        <label htmlFor="reject-verification-provider-id">
+          معرّف المزوّد (فضاء معرّف الملف)
+        </label>
+        <input
+          id="reject-verification-provider-id"
+          name="providerId"
+          type="text"
+          required
+          dir="ltr"
+        />
+        <p className="field-hint">
+          يرفض الطلب المعلّق (PENDING → REJECTED) — يمكن للمزوّد التقديم
+          مجددًا، وسجل Envers يحفظ القرار.
+        </p>
+        <button type="submit" className="button" data-variant="danger" disabled={rejectPending}>
+          {rejectPending ? "جارٍ الرفض…" : "ارفض التوثيق"}
+        </button>
+        <StateMessage state={rejectState} />
+      </form>
+    </div>
   );
 }

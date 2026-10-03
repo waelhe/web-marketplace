@@ -355,3 +355,63 @@ test("no horizontal overflow at 375px on the control panels (RTL console shell)"
   await expect(strip).toBeVisible();
   await expect(strip.locator("a.hy-pill")).toHaveCount(11);
 });
+
+// -- N10 (the W2+W4 frontend waves) -----------------------------------------
+// The new public surfaces' hermetic boundaries: the category page (the
+// registry-resolved vocabulary — hermetic with a dead backend too: the
+// failure branch renders the same 200 shape), and the public reviewer
+// page's honest boundary (unknown id → the framework's not-found when
+// the backend is live, the honest failure render when it is not —
+// never a fabricated profile either way).
+
+test("the public category page renders the registry vocabulary, never a 500", async ({
+  page,
+}) => {
+  const res = await page.goto("/categories/stay");
+  expect(res?.status()).toBe(200);
+  // The category's canonical home: an h1 that carries the registry's own
+  // Arabic name when the registry is reachable, the code itself when it
+  // is not — either way the heading renders (the hermetic contract).
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  // The canonical link rides the RESOLVED branch (metadata-gated on the
+  // registry read — a dead backend degrades to the code-as-name render,
+  // honest 200 without the canonical). When present it must be the
+  // category's stable path — never asserted on the degraded branch.
+  const canonicalCount = await page.locator('link[rel="canonical"]').count();
+  if (canonicalCount > 0) {
+    const canonical = await page
+      .locator('link[rel="canonical"]')
+      .first()
+      .getAttribute("href");
+    expect(canonical).toContain("/categories/stay");
+  }
+});
+
+test("an unknown category code answers the honest boundary, never a 500", async ({
+  page,
+}) => {
+  const res = await page.goto("/categories/not-a-real-code");
+  expect(res?.status()).toBe(200);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
+test("the public reviewer page keeps the honest boundary for unknown ids", async ({
+  page,
+}) => {
+  const res = await page.goto("/users/00000000-0000-0000-0000-000000000000");
+  // Live backend → the framework's 404 boundary; unreachable backend →
+  // the honest failure render (200). Both are honest: no fabricated
+  // profile ever renders. The assertions ride the SHELL (title + the
+  // noindex directive — both rendered server-side into the initial
+  // head, hydration-independent): the streamed not-found boundary's
+  // client resume is rAF-gated and a headless page throttles rAF
+  // (measured: the same route renders the ٤٠٤ h1 within 8s in a headed
+  // browser — the boundary works; only the headless resume lags).
+  expect([200, 404]).toContain(res?.status() ?? 0);
+  await expect(page).toHaveTitle(/مراجع غير موجود|الصفحة غير موجودة/);
+  const robots = await page
+    .locator('meta[name="robots"]')
+    .first()
+    .getAttribute("content");
+  expect(robots).toContain("noindex");
+});

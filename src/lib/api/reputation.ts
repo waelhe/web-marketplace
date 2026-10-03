@@ -40,6 +40,7 @@ import type {
   ProviderPublicPageView,
   ReviewMediaUploadView,
   ReviewMediaView,
+  ReviewerPublicProfileView,
   ReviewView,
 } from "./reputation-contract";
 import { PROVIDER_PAGE_REVIEWS_SIZE } from "./reputation-contract";
@@ -133,6 +134,20 @@ export function createReverseReview(
 ): Promise<BackendResult<ReviewView>> {
   return backendSend("POST", "/api/v1/reviews/reverse", { bookingId, rating, comment });
 }
+
+/**
+ * W4 (yelp-level plan §5 — G28, #494): the public reviewer profile —
+ * `GET /api/v1/users/{id}/public` (ANONYMOUS — the SecurityConfig
+ * precise-wildcard line, the L36 precedent: no auth gate, unknown ids
+ * answer 404, a live account with no published reviews is the honest
+ * zero profile). The path id is the reviewer's USER id — the SAME key
+ * the review rows carry as `reviewerId` (no id-space seam). Memoized
+ * per render pass so generateMetadata and the page body share ONE read.
+ */
+export const getReviewerPublicProfile = cache(
+  async (reviewerId: string): Promise<BackendResult<ReviewerPublicProfileView>> =>
+    publicGet(`/api/v1/users/${encodeURIComponent(reviewerId)}/public`),
+);
 
 /**
  * Reviews WRITTEN by one user — `GET /api/v1/reviews/reviewer/{id}`

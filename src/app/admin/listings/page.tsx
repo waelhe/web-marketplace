@@ -6,6 +6,7 @@ import { EmptyState, PanelHead, ReadFailure } from "../panel-parts";
 import {
   ArchiveListingForm,
   PromotionForm,
+  ProviderVerificationForms,
   SuspendProviderForm,
   VerifyProviderForm,
 } from "../forms";
@@ -81,6 +82,16 @@ export default async function ListingsPanelPage() {
         </p>
         <VerifyProviderForm />
         <SuspendProviderForm />
+        {/* W2 (G14): the ownership-verification claims queue's resolution
+            pair — the same profile-id space, the same input-driven
+            discipline (no list read exists in the admin contract; the
+            provider submits from his business-page surface). */}
+        <h3>توثيق الملكية</h3>
+        <p className="page-note">
+          طلبات «مالك موثّق» التي يقدّمها المزوّدون من صفحة أعمالهم —
+          القبول يضيء الشارة على صفحته العامة.
+        </p>
+        <ProviderVerificationForms />
       </section>
 
       <p>

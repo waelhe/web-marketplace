@@ -63,6 +63,8 @@ import {
   reviewVerification,
   setListingPromotion,
   suspendProvider,
+  confirmProviderVerification,
+  rejectProviderVerification,
   updateUserRole,
   updateUserStatus,
   verifyProvider,
@@ -1082,5 +1084,78 @@ export async function moderateReviewAction(
       action === "APPROVE"
         ? "قُبلت المراجعة — نُشرت وأُعيد حساب المتوسطات."
         : "رُفضت المراجعة — أُخفيت وأُعيد حساب المتوسطات.",
+  };
+}
+
+/**
+ * W2 (yelp plan §5 — G14, #489): confirm an ownership-verification
+ * claim — `POST /admin/providers/{id}/verification/confirm` (PENDING →
+ * VERIFIED; the «مالك موثّق» badge lights on the public page). A
+ * non-PENDING claim answers 409 with the backend's own words.
+ */
+export async function confirmProviderVerificationAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const providerId = text(formData, "providerId");
+  if (!isUuid(providerId)) {
+    return { status: "error", message: "معرّف المزوّد غير صالح." };
+  }
+
+  const result = await confirmProviderVerification(providerId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر قبول التوثيق (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  await refresh();
+  return {
+    status: "success",
+    message: `قُبل توثيق الملكية للمزوّد «${result.data.displayName}» — الشارة مضاءة على صفحته العامة.`,
+  };
+}
+
+/**
+ * W2 (G14): decline an ownership-verification claim — `POST
+ * /admin/providers/{id}/verification/reject` (PENDING → REJECTED; the
+ * owner may submit again — the Envers trail is the record).
+ */
+export async function rejectProviderVerificationAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) return { status: "error", message: REAUTH_MESSAGE };
+
+  const providerId = text(formData, "providerId");
+  if (!isUuid(providerId)) {
+    return { status: "error", message: "معرّف المزوّد غير صالح." };
+  }
+
+  const result = await rejectProviderVerification(providerId);
+  if (!result.ok) {
+    if (result.unauthenticated) return { status: "error", message: REAUTH_MESSAGE };
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر رفض التوثيق (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  await refresh();
+  return {
+    status: "success",
+    message: `رُفض توثيق الملكية للمزوّد «${result.data.displayName}» — يمكنه التقديم مجددًا.`,
   };
 }
