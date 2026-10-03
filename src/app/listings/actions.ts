@@ -30,6 +30,8 @@ import {
   deleteSavedSearch,
   criteriaFromLink,
 } from "@/lib/api/saved-searches";
+import { saveListingFavorite } from "@/lib/api/favorites";
+import { FAVORITE_REAUTH_MESSAGE } from "@/lib/api/favorites-contract";
 
 /** The form state contract for the lead and saved-search forms. */
 export type ActionState =
@@ -227,4 +229,49 @@ export async function deleteSavedSearchAction(
 
   await refresh();
   return { status: "success", message: "حُذف البحث المحفوظ." };
+}
+
+/**
+ * W3 (yelp plan §5 — G19, #492): «حفظ لاحقًا» — save the listing for
+ * later, `POST /api/v1/me/favorites/{listingId}` (201). The backend's
+ * own gate order teaches with its own words: the listing resolves FIRST
+ * (404 unknown — before any write), then the live pair answers 409 (the
+ * unique key's read form — its message names the withdraw channel). The
+ * blind-button discipline (FollowProviderButton): the public detail page
+ * carries NO session read (crawler parity), so the button submits blind
+ * and the 401 renders the re-auth note; the state lives in «مفضلاتي»
+ * (/profile) where the live rows are served.
+ */
+export async function saveFavoriteAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await getSession();
+  if (!session) {
+    return { status: "error", message: FAVORITE_REAUTH_MESSAGE };
+  }
+
+  const listingId = formData.get("listingId");
+  if (typeof listingId !== "string" || !isUuid(listingId)) {
+    return { status: "error", message: "معرّف الإعلان غير صالح." };
+  }
+
+  const result = await saveListingFavorite(listingId);
+  if (!result.ok) {
+    if (result.unauthenticated) {
+      return { status: "error", message: REAUTH_MESSAGE };
+    }
+    return {
+      status: "error",
+      message: problemMessage(
+        result.problem,
+        `تعذّر حفظ الإعلان (رمز ${result.status}).`,
+      ),
+    };
+  }
+
+  return {
+    status: "success",
+    message: "حُفظ الإعلان في مفضلاتك — «مفضلاتي» في ملفك الشخصي تجدها.",
+  };
 }

@@ -1,4 +1,4 @@
-type IconName = "share" | "star" | "message" | "heart";
+type IconName = "share" | "star" | "message" | "heart" | "bookmark";
 
 type IconProps = {
   name: IconName;
@@ -84,6 +84,24 @@ export function Icon({ name, label, size = 20 }: IconProps) {
         >
           {title}
           <path d="M20.5 8.8c0 5.2-8.5 9.9-8.5 9.9s-8.5-4.7-8.5-9.9A4.3 4.3 0 0 1 12 6.3a4.3 4.3 0 0 1 8.5 2.5Z" />
+        </svg>
+      );
+    case "bookmark":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          width={size}
+          height={size}
+          aria-hidden={label ? undefined : "true"}
+          role={label ? "img" : undefined}
+        >
+          {title}
+          <path d="M6 3.75h12a.75.75 0 0 1 .75.75v15.6a.75.75 0 0 1-1.16.63L12 16.7l-5.59 4.03a.75.75 0 0 1-1.16-.63V4.5a.75.75 0 0 1 .75-.75Z" />
         </svg>
       );
   }

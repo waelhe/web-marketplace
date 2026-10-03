@@ -47,6 +47,15 @@ export interface ListingSummary {
   /** ISO 4217 code, e.g. "SAR". */
   currency: string;
   providerName: string;
+  /**
+   * W3 (G20): the provider's verified stars — the RECOMPUTED pair
+   * resolved in one batch per page (ListingSummary's own discipline).
+   * Null is the honest not-yet-rated row (never a fabricated zero);
+   * the count is 0 in that case.
+   */
+  providerRating: number | null;
+  /** W3 (G20): the verified review count backing the stars (0 when unrated). */
+  providerReviewCount: number;
 }
 
 /**

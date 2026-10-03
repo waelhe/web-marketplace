@@ -55,6 +55,8 @@ const LISTING: ListingSummary = {
   price: 1000,
   currency: "SAR",
   providerName: "Provider",
+  providerRating: null,
+  providerReviewCount: 0,
 };
 
 const PAGE_ONE: PagedResponse<ListingSummary> = {

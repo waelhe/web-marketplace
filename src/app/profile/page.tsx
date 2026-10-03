@@ -12,6 +12,12 @@ import {
 } from "@/lib/api/reputation";
 import { getMyFollows } from "@/lib/api/follows";
 import { MY_FOLLOWS_PAGE_SIZE } from "@/lib/api/follows-contract";
+import { getMyFavorites } from "@/lib/api/favorites";
+import {
+  LISTING_STATUS_LABELS,
+  MY_FAVORITES_PAGE_SIZE,
+  type ListingFavoriteView,
+} from "@/lib/api/favorites-contract";
 import {
   MY_REVIEWS_PAGE_SIZE,
   REVIEW_DIRECTION_LABELS,
@@ -20,7 +26,7 @@ import {
   type ReviewView,
 } from "@/lib/api/reputation-contract";
 import { SignOutButton } from "../auth-buttons";
-import { ReviewEditForm, UnfollowForm } from "./forms";
+import { ReviewEditForm, UnfollowForm, UnsaveFavoriteForm } from "./forms";
 
 // Profile: DAL session + DIRECT backend fetch (no self HTTP round trip —
 // official BFF guide). The /me payload shape is intentionally loose until
@@ -96,6 +102,56 @@ function ReviewRow({
   );
 }
 
+/**
+ * W3 (G19): one saved-listing row — the listing's CURRENT truth rendered
+ * honestly. The detail read 404s on INACTIVE/ARCHIVED listings (the
+ * public surface's own contract), so ONLY an ACTIVE listing carries its
+ * link — a later-expired or withdrawn save stays saved (the relation is
+ * the member's own data) and renders its title plain with the status
+ * badge; a null title block is the honest unknown-state floor. The
+ * price arrives in CENTS (the view's own contract — unlike the browse
+ * summary's major units) and renders through formatPrice's twin with
+ * the major-unit conversion.
+ */
+function FavoriteRow({ favorite }: { favorite: ListingFavoriteView }) {
+  const statusLabel =
+    favorite.status !== null
+      ? (LISTING_STATUS_LABELS[favorite.status] ?? favorite.status)
+      : null;
+  const active = favorite.status === "ACTIVE";
+  return (
+    <p className="listing-meta">
+      {favorite.title !== null && active ? (
+        <Link href={`/listings/${favorite.listingId}`}>{favorite.title}</Link>
+      ) : favorite.title !== null ? (
+        <span aria-label={`إعلان ${statusLabel ?? "غير متاح"}`}>{favorite.title}</span>
+      ) : (
+        <span aria-label="إعلان غير معروف">إعلان لم يعد قابلاً للقراءة</span>
+      )}
+      {statusLabel !== null ? (
+        <>
+          <span>·</span>
+          <span>{statusLabel}</span>
+        </>
+      ) : null}
+      {typeof favorite.priceCents === "number" && favorite.currency !== null ? (
+        <>
+          <span>·</span>
+          <span>
+            {new Intl.NumberFormat("ar", {
+              style: "currency",
+              currency: favorite.currency,
+              maximumFractionDigits: 2,
+            }).format(favorite.priceCents / 100)}
+          </span>
+        </>
+      ) : null}
+      <span>·</span>
+      <span>حفظته {formatDate(favorite.savedAt)}</span>
+    </p>
+  );
+}
+
 export default async function ProfilePage() {
   const session = await getSession();
   if (!session) {
@@ -125,13 +181,17 @@ export default async function ProfilePage() {
   // W4 (G21): the follows read joins the same me-chain family — the
   // caller's follow rows, newest first (the follow's own "me" owner
   // key — the client never sends an id).
-  const [written, aboutMe, follows] = backendUser.ok
+  // W3 (G19): the favorites read joins the same family — the caller's
+  // saved listings, newest-saved first, each row carrying the listing's
+  // CURRENT truth (a later-expired save stays saved and shows it).
+  const [written, aboutMe, follows, favorites] = backendUser.ok
     ? await Promise.all([
         getMyWrittenReviews(backendUser.id, 0, MY_REVIEWS_PAGE_SIZE),
         getReviewsOfConsumer(backendUser.id, 0, MY_REVIEWS_PAGE_SIZE),
         getMyFollows(0, MY_FOLLOWS_PAGE_SIZE),
+        getMyFavorites(0, MY_FAVORITES_PAGE_SIZE),
       ])
-    : [null, null, null];
+    : [null, null, null, null];
 
   return (
     <main>
@@ -264,6 +324,42 @@ export default async function ProfilePage() {
               {problemMessage(
                 follows.problem,
                 `تعذّرت قراءة متابعاتك (رمز ${follows.status}).`,
+              )}
+            </p>
+          )}
+        </section>
+      ) : null}
+
+      {favorites !== null ? (
+        <section className="card" aria-labelledby="my-favorites-heading">
+          <h2 id="my-favorites-heading">مفضلاتي</h2>
+          {favorites.ok ? (
+            favorites.data.content.length === 0 ? (
+              <p className="page-note" role="status">
+                لا إعلانات محفوظة بعد — زر «احفظ لاحقاً» في صفحة أي إعلان
+                يجمعها هنا لتعود إليها.
+              </p>
+            ) : (
+              <>
+                <p className="page-note">
+                  {new Intl.NumberFormat("ar").format(favorites.data.totalElements)} إعلاناً
+                  محفوظاً — الأحدث حفظاً أولاً
+                </p>
+                <ul className="feed-list">
+                  {favorites.data.content.map((favorite) => (
+                    <li key={favorite.listingId} className="card post-card">
+                      <FavoriteRow favorite={favorite} />
+                      <UnsaveFavoriteForm listingId={favorite.listingId} />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )
+          ) : (
+            <p className="page-note" role="status">
+              {problemMessage(
+                favorites.problem,
+                `تعذّرت قراءة مفضلاتك (رمز ${favorites.status}).`,
               )}
             </p>
           )}

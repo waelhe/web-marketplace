@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { PriceTag } from "@/components/ui/price";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ShareButton } from "./share-button";
+import { SaveFavoriteButton } from "./save-favorite-button";
 import { LeadForm } from "../lead-form";
 
 // The public listing detail — the page the backend's L39 SEO contract
@@ -129,6 +130,11 @@ export default async function ListingPage({ params }: ListingPageProps) {
         </p>
         {listing.description ? <p className="listing-description">{listing.description}</p> : null}
         <p className="page-note">آخر تحديث: {formatDate(listing.updatedAt)}</p>
+        {/* W3 (G19): «حفظ لاحقًا» — the blind save button (the
+            FollowProviderButton discipline: no session read on the
+            public page, crawler parity; the state lives in
+            «مفضلاتي» on /profile). */}
+        <SaveFavoriteButton listingId={listing.id} />
       </section>
 
       {listing.property ? <PropertySection listing={listing} /> : null}

@@ -95,6 +95,8 @@ const w2w4ProviderPage: ProviderPublicPageView = {
         price: 350,
         currency: "SAR",
         providerName: "أحمد السيد",
+        providerRating: 4.8,
+        providerReviewCount: 6,
       },
     ],
     pageNumber: 0,
