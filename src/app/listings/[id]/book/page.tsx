@@ -113,6 +113,28 @@ export default async function BookPage({ params }: BookPageProps) {
         <BookingRequestForm listingId={listing.id} />
       </section>
 
+      {/* The full-vision wave (spec §7.2): «بضمان المنصة» — the escrow
+          CTA on the booking flow. R1's backend contract (the engagement
+          + funds state machine + the percentage → immutable ledger rows)
+          is owner-gated (the percentage itself, charter §7/8) — the
+          honest gate states exactly that; a disabled affordance never
+          fakes a live escrow. */}
+      <section className="card" aria-labelledby="escrow-heading">
+        <h2 id="escrow-heading">بضمان المنصة</h2>
+        <p className="page-note">
+          احجز المبلغ في محفظة المنصة حتى تأكيد الاستلام — أحد الطرفين يطلب
+          المنصة وسيطًا في العملية، والإفراج بشروط صريحة (تأكيد استلام / مهلة
+          / قرار نزاع)، ونسبة المنصة تُقتطع وتُقيّد في دفتر غير قابل للتعديل.
+        </p>
+        <button type="button" className="button" disabled>
+          اطلب الضمان — قريبًا
+        </button>
+        <p className="page-note" role="status">
+          بانتظار عقد الضمان (R1) ونسبة الوساطة — قرار مالك مسجّل في الميثاق
+          §7/8.
+        </p>
+      </section>
+
       <p>
         <Link href={`/listings/${listing.id}`}>عودة إلى الإعلان</Link>
       </p>

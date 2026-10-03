@@ -90,6 +90,7 @@ export default async function Home() {
           <nav className="site-header-nav" aria-label="التنقل الرئيس">
             <Link href="/search">البحث</Link>
             <Link href="/listings">تصفّح الإعلانات</Link>
+            <Link href="/store">المتجر</Link>
             <Link href="/neighborhoods">المناطق والأحياء</Link>
           </nav>
           <div className="site-header-session">
@@ -102,6 +103,7 @@ export default async function Home() {
                   <Link href="/neighborhood">حارتي</Link>
                   <Link href="/provider">لوحة المزوّد</Link>
                   <Link href="/bookings">حجوزاتي</Link>
+                  <Link href="/orders">طلباتي</Link>
                   <Link href="/inbox">الصندوق</Link>
                   <Link href="/profile">ملفي</Link>
                 </nav>

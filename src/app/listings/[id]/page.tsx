@@ -14,6 +14,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ShareButton } from "./share-button";
 import { SaveFavoriteButton } from "./save-favorite-button";
 import { LeadForm } from "../lead-form";
+import { ContextCard } from "./context-card";
+import { MortgageCalculator } from "./mortgage-calculator";
 
 // The public listing detail — the page the backend's L39 SEO contract
 // points at (CatalogProperties.listingPath defaults to "/listings/{id}":
@@ -150,6 +152,16 @@ export default async function ListingPage({ params }: ListingPageProps) {
       </section>
 
       {listing.property ? <PropertySection listing={listing} /> : null}
+
+      {/* The full-vision wave (spec §5.4/§5.6): the CONTEXT CARD — the
+          redesign's heart. The nearby block rides the REAL served radius
+          read; the pulse/institutions/insights/estimate blocks are
+          badged display (K1/E1/E2 backend waves pending). */}
+      <ContextCard listing={listing} />
+
+      {/* The full-vision wave (spec §5.4/E5): the mortgage calculator —
+          a pure front-end tool on the property's own asking price. */}
+      <MortgageCalculator askingPriceMajor={listing.price} />
 
       {/* The S5 public gallery (restored 2026-09-30): the backend's
           media read went PUBLIC ("same visibility as the listing

@@ -6,6 +6,14 @@ import { getSession } from "@/lib/dal";
 import { getMyMembership } from "@/lib/api/community";
 import { getMyUnreadNotificationCount } from "@/lib/api/inbox";
 import { findGeoNodeById } from "@/lib/api/geo";
+import {
+  DISPLAY_UNIVERSITIES,
+  INSTITUTION_KIND_LABELS,
+  sectionsOfHood,
+  sectionsRailLine,
+  visionCount,
+  visionDisplayEnabled,
+} from "@/lib/vision-institutions";
 import { SignInButton } from "@/app/auth-buttons";
 import { WingTabBar } from "./wing-tab-bar";
 
@@ -75,6 +83,15 @@ export default async function NeighborhoodLayout({ children }: { children: React
   const neighborhoodName = membershipOk
     ? (await findGeoNodeById(membershipOk.locationId))?.nameAr ?? null
     : null;
+  /* The full-vision fabric (spec §5.1): the sections rail renders the
+   * display sections of the member's OWN hood (G3 backend wave pending —
+   * the badge rides the block); anonymous callers see the honest
+   * signed-out state (no sections to browse). */
+  const visionOn = visionDisplayEnabled();
+  const mySections =
+    visionOn && neighborhoodName !== null
+      ? sectionsOfHood(neighborhoodName)
+      : [];
   /* The bell's badge rides the backend's own unread count (N1: the
    * notifications channel is LIVE — the earlier disabled bell awaited
    * a service that already existed; measured 2026-09-30, gap doc §2/3). */
@@ -219,6 +236,51 @@ export default async function NeighborhoodLayout({ children }: { children: React
             </a>
           ))}
         </nav>
+        {visionOn ? (
+          <>
+            {/* The full-vision wave (spec §2.3/§5.1): الأقسام الخاصة —
+                the حي's own mosque/school/institute sections, each with
+                its member-only board. Display world (G3 pending), the
+                badge riding the block's heading. */}
+            <div className="hy-nav-extra">
+              <p className="hy-nav-extra-heading">
+                الأقسام الخاصة <span className="hy-badge-demo">بيانات عرض</span>
+              </p>
+              <p className="hy-nav-extra-note">{sectionsRailLine(mySections.length)}</p>
+              <nav className="hy-sections-rail" aria-label="الأقسام الخاصة في الحي">
+                {mySections.map((s) => (
+                  <Link key={s.id} href={`/neighborhood/sections/${s.id}`}>
+                    <span className="material-symbols-outlined" aria-hidden="true" style={{ fontSize: "1rem" }}>
+                      {s.kind === "MOSQUE" ? "mosque" : s.kind === "SCHOOL" ? "school" : "science"}
+                    </span>
+                    {s.nameAr}
+                    <span className="hy-section-count">{visionCount(s.members)}</span>
+                  </Link>
+                ))}
+              </nav>
+            </div>
+            {/* The full-vision wave (spec §2.2): الجامعات — the place
+                picker's university tier. Display rows (G2 pending):
+                NOT links (no community page exists yet — the honest
+                non-clickable display discipline). */}
+            <div className="hy-nav-extra">
+              <p className="hy-nav-extra-heading">
+                الجامعات <span className="hy-badge-demo">بيانات عرض</span>
+              </p>
+              <ul className="hy-uni-list">
+                {DISPLAY_UNIVERSITIES.map((u) => (
+                  <li key={u.id}>
+                    <span>{INSTITUTION_KIND_LABELS[u.kind]} {u.nameAr}</span>
+                    <span className="hy-section-count">{visionCount(u.communitySize)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="hy-nav-extra-note">
+                مجتمعات الجامعات تُفتح بعضوية الكليات — موجة G2 في خطة الباك اند.
+              </p>
+            </div>
+          </>
+        ) : null}
         <div className="hy-aside-foot">
           <button
             type="button"

@@ -26,6 +26,7 @@ import {
 import { formatDate, formatDateTime, formatPrice } from "@/lib/format";
 import { problemMessage } from "@/lib/problem";
 import { FollowProviderButton, HelpfulVoteButton, OrganicReviewForm, ReviewFlagForm } from "./forms";
+import { VisionServicesBlock } from "./vision-services-block";
 
 // The L36 public provider page — the app's SECOND SEO surface (roadmap
 // stage 5, السمعة). The backend composes the whole page in one read
@@ -554,6 +555,12 @@ export default async function ProviderPublicPage({
 
         <h2>نطاقات الخدمة</h2>
         <ServiceAreasBlock areas={provider.serviceAreas ?? []} />
+
+        {/* The full-vision wave (spec §5.5): the Wyzant layer — the
+            booking-mode pairing (the REAL served leads channel beside
+            instant-book) + the service packages + the background-check
+            badge (display blocks, T2/T3 backend waves pending). */}
+        <VisionServicesBlock providerName={provider.displayName} />
       </section>
 
       <section className="card" aria-labelledby="provider-reviews-heading">

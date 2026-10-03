@@ -42,7 +42,18 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ar" dir="rtl" className={cairo.variable}>
-      <body>{children}</body>
+      <body>
+        {/* Material Symbols Outlined — the platform-wide icon font: the
+            neighborhood wing loaded it for its own shell (S10); the
+            full-vision store plates now consume it on public surfaces
+            too, so the font becomes root furniture (the browser
+            deduplicates the identical href the wing also declares). */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+        />
+        {children}
+      </body>
     </html>
   );
 }
