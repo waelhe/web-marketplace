@@ -148,6 +148,11 @@ test("the publish sheet opens from the FAB and carries the design's five intents
   page,
 }) => {
   await page.goto("/store");
+  // The floating chrome is client-interactive: on a cold dev server the
+  // SSR markup precedes React by seconds and a pre-hydration click is
+  // silently lost (measured on CI 2026-10-04). Wait for the component's
+  // hydration beacon before clicking the FAB.
+  await expect(page.locator("nav.suq-nav[data-mounted='true']")).toBeAttached();
   const fab = page.getByRole("button", { name: "نشر جديد في الحي" });
   await expect(fab).toBeVisible();
   await fab.click();

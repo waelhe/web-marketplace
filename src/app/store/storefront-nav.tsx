@@ -65,8 +65,19 @@ export function StorefrontNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const sheetRef = useRef<HTMLDialogElement>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   const storeActive = pathname === "/store" || pathname.startsWith("/store/");
+
+  // Hydration beacon: on a cold dev server the SSR markup looks
+  // interactive seconds before React attaches — a pre-hydration click
+  // on the FAB is silently lost (measured on CI 2026-10-04: the dialog
+  // stayed closed across the whole retry window). The e2e net waits
+  // for this flag before clicking, so the click always lands on a
+  // live handler — no retry masks, ever.
+  useEffect(() => {
+    navRef.current?.setAttribute("data-mounted", "true");
+  }, []);
 
   // The native dialog owns open/close state mirroring: showModal on the
   // React open, and the dialog's own close (ESC / backdrop / intent
@@ -80,7 +91,7 @@ export function StorefrontNav() {
 
   return (
     <>
-      <nav className="suq-nav" aria-label="تنقّل سوق الحي">
+      <nav ref={navRef} className="suq-nav" aria-label="تنقّل سوق الحي">
         <Link
           className="suq-nav-item"
           href="/neighborhood"
