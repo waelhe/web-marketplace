@@ -58,7 +58,11 @@ test("renders the six destinations as links with icons and short labels", () => 
 test("the feed tab is active on the exact feed route ONLY — never on a sibling", () => {
   setState("/neighborhood");
   const markup = render();
-  const active = markup.match(/<a class="hy-tab" data-active[^>]*>[\s\S]*?<\/a>/g) ?? [];
+  // Order-independent anchor capture (the React-19 static markup lesson:
+  // never assume attribute order — the never-run test's own regex
+  // assumed data-active directly after class and failed the day the
+  // include pattern finally picked it up, 2026-10-04).
+  const active = markup.match(/<a[^>]*data-active[^>]*>[\s\S]*?<\/a>/g) ?? [];
   expect(active.length).toBe(1);
   expect(active[0] ?? "").toContain('href="/neighborhood"');
   expect(active[0] ?? "").toContain('aria-current="page"');
@@ -67,26 +71,33 @@ test("the feed tab is active on the exact feed route ONLY — never on a sibling
 test("a section route activates its own tab only (path-segment matching)", () => {
   setState("/neighborhood/market");
   const markup = render();
-  const active = markup.match(/<a class="hy-tab" data-active[^>]*>[\s\S]*?<\/a>/g) ?? [];
+  // Order-independent anchor capture (the React-19 static markup lesson:
+  // never assume attribute order — the never-run test's own regex
+  // assumed data-active directly after class and failed the day the
+  // include pattern finally picked it up, 2026-10-04).
+  const active = markup.match(/<a[^>]*data-active[^>]*>[\s\S]*?<\/a>/g) ?? [];
   expect(active.length).toBe(1);
   expect(active[0] ?? "").toContain('href="/neighborhood/market"');
 
   // A DEEPER route under a section still activates that section.
   setState("/neighborhood/events/some-occasion");
   const deeper = render();
-  const activeDeep = deeper.match(/<a class="hy-tab" data-active[^>]*>[\s\S]*?<\/a>/g) ?? [];
+  const activeDeep = deeper.match(/<a[^>]*data-active[^>]*>[\s\S]*?<\/a>/g) ?? [];
   expect(activeDeep.length).toBe(1);
   expect(activeDeep[0] ?? "").toContain('href="/neighborhood/events"');
 });
 
 test("the shell's secondary surfaces activate NO tab (they are not destinations)", () => {
+  // Order-independent capture: the original regex assumed attribute
+  // order and matched NOTHING — a vacuous pass that hid the feed-tab
+  // prefix bug for the whole never-run lifetime of this file.
   // /neighborhood/notifications and /neighborhood/me are header
   // affordances, not tab destinations — the bar shows no active tab
   // there (and the FEED tab must not steal them via raw prefix match).
   for (const path of ["/neighborhood/notifications", "/neighborhood/me"]) {
     setState(path);
     const markup = render();
-    const active = markup.match(/<a class="hy-tab" data-active[^>]*>/g) ?? [];
+    const active = markup.match(/<a[^>]*data-active[^>]*>[\s\S]*?<\/a>/g) ?? [];
     expect(active.length).toBe(0);
   }
 });

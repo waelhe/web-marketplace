@@ -34,8 +34,16 @@ const TAB_ITEMS: ReadonlyArray<{
   { href: "/neighborhood/groups", label: "المجموعات", full: "مجموعات الجيران", icon: "groups" },
 ];
 
-/** Path-segment matching — never raw includes (the measured trap). */
+/** Path-segment matching — never raw includes (the measured trap).
+ * The wing's ROOT is its own exact route: the feed tab is active on
+ * `/neighborhood` ONLY — every sibling tree (events, market, me,
+ * notifications…) belongs to its own tab or to no tab. The raw
+ * startsWith("/neighborhood/") made the feed tab steal the secondary
+ * surfaces (me/notifications show NO active tab — the never-run N1
+ * unit test's own contract, revived 2026-10-04 when the include
+ * pattern finally picked the .tsx tests up). */
 function isItemActive(pathname: string, href: string): boolean {
+  if (href === "/neighborhood") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
