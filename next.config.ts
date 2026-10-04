@@ -4,6 +4,16 @@ const nextConfig: NextConfig = {
   logging: {
     browserToTerminal: 'warn',
   },
+  // Dev-server hydration gate (measured 2026-10-04): Next's dev runtime
+  // only trusts `localhost` as a dev origin — every e2e/dev visit from
+  // 127.0.0.1 (the playwright baseURL, local and CI alike) had its HMR
+  // websocket handshake REJECTED (net::ERR_INVALID_HTTP_RESPONSE) and
+  // React never attached: pages rendered SSR-only for the whole 20s
+  // probe window. The prod build has no HMR and hydrated instantly,
+  // which is why only client-interactive surfaces (the suq publish
+  // sheet) ever exposed it. Allowing the loopback alias fixes dev
+  // hydration everywhere; zero effect on production builds.
+  allowedDevOrigins: ['127.0.0.1'],
   experimental: {
     // The photo upload Server Action carries the file's bytes through
     // the action request (the official FormData path). The default 1MB
