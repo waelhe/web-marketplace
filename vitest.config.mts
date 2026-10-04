@@ -11,6 +11,11 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts"],
+    // .ts AND .tsx: the first component tests landed as .tsx (the N1
+    // wing tab bar) but the include pattern silently excluded them — a
+    // standing gap measured 2026-10-04 (the wing-bar test never ran in
+    // CI). JSX-in-test stays the exception (renderToStaticMarkup over
+    // server/client leaves), not a jsdom/testing-library adoption.
+    include: ["tests/unit/**/*.test.{ts,tsx}"],
   },
 });

@@ -1,6 +1,9 @@
 /**
  * The commerce marketplace's DISPLAY layer + the cart's own cookie-backed
  * contract (the 2026-10-04 full-vision spec §5.2 — the Amazon column).
+ * The product world follows the owner's attached binding design (PR #502,
+ * 2026-10-04 «استفد والتزم بالتصميم المرفق») — the سوق الحي neighborhood
+ * market storefront; see docs/superpowers/specs/2026-10-04-suq-storefront-design-adherence-spec.md.
  *
  * SPLIT OF AUTHORITY (the honest split, stated once):
  * - The PRODUCT WORLD is display data: the backend does not yet serve
@@ -26,8 +29,10 @@ import { visionDisplayEnabled } from "@/lib/vision-institutions";
 /* ── The product world (display) ───────────────────────────────────────── */
 
 /** The store's own category vocabulary — an OWNER gate (spec §9.1, the
- * charter register): this display set follows the seed's own world and
- * self-retires when the owner's dictionary lands with M1. */
+ * charter register). The 2026-10-04 attached design (PR #502, the binding
+ * «استفد والتزم بالتصميم المرفق») delivers the owner's dictionary:
+ * the سوق الحي food-and-craft market — the eight categories below. This
+ * display set self-retires when the owner's M1 dictionary lands. */
 export interface StoreCategory {
   code: string;
   labelAr: string;
@@ -36,14 +41,14 @@ export interface StoreCategory {
 }
 
 export const STORE_CATEGORIES: readonly StoreCategory[] = [
-  { code: "home", labelAr: "المنزل والمطبخ", symbol: "kitchen" },
-  { code: "electronics", labelAr: "إلكترونيات", symbol: "devices" },
-  { code: "phones", labelAr: "الجوال وملحقاته", symbol: "smartphone" },
-  { code: "fashion", labelAr: "الأزياء", symbol: "apparel" },
-  { code: "kids", labelAr: "عالم الطفل", symbol: "child_care" },
-  { code: "sports", labelAr: "الرياضة والهوايات", symbol: "sports_basketball" },
-  { code: "beauty", labelAr: "الجمال والعناية", symbol: "spa" },
-  { code: "grocery", labelAr: "المواد الغذائية", symbol: "grocery" },
+  { code: "bakery", labelAr: "مخابز وحلويات", symbol: "bakery_dining" },
+  { code: "produce", labelAr: "خضار وفواكه", symbol: "eco" },
+  { code: "meats", labelAr: "لحوم ودواجن", symbol: "restaurant" },
+  { code: "coffee", labelAr: "قهوة وتحميص", symbol: "coffee" },
+  { code: "fashion", labelAr: "أزياء وعبايات", symbol: "apparel" },
+  { code: "kids", labelAr: "أطفال ومواليد", symbol: "child_care" },
+  { code: "homekitchen", labelAr: "أسر منتجة ومطابخ", symbol: "outdoor_grill" },
+  { code: "perfumes", labelAr: "عطور وعناية", symbol: "spa" },
 ];
 
 /** A display product row. Prices in CENTS (the backend's own money
@@ -73,204 +78,550 @@ export interface StoreProduct {
   summaryAr: string;
   /** Display Q&A rows count on the product page. */
   qaCount: number;
+  /** The design's own chip on the card (ساخن الآن…) — optional display
+   *  badge, absent on most rows. */
+  badgeAr?: string;
 }
 
-/** The display product world — 12 rows across 6 categories, whole-riyal
- * SAR, two first-party rows («من المنصة»). */
+/** The display product world — the attached design's سوق الحي: 29 rows
+ * across the eight categories (the design's own products, vendors, and
+ * section chips; prices honest whole-riyal SAR — the platform's currency,
+ * not the mockup's demo lira; one platform-curated basket rides the
+ * offers rail as the first-party row). */
 export const STORE_PRODUCTS: readonly StoreProduct[] = [
   {
-    id: "demo-product-blender",
-    titleAr: "خلاط زجاجي 1.5 لتر بثلاث سرعات",
-    category: "home",
-    priceMajor: 180,
+    id: "demo-suq-bread-tourist",
+    titleAr: "خبز سياحي ممتاز وصمون",
+    category: "bakery",
+    priceMajor: 15,
     currency: "SAR",
-    vendorAr: "أدوات المطبخ الشامية",
+    vendorAr: "مخبز ضاحية قدسيا",
     firstParty: false,
     vendorRating: 4.6,
     vendorRatingCount: 89,
-    shipDays: 2,
+    shipDays: 1,
     inStock: true,
-    symbol: "kitchen",
-    summaryAr: "وعاء زجاجي مقاوم للحرارة، شفرات ستانلس، ضمان سنة من البائع",
+    symbol: "bakery_dining",
+    summaryAr: "طازج من الفرن مباشرة — يُخبز فجر كل يوم",
+    qaCount: 2,
+    badgeAr: "ساخن الآن",
+  },
+  {
+    id: "demo-suq-mamoul-pistachio",
+    titleAr: "معمول فستق حلبي وجوز",
+    category: "bakery",
+    priceMajor: 85,
+    currency: "SAR",
+    vendorAr: "حلويات ومعجنات الشام - قدسيا",
+    firstParty: false,
+    vendorRating: 4.2,
+    vendorRatingCount: 37,
+    shipDays: 1,
+    inStock: true,
+    symbol: "cake",
+    summaryAr: "نصف كيلو فاخر محمّص بالسمن البلدي",
     qaCount: 3,
   },
   {
-    id: "demo-product-airfryer",
-    titleAr: "قلاية هوائية 5.5 لتر بشاشة رقمية",
-    category: "home",
-    priceMajor: 425,
+    id: "demo-suq-kaak-sesame",
+    titleAr: "كعك شامي بالسمسم والزعتر",
+    category: "bakery",
+    priceMajor: 20,
     currency: "SAR",
-    vendorAr: "أدوات المطبخ الشامية",
+    vendorAr: "أفران كعك الميدان",
     firstParty: false,
-    vendorRating: 4.6,
-    vendorRatingCount: 89,
-    shipDays: 2,
-    inStock: true,
-    symbol: "kitchen",
-    summaryAr: "ثمانية برامج جاهزة، سلة غير لاصقة، كتاب وصفات عربي مرفق",
-    qaCount: 5,
-  },
-  {
-    id: "demo-product-lamp",
-    titleAr: "مصباح أرضي خشبي بإضاءة دافئة قابلة للعتم",
-    category: "home",
-    priceMajor: 145,
-    currency: "SAR",
-    vendorAr: "لمسة ديكور",
-    firstParty: false,
-    vendorRating: 4.2,
-    vendorRatingCount: 34,
-    shipDays: 3,
-    inStock: true,
-    symbol: "kitchen",
-    summaryAr: "قاعدة خشب طبيعي، ثلاث درجات إضاءة، لمبة E27 مرفقة",
-    qaCount: 1,
-  },
-  {
-    id: "demo-product-earbuds",
-    titleAr: "سماعات لاسلكية بعزل ضجيج نشط",
-    category: "electronics",
-    priceMajor: 210,
-    currency: "SAR",
-    vendorAr: "تقنية الواجهة",
-    firstParty: false,
-    vendorRating: 4.4,
-    vendorRatingCount: 156,
-    shipDays: 1,
-    inStock: true,
-    symbol: "devices",
-    summaryAr: "بلوتوث 5.3، ثلاثون ساعة مع العلبة، مقاومة رشاش IPX4",
-    qaCount: 7,
-  },
-  {
-    id: "demo-product-powerbank",
-    titleAr: "بطارية متنقلة 20000 مللي أمبير بشاشة",
-    category: "electronics",
-    priceMajor: 155,
-    currency: "SAR",
-    vendorAr: "من المنصة",
-    firstParty: true,
     vendorRating: null,
     vendorRatingCount: 0,
     shipDays: 1,
     inStock: true,
-    symbol: "devices",
-    summaryAr: "شحن سريع 22.5 واط، منفذان USB ومنفذ Type-C — تشحنها وتتركها",
-    qaCount: 2,
-  },
-  {
-    id: "demo-product-smartwatch",
-    titleAr: "ساعة ذكية بشاشة أموليد ومقاومة ماء",
-    category: "electronics",
-    priceMajor: 380,
-    currency: "SAR",
-    vendorAr: "تقنية الواجهة",
-    firstParty: false,
-    vendorRating: 4.4,
-    vendorRatingCount: 156,
-    shipDays: 2,
-    inStock: false,
-    symbol: "devices",
-    summaryAr: "قياس نبض وأكسجين، أكثر من مئة نمط رياضي، بطارية عشرة أيام",
-    qaCount: 4,
-  },
-  {
-    id: "demo-product-phonecase",
-    titleAr: "غطاء جوال جلدي بحماية كاميرا مزدوجة",
-    category: "phones",
-    priceMajor: 65,
-    currency: "SAR",
-    vendorAr: "إكسسوارات المزة",
-    firstParty: false,
-    vendorRating: 4.0,
-    vendorRatingCount: 21,
-    shipDays: 3,
-    inStock: true,
-    symbol: "smartphone",
-    summaryAr: "جلد طبيعي مدبوغ، حافة مرتفعة حول الكاميرا، ألوان قابلة للنقش",
-    qaCount: 2,
-  },
-  {
-    id: "demo-product-charger",
-    titleAr: "شاحن جداري 65 واط بثلاث مخارج",
-    category: "phones",
-    priceMajor: 95,
-    currency: "SAR",
-    vendorAr: "من المنصة",
-    firstParty: true,
-    vendorRating: null,
-    vendorRatingCount: 0,
-    shipDays: 1,
-    inStock: true,
-    symbol: "smartphone",
-    summaryAr: "GaN مدمج، يشحن الجوال والحاسوب معًا — بضمان المنصة نفسها",
+    symbol: "bakery_dining",
+    summaryAr: "طازج ومقرمش يوميًا — مع شاي الصباح",
     qaCount: 0,
   },
   {
-    id: "demo-product-abaya",
-    titleAr: "عباية صيفية بقماش نخيلي مزدوج",
-    category: "fashion",
-    priceMajor: 240,
+    id: "demo-suq-cherry-fig-basket",
+    titleAr: "سلة كرز وتين وادي بردى",
+    category: "bakery",
+    priceMajor: 45,
     currency: "SAR",
-    vendorAr: "أزياء الياسمين",
+    vendorAr: "بساتين وادي بردى",
     firstParty: false,
-    vendorRating: 4.8,
-    vendorRatingCount: 67,
-    shipDays: 4,
-    inStock: true,
-    symbol: "apparel",
-    summaryAr: "قماش يتنفس، خياطة يدوية على الأكمام، مقاسات 52 إلى 60",
-    qaCount: 3,
+    vendorRating: null,
+    vendorRatingCount: 0,
+    shipDays: 1,
+    inStock: false,
+    symbol: "nutrition",
+    summaryAr: "قطوف الموسم — سلة عائلية (الموسم انتهى، تعود مع القطاف)",
+    qaCount: 1,
+    badgeAr: "موسمي",
   },
   {
-    id: "demo-product-sneakers",
-    titleAr: "حذاء رياضي للمشي اليومي بنعل مريح",
-    category: "fashion",
-    priceMajor: 195,
+    id: "demo-suq-strawberry-maddaya",
+    titleAr: "فراولة مضايا الجبلية العسلية",
+    category: "produce",
+    priceMajor: 25,
     currency: "SAR",
-    vendorAr: "خُطى",
+    vendorAr: "بساتين ريف دمشق",
     firstParty: false,
-    vendorRating: 4.1,
-    vendorRatingCount: 48,
-    shipDays: 3,
+    vendorRating: 4.5,
+    vendorRatingCount: 120,
+    shipDays: 1,
     inStock: true,
-    symbol: "apparel",
-    summaryAr: "نعل إيفا خفيف، شبك علوي يتنفس، مقاسات 39 إلى 45",
+    symbol: "eco",
+    summaryAr: "كيلو مقطوف صباح اليوم من مشاتل مضايا",
+    qaCount: 2,
+    badgeAr: "قطاف اليوم",
+  },
+  {
+    id: "demo-suq-olive-daraawi",
+    titleAr: "زيتون درعاوي متبل بلدي",
+    category: "produce",
+    priceMajor: 30,
+    currency: "SAR",
+    vendorAr: "بساتين ريف دمشق",
+    firstParty: false,
+    vendorRating: 4.5,
+    vendorRatingCount: 120,
+    shipDays: 1,
+    inStock: true,
+    symbol: "eco",
+    summaryAr: "كيلو معصور بيتي بتتبيلة الليمون والفليفلة",
     qaCount: 1,
   },
   {
-    id: "demo-product-stroller",
-    titleAr: "عربة أطفال قابلة للطي بيد واحدة",
-    category: "kids",
-    priceMajor: 520,
+    id: "demo-suq-mint-parsley",
+    titleAr: "نعناع شامي وبقدونس بلدي",
+    category: "produce",
+    priceMajor: 8,
     currency: "SAR",
-    vendorAr: "عالم الصغير",
+    vendorAr: "مزارع الغوطة",
     firstParty: false,
-    vendorRating: 4.7,
-    vendorRatingCount: 52,
-    shipDays: 5,
+    vendorRating: null,
+    vendorRatingCount: 0,
+    shipDays: 1,
     inStock: true,
-    symbol: "child_care",
-    summaryAr: "مقعد قابل للاستلقاء الكامل، سلة تسوق كبيرة، كفرات مطاطية",
-    qaCount: 6,
+    symbol: "grass",
+    summaryAr: "حزمة صباحية مغسولة وجاهزة للطبخ",
+    qaCount: 0,
   },
   {
-    id: "demo-product-football",
-    titleAr: "كرة قدم محلية بحشوة غاز منخفض",
-    category: "sports",
-    priceMajor: 85,
+    id: "demo-suq-lamb-awaas",
+    titleAr: "لحم غنم عواس بلدي طازج",
+    category: "meats",
+    priceMajor: 95,
     currency: "SAR",
-    vendorAr: "ملعب الحارة",
+    vendorAr: "قصابة ضاحية قدسيا البلدية",
     firstParty: false,
-    vendorRating: 4.3,
+    vendorRating: 4.7,
+    vendorRatingCount: 64,
+    shipDays: 1,
+    inStock: true,
+    symbol: "restaurant",
+    summaryAr: "كيلو مُقطّع حسب الطلب — ذبح يومي فجرًا",
+    qaCount: 4,
+    badgeAr: "ذبح يومي",
+  },
+  {
+    id: "demo-suq-chicken-breast",
+    titleAr: "صدور فروج بلدي مسحب",
+    category: "meats",
+    priceMajor: 38,
+    currency: "SAR",
+    vendorAr: "قصابة ضاحية قدسيا البلدية",
+    firstParty: false,
+    vendorRating: 4.7,
+    vendorRatingCount: 64,
+    shipDays: 1,
+    inStock: true,
+    symbol: "restaurant",
+    summaryAr: "كيلو طازج اليوم — بدون عظم وجلد",
+    qaCount: 2,
+  },
+  {
+    id: "demo-suq-kebab-halabi",
+    titleAr: "كباب حلبي متبل للشوي",
+    category: "meats",
+    priceMajor: 78,
+    currency: "SAR",
+    vendorAr: "قصابة ضاحية قدسيا البلدية",
+    firstParty: false,
+    vendorRating: 4.7,
+    vendorRatingCount: 64,
+    shipDays: 1,
+    inStock: true,
+    symbol: "outdoor_grill",
+    summaryAr: "كيلو بتتبيلة الجرّان — جاهز للشوي مباشرة",
+    qaCount: 3,
+  },
+  {
+    id: "demo-suq-chicken-whole",
+    titleAr: "فروج بلدي كامل طازج",
+    category: "meats",
+    priceMajor: 55,
+    currency: "SAR",
+    vendorAr: "مداجن ريف دمشق",
+    firstParty: false,
+    vendorRating: 4.1,
+    vendorRatingCount: 28,
+    shipDays: 1,
+    inStock: true,
+    symbol: "restaurant",
+    summaryAr: "فروج كامل منظّف — وزن ١٫٥ كيلو تقريبًا",
+    qaCount: 1,
+  },
+  {
+    id: "demo-suq-coffee-syrian-cardamom",
+    titleAr: "بن سوري مع هال إكسترا ذهبي",
+    category: "coffee",
+    priceMajor: 60,
+    currency: "SAR",
+    vendorAr: "بن الحموي - فرع الشام",
+    firstParty: false,
+    vendorRating: 4.8,
+    vendorRatingCount: 210,
+    shipDays: 1,
+    inStock: true,
+    symbol: "coffee",
+    summaryAr: "نصف كيلو محمّص اليوم — درجة تحميص وسطى",
+    qaCount: 5,
+    badgeAr: "تحميص اليوم",
+  },
+  {
+    id: "demo-suq-coffee-turkish-iced",
+    titleAr: "قهوة تركية شامية مثلجة",
+    category: "coffee",
+    priceMajor: 28,
+    currency: "SAR",
+    vendorAr: "بن الحموي - فرع الشام",
+    firstParty: false,
+    vendorRating: 4.8,
+    vendorRatingCount: 210,
+    shipDays: 1,
+    inStock: true,
+    symbol: "local_cafe",
+    summaryAr: "عبوة ٢٥٠ غرامًا — تُحضّر باردة على الطريقة الشامية",
+    qaCount: 2,
+  },
+  {
+    id: "demo-suq-coffee-arabic-saffron",
+    titleAr: "خلطة بن عربي بالهيل والزعفران",
+    category: "coffee",
+    priceMajor: 75,
+    currency: "SAR",
+    vendorAr: "محامص الشام المختصة",
+    firstParty: false,
+    vendorRating: null,
+    vendorRatingCount: 0,
+    shipDays: 2,
+    inStock: true,
+    symbol: "coffee",
+    summaryAr: "نصف كيلو — خلطة الضيافة بلمسة زعفران",
+    qaCount: 1,
+  },
+  {
+    id: "demo-suq-tea-jasmine",
+    titleAr: "شاي سيلاني بالياسمين الدمشقي",
+    category: "coffee",
+    priceMajor: 22,
+    currency: "SAR",
+    vendorAr: "عطارة الياسمين",
+    firstParty: false,
+    vendorRating: 4.0,
     vendorRatingCount: 19,
     shipDays: 2,
     inStock: true,
-    symbol: "sports_basketball",
-    summaryAr: "خياطة 32 قطعة، مقاس 5، تناسب ملاعب الحواري الصغيرة",
+    symbol: "emoji_food_beverage",
+    summaryAr: "٢٠٠ غرام — عبق الياسمين مع الشاي الأسود",
     qaCount: 0,
   },
+  {
+    id: "demo-suq-abaya-brocard",
+    titleAr: "عباية بروكار بتطريز يدوي شامي",
+    category: "fashion",
+    priceMajor: 405,
+    currency: "SAR",
+    vendorAr: "دار الياسمين الدمشقي",
+    firstParty: false,
+    vendorRating: 4.9,
+    vendorRatingCount: 77,
+    shipDays: 3,
+    inStock: true,
+    symbol: "apparel",
+    summaryAr: "قماش صيفي مزدوج — تطريز البروكار الدمشقي الأصلي",
+    qaCount: 4,
+    badgeAr: "بروكار دمشقي",
+  },
+  {
+    id: "demo-suq-dress-linen",
+    titleAr: "فستان كتان شامي ناعم ومطرز",
+    category: "fashion",
+    priceMajor: 320,
+    currency: "SAR",
+    vendorAr: "دار الياسمين الدمشقي",
+    firstParty: false,
+    vendorRating: 4.9,
+    vendorRatingCount: 77,
+    shipDays: 3,
+    inStock: true,
+    symbol: "apparel",
+    summaryAr: "كتان طبيعي — مقاسات ٣٨ إلى ٤٦",
+    qaCount: 2,
+  },
+  {
+    id: "demo-suq-shawl-kashmiri",
+    titleAr: "شال كشميري مطرز حرير",
+    category: "fashion",
+    priceMajor: 145,
+    currency: "SAR",
+    vendorAr: "دار الياسمين الدمشقي",
+    firstParty: false,
+    vendorRating: 4.9,
+    vendorRatingCount: 77,
+    shipDays: 3,
+    inStock: true,
+    symbol: "dry_cleaning",
+    summaryAr: "قطعة يدوية وحيدة — تطريز حرير على كشمير",
+    qaCount: 1,
+  },
+  {
+    id: "demo-suq-jalabiya-cotton",
+    titleAr: "جلابية دمشقية قطنية",
+    category: "fashion",
+    priceMajor: 180,
+    currency: "SAR",
+    vendorAr: "مشغل دمشق للجلابيات",
+    firstParty: false,
+    vendorRating: null,
+    vendorRatingCount: 0,
+    shipDays: 3,
+    inStock: true,
+    symbol: "apparel",
+    summaryAr: "قطن صيفي ١٠٠٪ — قصات واسعة مريحة",
+    qaCount: 0,
+  },
+  {
+    id: "demo-suq-newborn-set",
+    titleAr: "طقم استقبال مولود قطن حماوي",
+    category: "kids",
+    priceMajor: 130,
+    currency: "SAR",
+    vendorAr: "براعم الشام - دمر",
+    firstParty: false,
+    vendorRating: 4.4,
+    vendorRatingCount: 31,
+    shipDays: 2,
+    inStock: true,
+    symbol: "child_care",
+    summaryAr: "سبع قطع قطن سوري — هدية المولود التقليدية",
+    qaCount: 3,
+  },
+  {
+    id: "demo-suq-baby-cradle-wool",
+    titleAr: "مهد أطفال صوف دافئ يدوي",
+    category: "kids",
+    priceMajor: 220,
+    currency: "SAR",
+    vendorAr: "أسر منتجة - قدسيا",
+    firstParty: false,
+    vendorRating: null,
+    vendorRatingCount: 0,
+    shipDays: 4,
+    inStock: true,
+    symbol: "crib",
+    summaryAr: "غزل صوف يدوي — من صناعة أسر الحي",
+    qaCount: 1,
+    badgeAr: "صناعة يدوية",
+  },
+  {
+    id: "demo-suq-pajamas-cotton",
+    titleAr: "طقم بيجامات قطن ناعم",
+    category: "kids",
+    priceMajor: 65,
+    currency: "SAR",
+    vendorAr: "براعم الشام - دمر",
+    firstParty: false,
+    vendorRating: 4.4,
+    vendorRatingCount: 31,
+    shipDays: 2,
+    inStock: true,
+    symbol: "checkroom",
+    summaryAr: "قطعتان — قطن مصري مغسول مسبقًا",
+    qaCount: 0,
+  },
+  {
+    id: "demo-suq-balance-tower",
+    titleAr: "برج توازن خشبي تنموي للأطفال",
+    category: "kids",
+    priceMajor: 150,
+    currency: "SAR",
+    vendorAr: "ورشة خشب الحرفة",
+    firstParty: false,
+    vendorRating: null,
+    vendorRatingCount: 0,
+    shipDays: 4,
+    inStock: true,
+    symbol: "toys",
+    summaryAr: "خشب زان طبيعي بدهان مائي آمن — لعبة تنموية",
+    qaCount: 2,
+  },
+  {
+    id: "demo-suq-kibbeh-shami",
+    titleAr: "كبة شامية مقلية بلحم العواس",
+    category: "homekitchen",
+    priceMajor: 70,
+    currency: "SAR",
+    vendorAr: "مطبخ أم محمد - قدسيا",
+    firstParty: false,
+    vendorRating: 5.0,
+    vendorRatingCount: 45,
+    shipDays: 1,
+    inStock: true,
+    symbol: "outdoor_grill",
+    summaryAr: "كيلو مقرمش بالجوز والصنوبر — يُقلى يوم التسليم",
+    qaCount: 3,
+    badgeAr: "طازج اليوم",
+  },
+  {
+    id: "demo-suq-makdus-eggplant",
+    titleAr: "مكدوس باذنجان بلدي بزيت الزيتون",
+    category: "homekitchen",
+    priceMajor: 90,
+    currency: "SAR",
+    vendorAr: "مطبخ أم محمد - قدسيا",
+    firstParty: false,
+    vendorRating: 5.0,
+    vendorRatingCount: 45,
+    shipDays: 1,
+    inStock: true,
+    symbol: "takeout_dining",
+    summaryAr: "عبوة كيلو — باذنجان بلدي صغير بجوز ومعصور بيتي",
+    qaCount: 2,
+  },
+  {
+    id: "demo-suq-yabraa-olive-oil",
+    titleAr: "يبرق بلدي بزيت الزيتون والرمان",
+    category: "homekitchen",
+    priceMajor: 110,
+    currency: "SAR",
+    vendorAr: "مطبخ السيدة هدية - دمر",
+    firstParty: false,
+    vendorRating: null,
+    vendorRatingCount: 0,
+    shipDays: 1,
+    inStock: true,
+    symbol: "dinner_dining",
+    summaryAr: "صينية عائلية — ورق عنب بصلصة الرمان المكثفة",
+    qaCount: 1,
+  },
+  {
+    id: "demo-suq-halawet-jibn",
+    titleAr: "حلاوة الجبن الحمصية الفاخرة",
+    category: "homekitchen",
+    priceMajor: 120,
+    currency: "SAR",
+    vendorAr: "حلاوات الشام",
+    firstParty: false,
+    vendorRating: 4.3,
+    vendorRatingCount: 52,
+    shipDays: 1,
+    inStock: true,
+    symbol: "icecream",
+    summaryAr: "كيلو قشطة قنديّة بالفستق الحلبي المطحون",
+    qaCount: 2,
+  },
+  {
+    id: "demo-suq-breakfast-basket",
+    titleAr: "سلة صباح قدسيا المتكاملة",
+    category: "bakery",
+    priceMajor: 195,
+    currency: "SAR",
+    vendorAr: "من المنصة",
+    firstParty: true,
+    vendorRating: null,
+    vendorRatingCount: 0,
+    shipDays: 1,
+    inStock: true,
+    symbol: "shopping_basket",
+    summaryAr: "خبز الضاحية + جبن عكاوي + زعتر بلدي + زيت زيتون — تنسيق المنصة",
+    qaCount: 4,
+    badgeAr: "تنسيق المنصة",
+  },
+  {
+    id: "demo-suq-vegetable-box",
+    titleAr: "صندوق خضار ريف دمشق الموفر",
+    category: "produce",
+    priceMajor: 95,
+    currency: "SAR",
+    vendorAr: "بساتين ريف دمشق",
+    firstParty: false,
+    vendorRating: 4.5,
+    vendorRatingCount: 120,
+    shipDays: 1,
+    inStock: true,
+    symbol: "shopping_basket",
+    summaryAr: "خيار بلدي، بندورة حورانية، نعناع — صندوق الأسبوع",
+    qaCount: 3,
+    badgeAr: "قطاف الغوطة",
+  },
 ];
+
+/** The storefront's own section headers — the attached design's seven
+ * market sections (title, stores line, the section's chip). The eighth
+ * category (عطور وعناية) has no section yet: its chip renders, its
+ * section waits for rows (the honest empty rule). */
+export interface SuqSection {
+  category: string;
+  titleAr: string;
+  /** The stores line under the section title (the design's own). */
+  vendorsLineAr: string;
+  /** The section chip (ساخن الآن / قطاف الزبداني…). */
+  chipAr: string;
+  symbol: string;
+}
+
+export const SUQ_SECTIONS: readonly SuqSection[] = [
+  { category: "bakery", titleAr: "أفران ومعجنات دمر والشام", vendorsLineAr: "مخبز ضاحية قدسيا الآلي • أفران ساحة قدسيا • تنور الشام", chipAr: "ساخن الآن", symbol: "bakery_dining" },
+  { category: "produce", titleAr: "الخضار والفواكه", vendorsLineAr: "مزارع وبساتين طازجة", chipAr: "قطاف الزبداني", symbol: "eco" },
+  { category: "meats", titleAr: "اللحوم والدواجن", vendorsLineAr: "لحوم بلدية ودواجن طازجة", chipAr: "ذبح يومي عواس", symbol: "restaurant" },
+  { category: "coffee", titleAr: "القهوة والمحامص", vendorsLineAr: "بن محمّص ومشروبات مختصة", chipAr: "تحميص اليوم", symbol: "coffee" },
+  { category: "fashion", titleAr: "الأزياء والملابس", vendorsLineAr: "أقمشة وأزياء متنوعة", chipAr: "بروكار دمشقي", symbol: "apparel" },
+  { category: "kids", titleAr: "الأطفال والمواليد", vendorsLineAr: "مستلزمات وألعاب الأطفال", chipAr: "قطن سوري ١٠٠٪", symbol: "child_care" },
+  { category: "homekitchen", titleAr: "الأسر المنتجة", vendorsLineAr: "مأكولات ومؤونة منزلية", chipAr: "طبخ منزلي شامي", symbol: "outdoor_grill" },
+];
+
+/** The offers rail — the design's three quick offers, each linking to its
+ * REAL product row (display badge + honest product price). */
+export interface SuqOffer {
+  badgeAr: string;
+  productId: string;
+  /** The offer's own line (the design's vendor note). */
+  noteAr: string;
+}
+
+export const SUQ_OFFERS: readonly SuqOffer[] = [
+  { badgeAr: "خصم ٣٠٪", productId: "demo-suq-breakfast-basket", noteAr: "فرن الضاحية + مزارع ريف دمشق" },
+  { badgeAr: "قطاف الغوطة", productId: "demo-suq-vegetable-box", noteAr: "خيار بلدي، بندورة حورانية، نعناع" },
+  { badgeAr: "عرض العصرونية", productId: "demo-suq-coffee-syrian-cardamom", noteAr: "نصف كيلو بن مع هال إكسترا" },
+];
+
+/** The storefront sections joined to their product rows (the browse
+ * composition: sections in the design's own order, each with its rows in
+ * the dataset's own order). A section with no rows is dropped honestly. */
+export function suqStorefrontSections(): ReadonlyArray<SuqSection & { rows: readonly StoreProduct[] }> {
+  return SUQ_SECTIONS.flatMap((s) => {
+    const rows = STORE_PRODUCTS.filter((p) => p.category === s.category);
+    return rows.length > 0 ? [{ ...s, rows }] : [];
+  });
+}
+
+/** The offers rail joined to its products (an offer whose product is
+ * missing drops honestly — same rule as the cart's stale ids). */
+export function suqOffers(): ReadonlyArray<SuqOffer & { product: StoreProduct }> {
+  return SUQ_OFFERS.flatMap((o) => {
+    const product = findStoreProduct(o.productId);
+    return product ? [{ ...o, product }] : [];
+  });
+}
 
 /** Find one display product (id is the page's own param — `demo-` guarded
  * at the parse boundary: an id without the prefix answers not-found). */
@@ -308,10 +659,11 @@ export function riyalGrammar(major: number): string {
   return "ريال";
 }
 
-/** The store price line: «N ريالات» with the grammar above (latn digits —
- * the owner's HTML number style). */
+/** The store price line: «N ريالات» with the grammar above. Digits follow
+ * the attached storefront design's own style (Arabic-Indic — the PR #502
+ * mockup renders ١٢,٠٠٠ everywhere; measured 2026-10-04). */
 export function storePriceLine(major: number): string {
-  const digits = new Intl.NumberFormat("ar-u-nu-latn").format(major);
+  const digits = new Intl.NumberFormat("ar-SA").format(major);
   return `${digits} ${riyalGrammar(major)}`;
 }
 
@@ -321,10 +673,11 @@ export function vendorLine(p: StoreProduct): string {
   if (p.vendorRating === null || p.vendorRatingCount === 0) {
     return `${p.vendorAr} — بائع جديد`;
   }
-  const digits = new Intl.NumberFormat("ar-u-nu-latn", {
+  const digits = new Intl.NumberFormat("ar-SA", {
     maximumFractionDigits: 1,
   }).format(p.vendorRating);
-  return `${p.vendorAr} — ${digits} من ٥ (${p.vendorRatingCount} تقييمًا)`;
+  const count = new Intl.NumberFormat("ar-SA").format(p.vendorRatingCount);
+  return `${p.vendorAr} — ${digits} من ٥ (${count} تقييمًا)`;
 }
 
 /* ── The cart (REAL cookie state — the framework's official contract) ──── */

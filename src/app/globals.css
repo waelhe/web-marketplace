@@ -5036,3 +5036,1068 @@ a.hy-kpi:hover,
 .reputation-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.75rem; }
 .reputation-cell { display: grid; gap: 0.25rem; padding: 0.75rem; border: 1px solid CanvasText22; border-radius: 0.75rem; }
 .reputation-value { font-weight: 800; font-size: 1.25rem; }
+
+/* ════════════════════════════════════════════════════════════════════
+   THE SUQ STOREFRONT LAYER (2026-10-04 — the owner's attached binding
+   design, PR #502 «استفد والتزم بالتصميم المرفق»): the سوق الحي mobile
+   storefront. Tokens transplanted VERBATIM from the mockup's own M3
+   Tailwind config (docs/design/suq-storefront-2026-10-04.html) into a
+   scoped `.suq` custom-property layer — the same transplant pattern the
+   owner's S10 code.md received as `.hy`. Typography: Tajawal (the
+   storefront layout's own next/font variable). No CSS framework (the
+   repo's standing measured rule); the mockup's Tailwind is the design's
+   AUTHORING tool, not the platform's adoption.
+   Spec: docs/superpowers/specs/2026-10-04-suq-storefront-design-adherence-spec.md
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── The token layer (verbatim M3 values from the attached design) ──── */
+
+.suq {
+  /* color tokens — the mockup's config, byte-verbatim */
+  --suq-primary: #000000;
+  --suq-on-primary: #ffffff;
+  --suq-primary-container: #131b2e;
+  --suq-on-primary-container: #7c839b;
+  --suq-primary-fixed: #dae2fd;
+  --suq-primary-fixed-dim: #bec6e0;
+  --suq-on-primary-fixed: #131b2e;
+  --suq-on-primary-fixed-variant: #3f465c;
+  --suq-secondary: #006c4a;
+  --suq-on-secondary: #ffffff;
+  --suq-secondary-container: #82f5c1;
+  --suq-on-secondary-container: #00714e;
+  --suq-secondary-fixed: #85f8c4;
+  --suq-secondary-fixed-dim: #68dba9;
+  --suq-on-secondary-fixed: #002114;
+  --suq-on-secondary-fixed-variant: #005137;
+  --suq-tertiary: #000000;
+  --suq-on-tertiary: #ffffff;
+  --suq-tertiary-container: #2f1500;
+  --suq-on-tertiary-container: #c76c00;
+  --suq-tertiary-fixed: #ffdcc3;
+  --suq-tertiary-fixed-dim: #ffb77d;
+  --suq-on-tertiary-fixed: #2f1500;
+  --suq-on-tertiary-fixed-variant: #6e3900;
+  --suq-error: #ba1a1a;
+  --suq-on-error: #ffffff;
+  --suq-error-container: #ffdad6;
+  --suq-on-error-container: #93000a;
+  --suq-background: #f7f9fb;
+  --suq-on-background: #191c1e;
+  --suq-surface: #f7f9fb;
+  --suq-on-surface: #191c1e;
+  --suq-on-surface-variant: #45464d;
+  --suq-surface-variant: #e0e3e5;
+  --suq-surface-dim: #d8dadc;
+  --suq-surface-bright: #f7f9fb;
+  --suq-surface-container-lowest: #ffffff;
+  --suq-surface-container-low: #f2f4f6;
+  --suq-surface-container: #eceef0;
+  --suq-surface-container-high: #e6e8ea;
+  --suq-surface-container-highest: #e0e3e5;
+  --suq-on-inverse-surface: #eff1f3;
+  --suq-inverse-surface: #2d3133;
+  --suq-inverse-primary: #bec6e0;
+  --suq-outline: #76777d;
+  --suq-outline-variant: #c6c6cd;
+  --suq-surface-tint: #565e74;
+
+  /* typography — the mockup's scale, mapped to the storefront's own
+     Tajawal variable (the layout sets --font-tajawal; Cairo is the
+     platform fallback) */
+  --suq-font: var(--font-tajawal), var(--font-cairo, system-ui), sans-serif;
+  --suq-text-display-lg-size: 2.25rem;  --suq-text-display-lg-lh: 3rem;  --suq-text-display-lg-ls: -0.02em;
+  --suq-text-display-lg-mobile-size: 1.75rem; --suq-text-display-lg-mobile-lh: 2.375rem; --suq-text-display-lg-mobile-ls: -0.01em;
+  --suq-text-headline-lg-size: 1.75rem; --suq-text-headline-lg-lh: 2.375rem;
+  --suq-text-headline-md-size: 1.25rem; --suq-text-headline-md-lh: 1.75rem;
+  --suq-text-title-lg-size: 1.125rem;   --suq-text-title-lg-lh: 1.625rem;
+  --suq-text-body-lg-size: 1rem;        --suq-text-body-lg-lh: 1.625rem;
+  --suq-text-body-md-size: 0.875rem;    --suq-text-body-md-lh: 1.375rem;
+  --suq-text-label-md-size: 0.8125rem;  --suq-text-label-md-lh: 1.125rem;
+  --suq-text-label-sm-size: 0.6875rem;  --suq-text-label-sm-lh: 1rem;
+
+  /* shape + spacing — the mockup's own */
+  --suq-radius: 1rem;
+  --suq-radius-lg: 2rem;
+  --suq-radius-xl: 3rem;
+  --suq-radius-full: 9999px;
+  --suq-margin-mobile: 1rem;
+  --suq-gutter-mobile: 0.75rem;
+  --suq-space-xs: 0.25rem;
+  --suq-space-sm: 0.5rem;
+  --suq-space-md: 1rem;
+  --suq-space-lg: 1.5rem;
+  --suq-space-xl: 2.5rem;
+
+  /* motion — the platform's own law, restated for this layer */
+  --suq-motion-fast: 120ms;
+  --suq-motion-base: 180ms;
+
+  /* the design's card/nav elevation vocabulary (M3 soft shadows) */
+  --suq-shadow-sm: 0 1px 2px rgb(25 28 30 / 0.06), 0 1px 3px rgb(25 28 30 / 0.08);
+  --suq-shadow-md: 0 2px 6px rgb(25 28 30 / 0.08), 0 1px 4px rgb(25 28 30 / 0.06);
+  --suq-shadow-xl: 0 8px 24px rgb(25 28 30 / 0.16);
+  --suq-shadow-2xl: 0 12px 32px rgb(25 28 30 / 0.22);
+
+  font-family: var(--suq-font);
+  background: var(--suq-surface);
+  color: var(--suq-on-surface);
+}
+
+/* ── The app frame: the mockup is a max-w-md mobile screen — the
+   storefront renders as a centered app column at every size ─────────── */
+
+.suq-frame {
+  max-inline-size: 28rem;
+  margin-inline: auto;
+  min-block-size: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── The market mode tabs (the design's 3-way selector) ─────────────── */
+
+.suq-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--suq-space-xs);
+  background: var(--suq-surface-container);
+  border-radius: var(--suq-radius);
+  padding: var(--suq-space-xs);
+  box-shadow: inset 0 1px 2px rgb(25 28 30 / 0.05);
+}
+.suq-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--suq-space-xs);
+  padding-block: 0.5rem;
+  padding-inline: 0.5rem;
+  border-radius: calc(var(--suq-radius) - 0.375rem);
+  font-size: var(--suq-text-label-sm-size);
+  line-height: var(--suq-text-label-sm-lh);
+  font-weight: 700;
+  color: var(--suq-on-surface);
+  background: var(--suq-surface-container-lowest);
+  border: 0;
+  text-decoration: none;
+  transition: background var(--suq-motion-fast) ease, color var(--suq-motion-fast) ease;
+}
+.suq-tab .material-symbols-outlined { font-size: 1rem; color: var(--suq-secondary); }
+.suq-tab[aria-current="page"] {
+  background: var(--suq-primary);
+  color: var(--suq-on-primary);
+  box-shadow: var(--suq-shadow-sm);
+}
+.suq-tab[aria-current="page"] .material-symbols-outlined { color: var(--suq-secondary-container); }
+
+/* ── The search bar (M3 shape; the tune affordance links to the real
+   advanced search surface) ──────────────────────────────────────────── */
+
+.suq-search { position: relative; }
+.suq-search .material-symbols-outlined.suq-search-icon {
+  position: absolute;
+  inset-inline-start: 0.875rem;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  font-size: 1.25rem;
+  color: var(--suq-outline);
+  pointer-events: none;
+}
+.suq-search input[type="search"] {
+  inline-size: 100%;
+  block-size: 3rem;
+  background: var(--suq-surface-container-lowest);
+  color: var(--suq-on-surface);
+  border: 1px solid var(--suq-surface-variant);
+  border-radius: calc(var(--suq-radius) - 0.25rem);
+  padding-inline-start: 2.75rem;
+  padding-inline-end: 3rem;
+  font: inherit;
+}
+.suq-search input[type="search"]::placeholder { color: color-mix(in oklab, var(--suq-on-surface-variant) 75%, transparent); }
+.suq-search input[type="search"]:focus-visible {
+  outline: 2px solid var(--suq-secondary);
+  outline-offset: 1px;
+  border-color: var(--suq-secondary);
+}
+.suq-tune {
+  position: absolute;
+  inset-inline-end: 0.625rem;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--suq-radius-full);
+  background: var(--suq-surface-container);
+  color: var(--suq-on-surface);
+  border: 0;
+  text-decoration: none;
+}
+.suq-tune .material-symbols-outlined { font-size: 1rem; }
+.suq-tune:hover { background: var(--suq-surface-variant); }
+
+/* ── The category chips rail (the design's 9 tiles) ─────────────────── */
+
+.suq-cats {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--suq-space-md);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: 0.375rem;
+  margin-inline: calc(var(--suq-margin-mobile) * -1);
+  padding-inline: var(--suq-margin-mobile);
+}
+.suq-cats::-webkit-scrollbar { display: none; }
+.suq-cat {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  text-decoration: none;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.suq-cat:active { transform: scale(0.95); }
+.suq-cat-tile {
+  inline-size: 4rem;
+  block-size: 4rem;
+  border-radius: var(--suq-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  background: var(--suq-surface-container);
+  border: 1px solid color-mix(in oklab, var(--suq-surface-variant) 60%, transparent);
+  box-shadow: var(--suq-shadow-sm);
+}
+.suq-cat-tile .material-symbols-outlined { font-size: 1.5rem; color: var(--suq-secondary); }
+.suq-cat-label {
+  font-size: var(--suq-text-label-sm-size);
+  line-height: var(--suq-text-label-sm-lh);
+  font-weight: 700;
+  color: var(--suq-on-surface);
+  text-align: center;
+  max-inline-size: 4.5rem;
+}
+.suq-cat[aria-current="page"] .suq-cat-tile {
+  background: var(--suq-primary);
+  border-color: transparent;
+  box-shadow: var(--suq-shadow-md);
+}
+.suq-cat[aria-current="page"] .suq-cat-tile .material-symbols-outlined { color: var(--suq-secondary-container); }
+.suq-cat[aria-current="page"] .suq-cat-label { color: var(--suq-primary); }
+
+/* ── The merchant CTA banner (the design's green-accent card) ───────── */
+
+.suq-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--suq-radius);
+  background: var(--suq-surface-container-lowest);
+  border: 1px solid color-mix(in oklab, var(--suq-secondary) 22%, transparent);
+  padding: var(--suq-space-md);
+  box-shadow: var(--suq-shadow-sm);
+}
+.suq-banner-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--suq-space-md);
+  margin-block-end: 0.625rem;
+}
+.suq-banner-icon {
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border-radius: var(--suq-radius);
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--suq-secondary-fixed) 30%, white);
+  color: color-mix(in oklab, var(--suq-secondary) 82%, black);
+  border: 1px solid color-mix(in oklab, var(--suq-secondary-fixed-dim) 55%, transparent);
+}
+.suq-banner-icon .material-symbols-outlined { font-size: 1.5rem; }
+.suq-banner-title {
+  font-size: var(--suq-text-title-lg-size);
+  line-height: var(--suq-text-title-lg-lh);
+  font-weight: 700;
+  color: var(--suq-primary);
+  margin: 0;
+}
+.suq-banner-body {
+  font-size: var(--suq-text-body-md-size);
+  line-height: var(--suq-text-body-md-lh);
+  color: var(--suq-on-surface-variant);
+  margin: 0 0 var(--suq-space-md);
+}
+.suq-banner-cta {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--suq-space-xs);
+  padding-block: 0.625rem;
+  padding-inline: var(--suq-space-md);
+  border-radius: calc(var(--suq-radius) - 0.375rem);
+  background: var(--suq-secondary);
+  color: var(--suq-on-secondary);
+  font-size: var(--suq-text-body-md-size);
+  font-weight: 700;
+  border: 0;
+  text-decoration: none;
+}
+.suq-banner-cta:hover { background: color-mix(in oklab, var(--suq-secondary) 92%, black); }
+.suq-banner-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  margin-block-start: 0.375rem;
+  font-size: var(--suq-text-label-sm-size);
+  color: var(--suq-on-surface-variant);
+}
+.suq-banner-login a {
+  color: var(--suq-secondary);
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+.suq-banner-login a:hover { text-decoration: underline; }
+.suq-banner-login .material-symbols-outlined { font-size: 0.8125rem; }
+
+/* ── The offers rail (the design's wide offer cards) ────────────────── */
+
+.suq-rail {
+  display: flex;
+  gap: var(--suq-space-sm);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: var(--suq-space-xs);
+  scroll-snap-type: x proximity;
+}
+.suq-rail::-webkit-scrollbar { display: none; }
+.suq-rail > * { scroll-snap-align: start; }
+
+.suq-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--suq-space-sm);
+  margin-block-end: var(--suq-space-md);
+}
+.suq-section-title-wrap { display: flex; align-items: center; gap: 0.625rem; min-inline-size: 0; }
+.suq-section-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--suq-text-label-sm-size);
+  font-weight: 700;
+  color: var(--suq-secondary);
+  background: color-mix(in oklab, var(--suq-secondary-fixed) 25%, white);
+  border: 1px solid color-mix(in oklab, var(--suq-secondary-fixed-dim) 45%, transparent);
+  padding-inline: 0.5rem;
+  padding-block: 0.125rem;
+  border-radius: var(--suq-radius-full);
+  white-space: nowrap;
+}
+.suq-section-chip .material-symbols-outlined { font-size: 0.875rem; }
+.suq-section-badge {
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: var(--suq-radius-full);
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--suq-tertiary-fixed) 35%, white);
+  color: var(--suq-on-tertiary-container);
+  border: 1px solid color-mix(in oklab, var(--suq-tertiary-fixed) 55%, transparent);
+  box-shadow: var(--suq-shadow-sm);
+}
+.suq-section-badge .material-symbols-outlined { font-size: 1.25rem; }
+.suq-section-title {
+  font-size: var(--suq-text-title-lg-size);
+  line-height: var(--suq-text-title-lg-lh);
+  font-weight: 700;
+  color: var(--suq-primary);
+  margin: 0;
+}
+.suq-section-sub {
+  font-size: var(--suq-text-label-sm-size);
+  font-weight: 500;
+  color: var(--suq-on-surface-variant);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suq-seeall {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-size: var(--suq-text-label-md-size);
+  font-weight: 700;
+  color: var(--suq-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.suq-seeall:hover { text-decoration: underline; }
+.suq-seeall .material-symbols-outlined { font-size: 1rem; }
+
+/* ── The offer card (the design's 280px quick-offer) ────────────────── */
+
+.suq-offer {
+  flex: 0 0 auto;
+  inline-size: min(17.5rem, 78vw);
+  background: var(--suq-surface-container-lowest);
+  border-radius: var(--suq-radius);
+  padding: var(--suq-space-sm);
+  box-shadow: var(--suq-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.suq-offer-top { display: flex; align-items: flex-start; gap: var(--suq-space-md); }
+.suq-offer-plate {
+  position: relative;
+  flex: 0 0 auto;
+  inline-size: 5rem;
+  block-size: 5rem;
+  border-radius: var(--suq-radius);
+  overflow: hidden;
+  background: var(--suq-surface-container);
+  display: grid;
+  place-items: center;
+}
+.suq-offer-plate .material-symbols-outlined { font-size: 2rem; color: var(--suq-secondary); }
+.suq-offer-badge {
+  position: absolute;
+  inset-block-start: 0.25rem;
+  inset-inline-start: 0.25rem;
+  background: var(--suq-secondary);
+  color: var(--suq-on-secondary);
+  font-size: var(--suq-text-label-sm-size);
+  font-weight: 700;
+  padding-inline: 0.375rem;
+  padding-block: 0.0625rem;
+  border-radius: var(--suq-radius-full);
+}
+.suq-offer-body { display: flex; flex-direction: column; min-inline-size: 0; }
+.suq-offer-vendor {
+  font-size: var(--suq-text-label-sm-size);
+  font-weight: 600;
+  color: var(--suq-secondary);
+  margin-block-end: 0.125rem;
+}
+.suq-offer-title {
+  font-size: var(--suq-text-body-md-size);
+  line-height: var(--suq-text-body-md-lh);
+  font-weight: 600;
+  color: var(--suq-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suq-offer-note {
+  font-size: var(--suq-text-label-sm-size);
+  color: var(--suq-on-surface-variant);
+  margin-block-start: 0.125rem;
+}
+.suq-offer-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--suq-space-sm);
+  margin-block-start: var(--suq-space-sm);
+}
+.suq-offer-price {
+  font-size: var(--suq-text-title-lg-size);
+  font-weight: 700;
+  color: var(--suq-primary);
+}
+
+/* ── The product card (the design's 170px market card) ──────────────── */
+
+.suq-card {
+  flex: 0 0 auto;
+  inline-size: 10.625rem;
+  background: var(--suq-surface-container-lowest);
+  border-radius: var(--suq-radius);
+  padding: 0.625rem;
+  box-shadow: var(--suq-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+.suq-card a { text-decoration: none; }
+.suq-card-plate {
+  position: relative;
+  inline-size: 100%;
+  block-size: 8rem;
+  border-radius: calc(var(--suq-radius) - 0.25rem);
+  overflow: hidden;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in oklab, var(--suq-secondary-fixed) 20%, var(--suq-surface-container)),
+      var(--suq-surface-container)
+    );
+  display: grid;
+  place-items: center;
+  margin-block-end: var(--suq-space-xs);
+}
+.suq-card-plate .material-symbols-outlined { font-size: 2.5rem; color: var(--suq-secondary); }
+.suq-card-badge {
+  position: absolute;
+  inset-block-start: 0.375rem;
+  inset-inline-start: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-size: var(--suq-text-label-sm-size);
+  font-weight: 700;
+  background: color-mix(in oklab, var(--suq-tertiary-fixed) 80%, white);
+  color: var(--suq-on-tertiary-container);
+  padding-inline: 0.5rem;
+  padding-block: 0.125rem;
+  border-radius: var(--suq-radius-full);
+  box-shadow: var(--suq-shadow-sm);
+}
+.suq-card-badge .material-symbols-outlined { font-size: 0.75rem; }
+.suq-card-vendor {
+  display: block;
+  font-size: var(--suq-text-label-sm-size);
+  font-weight: 600;
+  color: var(--suq-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suq-card-title {
+  font-size: var(--suq-text-body-md-size);
+  line-height: var(--suq-text-body-md-lh);
+  font-weight: 700;
+  color: var(--suq-primary);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.suq-card-title a { color: inherit; }
+.suq-card-title a:hover { text-decoration: underline; }
+.suq-card-desc {
+  font-size: var(--suq-text-label-sm-size);
+  color: var(--suq-outline);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suq-card-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--suq-space-xs);
+  margin-block-start: var(--suq-space-sm);
+  padding-block-start: var(--suq-space-xs);
+  border-block-start: 1px solid color-mix(in oklab, var(--suq-surface-variant) 55%, transparent);
+}
+.suq-card-price {
+  font-size: var(--suq-text-title-lg-size);
+  line-height: var(--suq-text-title-lg-lh);
+  font-weight: 700;
+  color: var(--suq-primary);
+}
+.suq-add {
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: var(--suq-radius-full);
+  display: grid;
+  place-items: center;
+  background: var(--suq-primary);
+  color: var(--suq-on-primary);
+  border: 0;
+  cursor: pointer;
+  transition: background var(--suq-motion-fast) ease;
+}
+.suq-add .material-symbols-outlined { font-size: 1.125rem; }
+.suq-add:hover { background: var(--suq-secondary); }
+.suq-add:active { transform: scale(0.92); }
+.suq-add form { display: contents; }
+.suq-add button { all: unset; display: grid; place-items: center; inline-size: 100%; block-size: 100%; cursor: pointer; border-radius: inherit; }
+.suq-add button:focus-visible { outline: 2px solid var(--suq-secondary); outline-offset: 2px; }
+.suq-add-sold {
+  font-size: var(--suq-text-label-sm-size);
+  color: var(--suq-on-surface-variant);
+  margin: 0;
+}
+
+/* ── The display badge + honest empty states ─────────────────────────── */
+
+.suq-display-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--suq-text-label-sm-size);
+  font-weight: 700;
+  color: var(--suq-on-secondary-container);
+  background: color-mix(in oklab, var(--suq-secondary-fixed) 30%, white);
+  border: 1px solid color-mix(in oklab, var(--suq-secondary-fixed-dim) 50%, transparent);
+  padding-inline: 0.5rem;
+  padding-block: 0.125rem;
+  border-radius: var(--suq-radius-full);
+}
+.suq-empty {
+  text-align: center;
+  padding: var(--suq-space-xl) var(--suq-space-md);
+  color: var(--suq-on-surface-variant);
+  font-size: var(--suq-text-body-md-size);
+}
+.suq-empty .material-symbols-outlined { font-size: 2rem; color: var(--suq-outline); display: block; margin-block-end: var(--suq-space-xs); }
+
+/* ── The unified cart bar (fixed bottom — REAL cart state only) ─────── */
+
+.suq-cartbar {
+  position: fixed;
+  inset-block-end: 4.75rem; /* above the floating pill nav */
+  inset-inline: 0;
+  z-index: 40;
+  background: var(--suq-primary);
+  color: var(--suq-on-primary);
+  border-block-start: 1px solid color-mix(in oklab, var(--suq-surface-variant) 30%, transparent);
+  box-shadow: var(--suq-shadow-2xl);
+}
+.suq-cartbar-inner {
+  max-inline-size: 28rem;
+  margin-inline: auto;
+  padding: var(--suq-space-md) var(--suq-space-md) calc(var(--suq-space-md) + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--suq-space-md);
+}
+.suq-cartbar-info { display: flex; align-items: center; gap: 0.625rem; min-inline-size: 0; }
+.suq-cartbar-bag {
+  position: relative;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: var(--suq-radius-full);
+  display: grid;
+  place-items: center;
+  background: var(--suq-secondary);
+  color: var(--suq-on-secondary);
+  flex-shrink: 0;
+}
+.suq-cartbar-bag .material-symbols-outlined { font-size: 1.125rem; }
+.suq-cartbar-count {
+  position: absolute;
+  inset-block-start: -0.25rem;
+  inset-inline-start: -0.25rem;
+  min-inline-size: 1rem;
+  block-size: 1rem;
+  border-radius: var(--suq-radius-full);
+  background: var(--suq-error);
+  color: var(--suq-on-error);
+  font-size: 0.625rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  padding-inline: 0.125rem;
+}
+.suq-cartbar-text { display: flex; flex-direction: column; min-inline-size: 0; }
+.suq-cartbar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--suq-text-body-md-size);
+  font-weight: 700;
+}
+.suq-cartbar-title .suq-cartbar-store {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--suq-secondary-fixed) 90%, transparent);
+  background: color-mix(in oklab, var(--suq-secondary-fixed) 18%, transparent);
+  padding-inline: 0.375rem;
+  border-radius: 0.25rem;
+}
+.suq-cartbar-summary {
+  font-size: var(--suq-text-label-sm-size);
+  color: color-mix(in oklab, var(--suq-on-primary) 75%, transparent);
+}
+.suq-cartbar-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--suq-secondary);
+  color: var(--suq-on-secondary);
+  padding-inline: 0.875rem;
+  padding-block: 0.5rem;
+  border-radius: var(--suq-radius-full);
+  font-size: var(--suq-text-label-md-size);
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--suq-shadow-md);
+  flex-shrink: 0;
+}
+.suq-cartbar-cta:hover { background: color-mix(in oklab, var(--suq-secondary) 92%, black); }
+.suq-cartbar-cta .material-symbols-outlined { font-size: 1rem; }
+
+/* ── The floating pill nav (the design's app chrome) ────────────────── */
+
+.suq-nav {
+  position: fixed;
+  inset-block-end: 1.25rem;
+  inset-inline: 0;
+  z-index: 50;
+  inline-size: min(24rem, calc(100% - 2rem));
+  margin-inline: auto;
+  background: color-mix(in oklab, var(--suq-surface-container-lowest) 95%, transparent);
+  backdrop-filter: blur(12px);
+  border-radius: var(--suq-radius-full);
+  box-shadow: var(--suq-shadow-2xl);
+  border: 1px solid color-mix(in oklab, var(--suq-surface-variant) 50%, transparent);
+  padding-inline: var(--suq-space-md);
+  padding-block: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.suq-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  padding-block: 0.25rem;
+  padding-inline: 0.375rem;
+  color: var(--suq-on-surface-variant);
+  text-decoration: none;
+  border: 0;
+  background: none;
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+.suq-nav-item .material-symbols-outlined { font-size: 1.25rem; }
+.suq-nav-item:hover { color: var(--suq-on-surface); }
+.suq-nav-item[aria-current="page"] { color: var(--suq-secondary); font-weight: 700; }
+.suq-nav-fab-slot { display: flex; flex-direction: column; align-items: center; margin-block-start: -1.75rem; }
+.suq-nav-fab {
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: var(--suq-radius-full);
+  display: grid;
+  place-items: center;
+  background: var(--suq-primary);
+  color: var(--suq-on-primary);
+  box-shadow: var(--suq-shadow-xl);
+  border: 0;
+  cursor: pointer;
+  outline: 4px solid var(--suq-surface);
+  transition: background var(--suq-motion-base) ease, rotate var(--suq-motion-base) ease;
+}
+.suq-nav-fab .material-symbols-outlined { font-size: 1.625rem; transition: rotate var(--suq-motion-base) ease; }
+.suq-nav-fab:hover .material-symbols-outlined { rotate: 90deg; }
+.suq-nav-fab:active { transform: scale(0.9); }
+.suq-nav-fab[aria-expanded="true"] { background: var(--suq-secondary); }
+.suq-nav-fab[aria-expanded="true"] .material-symbols-outlined { rotate: 45deg; }
+.suq-nav-fab:focus-visible { outline: 2px solid var(--suq-secondary); outline-offset: 2px; }
+.suq-nav-fab-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--suq-primary);
+  margin-block-start: 0.125rem;
+}
+
+/* ── The publish bottom sheet (the design's sheet modal) ────────────── */
+
+/* The house modal discipline (the market-create precedent): a NATIVE
+   <dialog> — free focus trap, free ESC, free backdrop — skinned as the
+   design's bottom sheet. The entry slides up (@starting-style). */
+dialog.suq-sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  margin: 0 auto;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  max-inline-size: 28rem;
+  inline-size: 100%;
+  translate: 0 0;
+  transition: translate var(--suq-motion-base) ease-out;
+}
+dialog.suq-sheet:not([open]) { display: none; }
+dialog.suq-sheet::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(2px);
+  transition: opacity var(--suq-motion-base) ease;
+}
+@starting-style {
+  dialog.suq-sheet[open] { translate: 0 100%; }
+  dialog.suq-sheet[open]::backdrop { opacity: 0; }
+}
+.suq-sheet-panel {
+  background: var(--suq-surface-container-lowest);
+  border-start-start-radius: 1.5rem;
+  border-start-end-radius: 1.5rem;
+  box-shadow: var(--suq-shadow-2xl);
+  border-block-start: 1px solid color-mix(in oklab, var(--suq-surface-variant) 40%, transparent);
+  padding: var(--suq-space-md);
+  padding-block-end: 7rem; /* clearance above the pill nav + safe area */
+  max-inline-size: 28rem;
+  margin-inline: auto;
+  max-block-size: min(75dvh, 46.9rem);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.suq-sheet-panel::-webkit-scrollbar { display: none; }
+.suq-sheet-handle {
+  inline-size: 2.5rem;
+  block-size: 0.25rem;
+  background: var(--suq-surface-variant);
+  border-radius: var(--suq-radius-full);
+  margin-inline: auto;
+  margin-block-end: var(--suq-space-md);
+}
+.suq-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--suq-space-sm);
+  padding-block-end: var(--suq-space-md);
+  border-block-end: 1px solid color-mix(in oklab, var(--suq-surface-variant) 40%, transparent);
+  margin-block-end: var(--suq-space-md);
+}
+.suq-sheet-head-icon {
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: var(--suq-radius-full);
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, var(--suq-secondary-fixed) 35%, white);
+  color: var(--suq-secondary);
+}
+.suq-sheet-head-icon .material-symbols-outlined { font-size: 1.25rem; }
+.suq-sheet-title {
+  font-size: var(--suq-text-title-lg-size);
+  line-height: var(--suq-text-title-lg-lh);
+  font-weight: 700;
+  color: var(--suq-primary);
+  margin: 0;
+}
+.suq-sheet-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--suq-text-label-sm-size);
+  color: var(--suq-on-surface-variant);
+  margin: 0;
+}
+.suq-sheet-sub .suq-dot { inline-size: 0.5rem; block-size: 0.5rem; border-radius: var(--suq-radius-full); background: var(--suq-secondary); }
+.suq-sheet-close {
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: var(--suq-radius-full);
+  display: grid;
+  place-items: center;
+  background: var(--suq-surface-container);
+  color: var(--suq-on-surface);
+  border: 0;
+  cursor: pointer;
+}
+.suq-sheet-close:hover { background: var(--suq-surface-variant); }
+.suq-intent-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.suq-intent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--suq-space-md);
+  padding: var(--suq-space-md);
+  border-radius: var(--suq-radius);
+  background: var(--suq-surface-container-low);
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--suq-motion-fast) ease, border-color var(--suq-motion-fast) ease;
+}
+.suq-intent:hover { background: var(--suq-surface-container); border-color: color-mix(in oklab, var(--suq-secondary) 20%, transparent); }
+.suq-intent:active { transform: scale(0.98); }
+.suq-intent-body { display: flex; align-items: center; gap: var(--suq-space-md); min-inline-size: 0; }
+.suq-intent-icon {
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border-radius: var(--suq-radius);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: color-mix(in oklab, var(--suq-secondary-fixed) 22%, white);
+  color: var(--suq-secondary);
+}
+.suq-intent-icon .material-symbols-outlined { font-size: 1.375rem; }
+.suq-intent-text { display: flex; flex-direction: column; min-inline-size: 0; }
+.suq-intent-title-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.suq-intent-title { font-size: var(--suq-text-body-md-size); font-weight: 700; color: var(--suq-primary); }
+.suq-intent:hover .suq-intent-title { color: var(--suq-secondary); }
+.suq-intent-chip {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding-inline: 0.5rem;
+  padding-block: 0.125rem;
+  border-radius: var(--suq-radius-full);
+  background: color-mix(in oklab, var(--suq-secondary-fixed) 30%, white);
+  color: var(--suq-on-secondary-container);
+}
+.suq-intent-desc {
+  font-size: var(--suq-text-label-sm-size);
+  color: var(--suq-on-surface-variant);
+  margin-block-start: 0.125rem;
+}
+.suq-intent-arrow { color: var(--suq-outline); }
+.suq-intent-arrow .material-symbols-outlined { font-size: 1.125rem; }
+.suq-intent:hover .suq-intent-arrow { translate: -2px 0; }
+
+/* ── The storefront page furniture ───────────────────────────────────── */
+
+.suq-page {
+  padding-inline: var(--suq-margin-mobile);
+  padding-block-start: var(--suq-space-sm);
+  padding-block-end: 10.5rem; /* cart bar + pill nav clearance */
+  display: flex;
+  flex-direction: column;
+  gap: var(--suq-space-lg);
+}
+.suq-page > section { display: flex; flex-direction: column; }
+.suq-headline {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--suq-text-title-lg-size);
+  line-height: var(--suq-text-title-lg-lh);
+  font-weight: 700;
+  color: var(--suq-primary);
+  margin: 0;
+}
+.suq-headline .suq-dot {
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: var(--suq-radius-full);
+  flex-shrink: 0;
+}
+.suq-headline .suq-dot-green { background: var(--suq-secondary); }
+.suq-headline .suq-dot-red { background: var(--suq-error); }
+.suq-headline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--suq-space-sm);
+  margin-block-end: 0.75rem;
+}
+.suq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.625rem, 1fr));
+  gap: var(--suq-space-sm);
+}
+.suq-grid .suq-card { inline-size: auto; }
+
+/* ── The storefront a11y + motion law (the platform's own) ──────────── */
+
+.suq :focus-visible {
+  outline: 2px solid var(--suq-secondary);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .suq *, .suq *::before, .suq *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ── The product detail surface (the .suq restyle) ─────────────────── */
+
+.suq-crumb {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  font-size: var(--suq-text-label-sm-size);
+  color: var(--suq-on-surface-variant);
+  margin: 0;
+}
+.suq-crumb a { color: var(--suq-secondary); font-weight: 700; text-decoration: none; }
+.suq-crumb a:hover { text-decoration: underline; }
+.suq-crumb .material-symbols-outlined { font-size: 1rem; color: var(--suq-outline); }
+
+.suq-detail {
+  background: var(--suq-surface-container-lowest);
+  border: 1px solid color-mix(in oklab, var(--suq-surface-variant) 55%, transparent);
+  border-radius: var(--suq-radius);
+  padding: var(--suq-space-md);
+  box-shadow: var(--suq-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--suq-space-sm);
+}
+.suq-detail-plate {
+  display: grid;
+  place-items: center;
+  block-size: 10rem;
+  border-radius: calc(var(--suq-radius) - 0.25rem);
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--suq-secondary-fixed) 20%, var(--suq-surface-container)),
+    var(--suq-surface-container)
+  );
+  margin-block-end: var(--suq-space-xs);
+}
+.suq-detail-plate .material-symbols-outlined { font-size: 3.5rem; color: var(--suq-secondary); }
+.suq-detail-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--suq-space-sm);
+  font-size: var(--suq-text-headline-md-size);
+  line-height: var(--suq-text-headline-md-lh);
+  font-weight: 700;
+  color: var(--suq-primary);
+  margin: 0;
+}
+.suq-detail-price {
+  font-size: var(--suq-text-headline-md-size);
+  font-weight: 700;
+  color: var(--suq-primary);
+  margin: 0;
+}
+.suq-detail-body {
+  font-size: var(--suq-text-body-md-size);
+  line-height: var(--suq-text-body-md-lh);
+  color: var(--suq-on-surface-variant);
+  margin: 0;
+}
+.suq-detail-buy {
+  display: flex;
+  align-items: center;
+  gap: var(--suq-space-md);
+  flex-wrap: wrap;
+  padding-block-start: var(--suq-space-sm);
+  border-block-start: 1px solid color-mix(in oklab, var(--suq-surface-variant) 55%, transparent);
+}
+
+.suq-qa { list-style: none; padding: 0; margin: var(--suq-space-sm) 0 0; display: grid; gap: var(--suq-space-md); }
+.suq-qa li {
+  border-block-start: 1px solid color-mix(in oklab, var(--suq-surface-variant) 55%, transparent);
+  padding-block-start: var(--suq-space-sm);
+}
+.suq-qa-q { font-weight: 700; color: var(--suq-primary); margin: 0 0 0.25rem; }
+.suq-qa-a { margin: 0; color: var(--suq-on-surface-variant); }
+.suq-qa-author { margin: 0.25rem 0 0; font-size: var(--suq-text-label-sm-size); color: var(--suq-outline); }

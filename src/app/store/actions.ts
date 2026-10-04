@@ -56,12 +56,16 @@ export async function addToCart(productId: string): Promise<void> {
   await writeCart(next);
   revalidatePath("/cart");
   revalidatePath(`/store/${productId}`);
+  // The storefront family's whole tree re-renders: the unified cart bar
+  // (the layout's server read) picks the new cart state — the attached
+  // design's own behavior (stay on the market screen, the bar updates).
   revalidatePath("/store");
-  // The official post-action navigation (next/navigation's redirect —
-  // the framework's own pattern for action-then-navigate): adding to
-  // the cart lands the buyer on the cart itself, the store's own
-  // single next step (the small-store UX: no client state, no toasts).
-  redirect("/cart");
+  revalidatePath("/store", "layout");
+  // The attached design (PR #502) keeps the buyer on the storefront —
+  // the cart bar's own «متابعة الطلب» is the single next step to /cart.
+  // (N14's redirect-to-cart gave way to the binding design's behavior;
+  // the official lane is unchanged: Server Action + cookie + fresh
+  // server render, no client state.)
 }
 
 /** Set an exact quantity (0 removes the line). */
